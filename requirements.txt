@@ -1,0 +1,11 @@
+networkx
+matplotlib
+stop-words
+nltk
+gensim
+ipywidgets
+tqdm
+pyfiglet
+numpy
+sklearn
+# jupyter nbextension enable --py widgetsnbextension
