@@ -8,4 +8,5 @@ tqdm
 pyfiglet
 numpy
 sklearn
+biterm
 # jupyter nbextension enable --py widgetsnbextension
