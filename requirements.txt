@@ -9,4 +9,5 @@ pyfiglet
 numpy
 sklearn
 biterm
+scipy
 # jupyter nbextension enable --py widgetsnbextension
