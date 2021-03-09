@@ -1,3 +1,5 @@
+GitPython
+tree_sitter
 networkx
 matplotlib
 stop-words
@@ -10,4 +12,5 @@ numpy
 sklearn
 biterm
 scipy
+jupyterlab
 # jupyter nbextension enable --py widgetsnbextension
