@@ -13,4 +13,5 @@ sklearn
 biterm
 scipy
 jupyterlab
+regex  # this one, as opposed to the standard re module, can also split strings with zero width patterns, which this project requires
 # jupyter nbextension enable --py widgetsnbextension
