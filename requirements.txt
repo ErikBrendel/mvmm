@@ -5,13 +5,14 @@ matplotlib
 stop-words
 nltk
 gensim
+python-Levenshtein
 ipywidgets
 tqdm
 pyfiglet
 numpy
 sklearn
 biterm
-scipy
 jupyterlab
 regex  # this one, as opposed to the standard re module, can also split strings with zero width patterns, which this project requires
+scipy
 # jupyter nbextension enable --py widgetsnbextension
