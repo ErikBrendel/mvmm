@@ -1,0 +1,3 @@
+# metric values will be exported here in plaintext format for use in the IDE plugin
+*
+!.gitignore
