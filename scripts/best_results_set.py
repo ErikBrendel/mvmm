@@ -1,42 +1,11 @@
 import numpy as np
-
 from tqdm.notebook import tqdm as log_progress
 from functools import partial
 log_progress = partial(log_progress, smoothing=0.1)
 
-def frange(start, stop, step):
-    if step > 0:
-        r = start
-        while r < stop - 0.0001:
-            yield r
-            r += step
-    else:
-        r = start
-        while r > stop + 0.0001:
-            yield r
-            r += step
-    yield stop
 
-def generate_one_distributions(dim, precision = 10):
-    """precision = how many steps between 0 and 1"""
-    decrement_step = -1 / precision
-    result = [0 for i in range(dim)]
-    
-    def fill_first(digits, total_value):
-        if digits == 1:
-            result[0] = total_value
-            yield result[:]
-            return
-        if total_value < 0.0001:
-            for i in range(digits):
-                result[i] = 0
-            yield result[:]
-            return
-        for val in frange(total_value, 0, decrement_step):
-            result[digits-1] = val
-            yield from fill_first(digits - 1, total_value - val)
-        
-    yield from fill_first(dim, 1)
+from util import *
+
 
 """  # OLD CLASS
 class BestResultsSet:
