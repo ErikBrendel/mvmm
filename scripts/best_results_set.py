@@ -1,8 +1,4 @@
 import numpy as np
-from tqdm.notebook import tqdm as log_progress
-from functools import partial
-
-log_progress = partial(log_progress, smoothing=0.1)
 
 from util import *
 

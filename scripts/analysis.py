@@ -135,6 +135,11 @@ def analyze_disagreements(repo, views, target_patterns, node_filter_func=None, n
         "Analyzing edges",
         force_non_parallel=True
     )
+    return pattern_results
+
+
+def interactive_analyze_disagreements(repo, views, target_patterns, node_filter_func=None, node_pair_filter_func=None):
+    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func, node_pair_filter_func)
 
     print("Results:")
     for i, (pattern, results) in enumerate(zip(target_patterns, pattern_results)):

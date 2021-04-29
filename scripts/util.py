@@ -1,7 +1,14 @@
-from tqdm.notebook import tqdm as log_progress
+import os
+
+if os.environ.get("JUPYTER"):
+    from tqdm.notebook import tqdm as log_progress
+else:
+    from tqdm import tqdm as log_progress
+
 from functools import partial
 
 log_progress = partial(log_progress, smoothing=0.1)
+
 import math
 import time
 import re
@@ -12,6 +19,7 @@ from multiprocessing import Pool, TimeoutError, Process, Manager, Lock
 # https://github.com/kuk/log-progress
 # https://github.com/tqdm/tqdm/blob/master/tqdm/notebook.py
 # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py
+
 
 def all_pairs(data):
     length = len(data)
