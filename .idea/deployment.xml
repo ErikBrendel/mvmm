@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="ebrendel@127.0.0.1:6000 key" createEmptyFolders="true">
+    <serverData>
+      <paths name="ebrendel@127.0.0.1:6000 key">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ebrendel/mvmm/scripts" local="$PROJECT_DIR$/scripts" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

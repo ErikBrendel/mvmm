@@ -18,7 +18,6 @@ JA_LANGUAGE = Language(language_lib_path, 'java')
 TS_LANGUAGE = Language(language_lib_path, 'typescript')
 PY_LANGUAGE = Language(language_lib_path, 'python')
 
-
 # methods on node:
 # 'child_by_field_id', 'child_by_field_name', 'children', 'end_byte', 'end_point', 'has_changes', 'has_error', 'is_named', 'sexp', 'start_byte', 'start_point', 'type', 'walk'
 

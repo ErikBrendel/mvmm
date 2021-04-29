@@ -1,3 +1,7 @@
-# please clone the tree-sitter language repos here
+# please clone the tree-sitter language repos here:
+# git clone https://github.com/tree-sitter/tree-sitter-java
+# git clone https://github.com/tree-sitter/tree-sitter-typescript
+# git clone https://github.com/tree-sitter/tree-sitter-python
+
 *
 !.gitignore
