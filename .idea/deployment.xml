@@ -5,8 +5,12 @@
       <paths name="ebrendel@127.0.0.1:6000 key">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/ebrendel/mvmm/scripts" local="$PROJECT_DIR$/scripts" />
+            <mapping deploy="/home/ebrendel/mvmm/scripts" local="$PROJECT_DIR$/scripts" web="/" />
           </mappings>
+          <excludedPaths>
+            <excludedPath path="/home/ebrendel/mvmm/scripts/.ipynb_checkpoints" />
+            <excludedPath path="/home/ebrendel/mvmm/scripts/__pycache__" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

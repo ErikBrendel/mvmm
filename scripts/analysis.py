@@ -1,53 +1,32 @@
 import pdb
+import sys
+import threading
+
 from best_results_set import BestResultsSet
 
 from local_repo import *
 from metrics import *
 
 
-def pattern_match(coupling_values, pattern, support_values):
-    """how good does this node-pair fit to the given pattern? Range: [0, 1]"""
-    error_sum = 0
-    values = 0
-    support = 1
-    for i, coupling_val in enumerate(coupling_values):
-        if pattern[i] is not None:
-            error = abs(pattern[i] - coupling_val)
-            error_sum += error * error
-            values += 1
-            support = min(support, support_values[i])
-    match_score = 1. - (error_sum / values)
-    return match_score, support
-
-
-# as seen in:
-# https://thelaziestprogrammer.com/python/a-multiprocessing-pool-pickle
-# https://thelaziestprogrammer.com/python/multiprocessing-pool-a-global-solution
-class StaticStuff:
-    analysis_graphs = None
-    target_patterns = None
-
-
-MIN_PATTERN_MATCH = 0  # how close the coupling values need to match the pattern to be a result
 MIN_SUPPORT = 0  # how much relative support a result needs to not be discarded
 
 
-def analyze_pair(pair):  # , analysis_graphs, target_patterns):
+def analyze_pair(pair, analysis_graphs, target_patterns):
     # pdb.set_trace()
     _a, _b = pair
     if _a.startswith(_b) or _b.startswith(_a):  # ignore nodes that are in a parent-child relation
         return None
     # for each view: how much support do we have for this node pair (minimum of both node support values)
     support_values = [min(supp_a, supp_b) for supp_a, supp_b in zip(*[
-        [g.get_normalized_support(node) for g in StaticStuff.analysis_graphs] for node in [_a, _b]
+        [g.get_normalized_support(node) for g in analysis_graphs] for node in [_a, _b]
     ])]
-    result = [[] for p in StaticStuff.target_patterns]
+    result = [[] for p in target_patterns]
     for a, b in [(_a, _b), (_b, _a)]:
-        normalized_coupling_values = tuple([g.get_normalized_coupling(a, b) for g in StaticStuff.analysis_graphs])
-        for i, pattern in enumerate(StaticStuff.target_patterns):
+        normalized_coupling_values = tuple(g.get_normalized_coupling(a, b) for g in analysis_graphs)
+        for i, pattern in enumerate(target_patterns):
             pattern_match_score_data = tuple(abs(p - v) for p, v in zip(pattern, normalized_coupling_values) if p is not None)
-            match_score, support = pattern_match(normalized_coupling_values, pattern, support_values)
-            if match_score >= MIN_PATTERN_MATCH and support >= MIN_SUPPORT:
+            support = min(support for i, support in enumerate(support_values) if pattern[i] is not None)
+            if support >= MIN_SUPPORT:
                 result[i].append(((*pattern_match_score_data, -support), (a, b, (*normalized_coupling_values, support))))
     return result
 
@@ -55,7 +34,7 @@ def analyze_pair(pair):  # , analysis_graphs, target_patterns):
 SHOW_RESULTS_SIZE = 50
 
 
-def analyze_disagreements(repo, views, target_patterns, node_filter_func=None, node_pair_filter_func=None):
+def analyze_disagreements(repo, views, target_patterns, node_filter_func=None):
     """
     when views are [struct, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled structurally, and the language does not matter
@@ -93,7 +72,7 @@ def analyze_disagreements(repo, views, target_patterns, node_filter_func=None, n
             for path in in_union_not_view[:5]:
                 print("      " + repo.url_for(path) + " " + path.split("/")[-1])
 
-    all_nodes = intersection_nodes
+    all_nodes = union_nodes
     print("Total node count:", len(all_nodes))
     print("Methods:", sum(repo.get_tree().find_node(path).get_type() == "method" for path in all_nodes))
     print("constructors:", sum(repo.get_tree().find_node(path).get_type() == "constructor" for path in all_nodes))
@@ -107,13 +86,6 @@ def analyze_disagreements(repo, views, target_patterns, node_filter_func=None, n
     print("all filtered nodes:", len(all_nodes))
 
     all_node_pairs = list(all_pairs(all_nodes))
-    if node_pair_filter_func is not None:
-        prev_len = len(all_node_pairs)
-        all_node_pairs = [pair for pair in all_node_pairs if node_pair_filter_func(pair[0], pair[1])]
-        if len(all_node_pairs) == 0:
-            print("NO NODES TO ANALYZE, ABORTING!")
-            return
-        print("Amount of node pairs to check:", len(all_node_pairs), "of", prev_len, "(" + str(len(all_node_pairs) / prev_len * 100) + "%)")
 
     # all_node_pairs = all_node_pairs[:1000]
 
@@ -126,11 +98,9 @@ def analyze_disagreements(repo, views, target_patterns, node_filter_func=None, n
         for i, part in enumerate(pattern_results_part):
             pattern_results[i].add_all(part)
 
-    StaticStuff.analysis_graphs = analysis_graphs
-    StaticStuff.target_patterns = target_patterns
     map_parallel(
         all_node_pairs,
-        analyze_pair,  # partial(analyze_pair, analysis_graphs=analysis_graphs, target_patterns=target_patterns),
+        partial(analyze_pair, analysis_graphs=analysis_graphs, target_patterns=target_patterns),
         handle_results,
         "Analyzing edges",
         force_non_parallel=True
@@ -138,8 +108,78 @@ def analyze_disagreements(repo, views, target_patterns, node_filter_func=None, n
     return pattern_results
 
 
-def interactive_analyze_disagreements(repo, views, target_patterns, node_filter_func=None, node_pair_filter_func=None):
-    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func, node_pair_filter_func)
+def analyze_disagreements_parallel(repo, views, target_patterns, node_filter_func=None):
+    analysis_graphs = list([MetricManager.get(repo, g) for g in views])
+    # for g in analysis_graphs:
+    #    g.propagate_down(2, 0.2)
+    analysis_graph_nodes = [g.get_node_set() for g in analysis_graphs]
+    union_nodes = list(set.union(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
+    union_nodes = [n for n in union_nodes if repo.get_tree().has_node(n)]
+    all_nodes = union_nodes
+    if node_filter_func is not None:
+        all_nodes = [node for node in all_nodes if node_filter_func(node)]
+
+    thread_count = 120
+    batch_size_pairs = 1000
+    batch_size = int(math.ceil(min(max(1.0, batch_size_pairs / len(all_nodes)), 10)))
+    jobs = [(start, min(start + batch_size, len(all_nodes))) for start in range(0, len(all_nodes), batch_size)][:500]
+    print("Parallel analysis with " + str(thread_count) + " threads, batch size " + str(batch_size) + ", resulting in " + str(len(jobs)) + " jobs to handle " + str(len(all_nodes)) + " nodes.")
+    worker_script = os.path.join(os.path.dirname(__file__), "analysis_worker.py")
+
+    workers = [
+        subprocess.Popen([sys.executable, worker_script, repo.name, json.dumps(views), json.dumps(target_patterns)], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for i in range(thread_count)]
+    for w in workers:
+        w.stdin.write((str(len(all_nodes)) + "\n").encode("utf-8"))
+    for node in all_nodes:
+        for w in workers:
+            w.stdin.write((node + "\n").encode("utf-8"))
+    for w in workers:
+        w.stdin.flush()
+
+    pattern_results = [
+        BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
+        for p in target_patterns]
+
+    def handle_results(pattern_results_part):
+        for i, part in enumerate(pattern_results_part):
+            pattern_results[i].add_all(part)
+
+    bar = log_progress(total=len(jobs), desc="Analyzing module pairs")
+
+    def process_interaction(worker: subprocess.Popen):
+        while True:
+            line = worker.stdout.readline().decode("utf-8").strip()
+            if not line:
+                break
+            if line.startswith("M"):  # process wants more jobs
+                if len(jobs) > 0:
+                    job = jobs.pop()
+                    worker.stdin.write(("J " + str(job[0]) + "," + str(job[1]) + "\n").encode("utf-8"))
+                    worker.stdin.flush()
+                    bar.update()
+                else:
+                    worker.stdin.write("Q\n".encode("utf-8"))
+                    worker.stdin.flush()
+                    worker.stdin.close()
+            elif line.startswith("R "):  # results coming in
+                handle_results(json.loads(line[len("R "):]))
+            else:
+                print("[AW] " + line.rstrip())  # message from analysis worker
+
+    worker_handlers = [threading.Thread(target=process_interaction, args=(w,)) for w in workers]
+    for h in worker_handlers:
+        h.start()
+    for h in worker_handlers:
+        h.join()
+    bar.close()
+
+    print("Done")
+    return pattern_results
+
+
+def interactive_analyze_disagreements(repo, views, target_patterns, node_filter_func=None):
+    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func)
 
     print("Results:")
     for i, (pattern, results) in enumerate(zip(target_patterns, pattern_results)):

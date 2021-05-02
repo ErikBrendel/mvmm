@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import pickle
 import networkx as nx
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy.spatial import distance
 import os
 import pdb
@@ -97,6 +98,7 @@ class NodeSetCouplingGraph(CouplingGraph):
 
 class NormalizeSupport(ABC):
     def __init__(self):
+        self.normalized_support_per_node_cache = {}
         self.median_maximum_support_cache = None
 
     """@abstractmethod
@@ -109,12 +111,18 @@ class NormalizeSupport(ABC):
         This should depend on how much data (including children) we have for this node, relative to how much data is normal in this graph.
         It should also be outlier-stable, so that having median-much data maybe results in a support score of 0.5?
         """
+        if node in self.normalized_support_per_node_cache:
+            return self.normalized_support_per_node_cache[node]
         abs_supp = self.get_absolute_support(node)
         median, maximum = self.get_absolute_support_median_and_max()
         if abs_supp <= median:
-            return 0.5 * abs_supp / median
+            support = 0.5 * abs_supp / median
+            self.normalized_support_per_node_cache[node] = support
+            return support
         else:
-            return 0.5 + (0.5 * (abs_supp - median) / (maximum - median))
+            support = 0.5 + (0.5 * (abs_supp - median) / (maximum - median))
+            self.normalized_support_per_node_cache[node] = support
+            return support
 
     def get_absolute_support_median_and_max(self):
         if self.median_maximum_support_cache is None:
@@ -246,9 +254,9 @@ class NormalizeCouplingWithChildren:
 
 class ExplicitCouplingGraph(NormalizeCouplingWithChildren, NormalizeSupportWithChildren, NodeSetCouplingGraph):
     def __init__(self, name):
-        NodeSetCouplingGraph.__init__(self, name)
         NormalizeCouplingWithChildren.__init__(self)
         NormalizeSupportWithChildren.__init__(self)
+        NodeSetCouplingGraph.__init__(self, name)
         self.g = nx.Graph()
 
     def get_node_set(self):

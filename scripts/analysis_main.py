@@ -1,7 +1,5 @@
-import logging
+import logging; logging.basicConfig(level=logging.INFO)
 import pdb
-
-logging.basicConfig(level=logging.INFO)
 import pyfiglet
 
 from local_repo import *
@@ -10,28 +8,25 @@ from metrics import *
 from analysis import *
 
 repos = [
-    "ErikBrendel/LudumDare",  # 8 minutes BTM
-    "eclipse/eclipse.jdt.core",  # from duerschmidt
-    "jenkinsci/jenkins",
-    "wumpz/jhotdraw",  # TODO instead use wrandelshofer/jhotdraw and sub-directories as projects from there
-    "neuland/jade4j",
-    "jfree/jfreechart",
-    "brettwooldridge/HikariCP",  # 1.2h BTM
-    "adamfisk/LittleProxy",  # 1.5h BTM
-    "dynjs/dynjs",  # 2.5h BTM
-    # "SonarSource/sonarqube",  # quite big / prob. several hours BTM
-    "square/okhttp",
-    "eclipse/che",
-    "elastic/elasticsearch",
-    "apache/camel",
-    "jOOQ/jOOQ",
-]
-repos = [
     # "wrandelshofer/jhotdraw/JHotDraw",
     # "wrandelshofer/jhotdraw/jhotdraw6",
     # "wrandelshofer/jhotdraw/jhotdraw7",
     # "wrandelshofer/jhotdraw/jhotdraw8",
-    "ErikBrendel/LudumDare",
+    "wumpz/jhotdraw",
+    # "ErikBrendel/LudumDare",  # 8 minutes BTM
+    # "eclipse/eclipse.jdt.core",  # from duerschmidt
+    # "jenkinsci/jenkins",
+    # "neuland/jade4j",
+    # "jfree/jfreechart",
+    # "brettwooldridge/HikariCP",  # 1.2h BTM
+    # "adamfisk/LittleProxy",  # 1.5h BTM
+    # "dynjs/dynjs",  # 2.5h BTM
+    # "SonarSource/sonarqube",  # quite big / prob. several hours BTM
+    # "square/okhttp",
+    # "eclipse/che",
+    # "elastic/elasticsearch",
+    # "apache/camel",
+    # "jOOQ/jOOQ",
 ]
 
 for repo in repos:
@@ -65,18 +60,14 @@ for repo in repos:
         return tree_node.get_type() == "method" and tree_node.get_line_span() >= 2
 
 
-    def node_pair_filter(node_a_path, node_b_path):
-        return True  # path_module_distance(node_a_path, node_b_path) >= 6
-
-
-    results = analyze_disagreements(r, ["structural", "evolutionary", "linguistic", "module_distance"], [
+    results = analyze_disagreements_parallel(r, ["structural", "evolutionary", "linguistic", "module_distance"], [
         [0, 1, 1, 1, "Non-struct?"],
         [1, 1, 1, 0, "Too far apart"],
         [0, 0, 1, 0, "Independent Feature duplication"],
         [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
         [1, None, 0, 1, "Weakly modularized code"],
         [0, 0, 0, 1, "Close but totally unrelated"],
-    ], node_filter, node_pair_filter)
+    ], node_filter)
     print(results)
 
 print("\nProgram is over!")
