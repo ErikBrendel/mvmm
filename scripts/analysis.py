@@ -35,39 +35,6 @@ def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Option
     return results
 
 
-def serialize_results(results: PairAnalysisResultsType, all_nodes: List[str], n1: int, n2: int) -> str:
-    def get_node_index(name: str) -> int:
-        if name == all_nodes[n1]:
-            return n1
-        elif name == all_nodes[n2]:
-            return n2
-        else:
-            raise Exception("Unknown node for serialization!")
-    def ftos(f: float) -> str:
-        if abs(f) < 0.0000001:
-            return "0"
-        elif abs(f - 1) < 0.0000001:
-            return "1"
-        else:
-            return f'{f:.7f}'
-    return ";".join(
-        ":".join(
-            ",".join([*[ftos(x) for x in result[0]], str(get_node_index(result[1][0])), str(get_node_index(result[1][1])), *[ftos(x) for x in result[1][2]]])
-            for result in result_list)
-        for result_list in results)
-    # return json.dumps(results)
-
-
-def parse_results(data: str, all_nodes: List[str], target_patterns: List[List[Union[float, None, str]]]) -> PairAnalysisResultsType:
-    def to_result(single_data: str) -> AnalysisResultType:
-        parts = single_data.split(",")
-        varlength = (len(parts) - 2) // 2
-        return tuple(float(x) for x in parts[0:varlength]), (all_nodes[int(parts[varlength])], all_nodes[int(parts[varlength + 1])], tuple(float(x) for x in parts[varlength + 2:]))
-    results = [[to_result(single_data) for single_data in result_list.split(":")] for result_list in data.split(";")]
-    return results
-    # return json.loads(data)
-
-
 SHOW_RESULTS_SIZE = 50
 
 
@@ -126,7 +93,7 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
 
     # all_node_pairs = all_node_pairs[:1000]
 
-    print("Going parallel...")
+    print("Going single-threaded...")
     pattern_results = [
         BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
         for p in target_patterns]
@@ -163,6 +130,10 @@ def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, n
     print("Parallel analysis with " + str(thread_count) + " threads, batch size " + str(batch_size) + ", resulting in " + str(len(jobs)) + " jobs to handle " + str(len(all_nodes)) + " nodes.")
     worker_script = os.path.join(os.path.dirname(__file__), "analysis_worker.py")
 
+    threads_ready_bar = log_progress(total=thread_count, desc="Starting parallel analysis workers")
+    jobs_given_bar = log_progress(total=len(jobs), desc="Analyzing module pairs")
+    results_received_bar = log_progress(total=thread_count*len(target_patterns), desc="Collecting results from parallel workers")
+
     workers = [
         subprocess.Popen([sys.executable, worker_script, repo.name, json.dumps(views), json.dumps(target_patterns)], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
         for i in range(thread_count)]
@@ -178,29 +149,36 @@ def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, n
         BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
         for p in target_patterns]
 
-    def handle_results(pattern_results_part):
-        for i, part in enumerate(pattern_results_part):
-            pattern_results[i].add_all(part)
-
-    bar = log_progress(total=len(jobs), desc="Analyzing module pairs")
 
     def process_interaction(worker: subprocess.Popen):
         while True:
-            line = worker.stdout.readline().decode("utf-8").strip()
+            line = worker.stdout.readline().decode("utf-8").rstrip()
             if not line:
                 break
-            if line.startswith("M"):  # process wants more jobs
+            if line == "R":
+                threads_ready_bar.update()
+                if threads_ready_bar.n >= threads_ready_bar.total:
+                    threads_ready_bar.close()
+                line = "M"
+            if line == "M":  # process wants more jobs
                 if len(jobs) > 0:
                     job = jobs.pop()
                     worker.stdin.write(("J " + str(job[0]) + "," + str(job[1]) + "\n").encode("utf-8"))
                     worker.stdin.flush()
-                    bar.update()
+                    jobs_given_bar.update()
                 else:
-                    worker.stdin.write("Q\n".encode("utf-8"))
-                    worker.stdin.flush()
-                    worker.stdin.close()
-            elif line.startswith("R "):  # results coming in
-                handle_results(parse_results(line[len("R "):], all_nodes, target_patterns))
+                    try:
+                        worker.stdin.write("D\n".encode("utf-8"))  # Done with jobs, please give results now
+                        worker.stdin.flush()
+                        worker.stdin.close()
+                    except Exception as e:
+                        print("Exception while closing worker thread:", e)
+            elif line.startswith("T "):  # aggregated results coming in
+                results_received_bar.update()
+                if results_received_bar.n >= results_received_bar.total:
+                    results_received_bar.close()
+                parsed_line = line.split(" ", 2)
+                pattern_results[int(parsed_line[1])].add_all(json.loads(parsed_line[2]))
             else:
                 print("[AW] " + line.rstrip())  # message from analysis worker
 
@@ -209,7 +187,10 @@ def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, n
         h.start()
     for h in worker_handlers:
         h.join()
-    bar.close()
+    jobs_given_bar.close()
+
+    for r in pattern_results:
+        r.trim()
 
     print("Done")
     return pattern_results

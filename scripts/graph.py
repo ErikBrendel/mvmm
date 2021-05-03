@@ -34,7 +34,7 @@ class CouplingGraph(ABC):
             pickle.dump(self, f)
 
     @staticmethod
-    def load(repo_name, name):
+    def load(repo_name, name) -> 'CouplingGraph':
         with open(CouplingGraph.pickle_path(repo_name, name), 'rb') as f:
             return pickle.load(f)
 

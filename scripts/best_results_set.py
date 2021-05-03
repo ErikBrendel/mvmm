@@ -1,43 +1,9 @@
+import random
+
 import numpy as np
+from scipy.spatial import ConvexHull
 
 from util import *
-
-"""  # OLD CLASS
-class BestResultsSet:
-    def __init__(self, dimension_count, result_keep_size):
-        self.dimension_count = dimension_count
-        self.result_keep_size = result_keep_size
-        self.data = []  # pair of ([coordinates per dimension], user-data)
-        self.total_amount = 0
-    
-    def add_all(self, new_data):
-        self.data += new_data
-        self.total_amount += len(new_data)
-        self.trim_maybe()
-        
-    def get_best(self, dim_weights):
-        def sort_key(datum):
-            return sum(datum[0][i] * weight for i, weight in enumerate(dim_weights))
-        self.data.sort(key=sort_key)
-        return self.data[:self.result_keep_size]
-    
-    def trim_maybe(self):
-        if len(self.data) > self.result_keep_size * 10 * self.dimension_count:
-            self.trim()
-    
-    def trim(self):
-        result_keep_tolerance = 2  # higher = keep more, but better chance at not accidentally removing important stuff
-        sampling_accuracy = 10  # higher = more runtime, but more acurately detecting required important data
-        # previous_size = len(self.data)
-        important_data = set()
-        prev_result_keep_size = self.result_keep_size
-        self.result_keep_size *= result_keep_tolerance
-        for dim_weight in log_progress(list(generate_one_distributions(self.dimension_count, sampling_accuracy)), desc="Trimming"):
-            important_data.update(self.get_best(dim_weight))
-        self.result_keep_size = prev_result_keep_size
-        self.data = list(important_data)
-        # print("Trimming reduced from", previous_size, "to", len(self.data), "elements")
-"""  # NEW CLASS
 
 
 class BestResultsSet:
@@ -69,12 +35,36 @@ class BestResultsSet:
         return (self.data[i] for i in ind)
 
     def trim(self):
-        result_keep_tolerance = 5  # higher = keep more, but better chance at not accidentally removing important stuff
-        sampling_accuracy = 5  # higher = more runtime, but more acurately detecting required important data
-        # previous_size = len(self.data)
-        important_data = set()
-        for dim_weight in log_progress(list(generate_one_distributions(self.dimension_count, sampling_accuracy)), desc="Trimming"):
-            important_data.update(self.get_best_unsorted(dim_weight, result_keep_tolerance))
-        self.data = list(important_data)
-        # print("Trimming reduced from", previous_size, "to", len(self.data), "elements")
-# """
+        if len(self.data) < 10:
+            return
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html
+        # http://www.qhull.org/html/qh-quick.htm#options
+        # import pprofile
+        # profiler = pprofile.Profile()
+        # with profiler:
+        dimensions = len(self.data[0][0])
+        random.shuffle(self.data)
+        hull_points = set()
+        data_coordinates_indices = [(x[0], ind) for ind, x in enumerate(self.data)]
+        hull_data = None
+        for _it in range(self.result_keep_size):
+            for d in range(len(data_coordinates_indices[0][0]) - 1, -1, -1):  # eliminate degenerate dimensions
+                if all(x[d] == data_coordinates_indices[0][0][d] for x, ind in data_coordinates_indices):
+                    # print("Removing degenerate dimension " + str(d))
+                    data_coordinates_indices = [(tuple(x[:d]+x[d+1:]), ind) for x, ind in data_coordinates_indices]
+                    hull_data = None
+            if hull_data is None:
+                hull_data = [x for x, ind in data_coordinates_indices]
+            hull = ConvexHull(hull_data)
+            hull_points.update(data_coordinates_indices[i][1] for i in hull.vertices)
+            remove_indices(data_coordinates_indices, hull.vertices)
+            remove_indices(hull_data, hull.vertices)
+            if len(data_coordinates_indices) < dimensions + 2:
+                return  # just abort the whole trimming: all of the data points are important!
+        print("Reduced result size from " + str(len(self.data)) + " to " + str(len(hull_points)))
+        self.data = list(self.data[ind] for ind in hull_points)
+
+        # import uuid
+        # profiler.dump_stats("trim-stats-" + str(uuid.uuid1()) + ".txt")
+        # print("Saved profiling results!")
+

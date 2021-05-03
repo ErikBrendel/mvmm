@@ -141,7 +141,7 @@ class MetricManager:
             MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
             return graph
         print("No precalculated " + name + " values found, starting calculations...")
-        graph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
+        graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
         print("Calculated " + name + " values, saving them now...")
         graph.save(repo.name)
         getattr(MetricsGeneration(repo), "post_" + name)(graph)

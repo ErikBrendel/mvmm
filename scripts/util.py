@@ -305,6 +305,28 @@ def path_module_distance(a, b):
     return len(steps_a) + len(steps_b) - (min_len * 2)
 
 
+def remove_indices(list_to_modify, indices_list):
+    # removes all the elements in the list_to_modify, and fills those empty places up
+    # with not-to-removable elements from the back of the list, super-fast.
+    # assumes that the second parameter is way smaller than the first one
+    # inspired by: https://stackoverflow.com/a/8313120/4354423
+    indices_list.sort()
+    indices_set = set(indices_list)
+    back_move_pointer = len(list_to_modify) - 1
+    while back_move_pointer in indices_set:
+        back_move_pointer -= 1
+    for index_to_remove in indices_list:
+        if index_to_remove >= back_move_pointer:
+            break
+        list_to_modify[index_to_remove] = list_to_modify[back_move_pointer]
+        back_move_pointer -= 1
+        while back_move_pointer in indices_set:
+            back_move_pointer -= 1
+    result_length = len(list_to_modify) - len(indices_list)
+    del list_to_modify[result_length:]
+    # list_to_modify[:] = [x for i, x in enumerate(list_to_modify) if i not in indices]
+
+
 if __name__ == "__MAIN__":
     print(len(list(generate_one_distributions(5, 5))))
     for x in generate_one_distributions(5, 5):

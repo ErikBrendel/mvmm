@@ -10,7 +10,7 @@ for f in os.listdir("images"):
 
 DIM = 3  # 2/3
 np.random.seed(19680801)
-brs = BestResultsSet(DIM, 10)
+brs = BestResultsSet(DIM, 3)
 N = 100
 
 
@@ -31,20 +31,23 @@ def random_in_circle():
 
 for i in range(N):
     print(i)
-    for l in range(20):
+    for l in range(1):
         print(l)
         brs.add_all([(random_in_circle(), tuple(np.random.rand(1))) for e in range(10000)])
-    break
+    if i % 10 == 0:
+        brs.trim()
     data_copy = brs.data[:]
+
 
     best_data = set()
     for dim_weight in generate_one_distributions(brs.dimension_count, 10):
-        best_data.update(brs.get_best_unsorted(dim_weight))
+        best_data.update(brs.get_best(dim_weight))
+
 
 
     def get_color(d):
         is_best = d in best_data
-        is_hull = brs.bad_hull is not None and d in brs.bad_hull
+        is_hull = False
         if is_best:
             if is_hull:
                 return [0.7, 0, 0, 0.9]
@@ -83,5 +86,6 @@ for i in range(N):
             k += 1
             ax.view_init(elev=20, azim=azim)
             plt.savefig('images/image_' + str(i).zfill(5) + "_" + str(k).zfill(3) + '.png')
+        break
     plt.savefig('images/image_' + str(i).zfill(5) + '.png')
     plt.close()

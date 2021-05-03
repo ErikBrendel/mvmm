@@ -4,13 +4,13 @@ from analysis import *
 # print(sys.argv)
 [_self_script_name, repo_name, views, patterns_str] = sys.argv
 views = json.loads(views)
-patterns: PatternsType = json.loads(patterns_str)
+target_patterns: PatternsType = json.loads(patterns_str)
 
 print("creating repo")
 repo = LocalRepo(repo_name)
 print("creating repo done")
 print(repo.name)
-print(patterns)
+print(target_patterns)
 
 # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
 total_nodes = int(input())
@@ -26,11 +26,21 @@ for g in analysis_graphs:
     for n in node_list:
         g.get_normalized_support(n)
 
-print("M")
+pattern_results = [
+    BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
+    for p in target_patterns]
+
+
+def handle_results(pattern_results_part):
+    for i, part in enumerate(pattern_results_part):
+        pattern_results[i].add_all(part)
+
+
+print("R")
 sys.stdout.flush()
 while True:
     command = input()
-    if command.startswith("Q"):  # Quit
+    if command.startswith("D"):  # Done with jobs, please give results now
         break
     elif command.startswith("J"):  # New job!
         # import pprofile;
@@ -40,9 +50,9 @@ while True:
         start_nodes = node_list[range_start:range_end]
         for n1 in range(range_start, range_end):
             for n2 in range(0, n1):
-                results = analyze_pair((node_list[n1], node_list[n2]), analysis_graphs, patterns)
+                results = analyze_pair((node_list[n1], node_list[n2]), analysis_graphs, target_patterns)
                 if results is not None:
-                    print("R " + serialize_results(results, node_list, n1, n2))
+                    handle_results(results)
         print("M")
         sys.stdout.flush()
         # profiler.dump_stats("/home/ebrendel/mvmm/scripts/profiling-stats.txt")
@@ -50,4 +60,8 @@ while True:
     else:
         print("Unknown command: " + command)
         sys.stdout.flush()
-print("Analysis worker closing")
+for i, results in enumerate(pattern_results):
+    results.trim()
+    print("T " + str(i) + " " + json.dumps(results.data))
+    sys.stdout.flush()
+print("Analysis worker closing " + ",".join(str(len(r.data)) for r in pattern_results))
