@@ -60,7 +60,7 @@ for repo in repos:
         return tree_node.get_type() == "method" and tree_node.get_line_span() >= 2
 
 
-    results = analyze_disagreements_parallel(r, ["structural", "evolutionary", "linguistic", "module_distance"], [
+    results = analyze_disagreements(r, ["structural", "evolutionary", "linguistic", "module_distance"], [
         [0, 1, 1, 1, "Non-struct?"],
         [1, 1, 1, 0, "Too far apart"],
         [0, 0, 1, 0, "Independent Feature duplication"],

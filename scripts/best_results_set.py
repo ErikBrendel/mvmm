@@ -55,13 +55,15 @@ class BestResultsSet:
                     hull_data = None
             if hull_data is None:
                 hull_data = [x for x, ind in data_coordinates_indices]
-            hull = ConvexHull(hull_data)
+            if len(hull_data[0]) < 2:
+                return  # degenerate nodes? just don't trim...
+            hull = ConvexHull(hull_data, qhull_options="Qs")
             hull_points.update(data_coordinates_indices[i][1] for i in hull.vertices)
             remove_indices(data_coordinates_indices, hull.vertices)
             remove_indices(hull_data, hull.vertices)
             if len(data_coordinates_indices) < dimensions + 2:
                 return  # just abort the whole trimming: all of the data points are important!
-        print("Reduced result size from " + str(len(self.data)) + " to " + str(len(hull_points)))
+        # print("Reduced result size from " + str(len(self.data)) + " to " + str(len(hull_points)))
         self.data = list(self.data[ind] for ind in hull_points)
 
         # import uuid

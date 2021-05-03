@@ -1,4 +1,5 @@
 import pdb
+import random
 import sys
 import threading
 
@@ -38,7 +39,7 @@ def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Option
 SHOW_RESULTS_SIZE = 50
 
 
-def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None):
+def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None, parallel=True):
     """
     when views are [struct, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled structurally, and the language does not matter
@@ -50,8 +51,6 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
         return
 
     analysis_graphs = list([MetricManager.get(repo, g) for g in views])
-    # for g in analysis_graphs:
-    #    g.propagate_down(2, 0.2)
     analysis_graph_nodes = [g.get_node_set() for g in analysis_graphs]
     intersection_nodes = list(set.intersection(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
     intersection_nodes = [n for n in intersection_nodes if repo.get_tree().has_node(n)]
@@ -89,6 +88,13 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
         all_nodes = [node for node in all_nodes if node_filter_func(node)]
     print("all filtered nodes:", len(all_nodes))
 
+    if parallel:
+        return find_disagreement_results_parallel(repo, views, target_patterns, all_nodes)
+    else:
+        return find_disagreement_results_serial(analysis_graphs, target_patterns, all_nodes)
+
+
+def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsType, all_nodes: List[str]):
     all_node_pairs = list(all_pairs(all_nodes))
 
     # all_node_pairs = all_node_pairs[:1000]
@@ -112,21 +118,13 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
     return pattern_results
 
 
-def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, node_filter_func=None):
-    analysis_graphs = list([MetricManager.get(repo, g) for g in views])
-    # for g in analysis_graphs:
-    #    g.propagate_down(2, 0.2)
-    analysis_graph_nodes = [g.get_node_set() for g in analysis_graphs]
-    union_nodes = list(set.union(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
-    union_nodes = [n for n in union_nodes if repo.get_tree().has_node(n)]
-    all_nodes: List[str] = union_nodes
-    if node_filter_func is not None:
-        all_nodes = [node for node in all_nodes if node_filter_func(node)]
-
+def find_disagreement_results_parallel(repo, views, target_patterns: PatternsType, all_nodes: List[str]):
+    random.shuffle(all_nodes)
     thread_count = 120
     batch_size_pairs = 1000
     batch_size = int(math.ceil(min(max(1.0, batch_size_pairs / len(all_nodes)), 10)))
     jobs = [(start, min(start + batch_size, len(all_nodes))) for start in range(0, len(all_nodes), batch_size)]
+    random.shuffle(jobs)
     print("Parallel analysis with " + str(thread_count) + " threads, batch size " + str(batch_size) + ", resulting in " + str(len(jobs)) + " jobs to handle " + str(len(all_nodes)) + " nodes.")
     worker_script = os.path.join(os.path.dirname(__file__), "analysis_worker.py")
 
@@ -149,13 +147,15 @@ def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, n
         BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
         for p in target_patterns]
 
-
     def process_interaction(worker: subprocess.Popen):
         while True:
             line = worker.stdout.readline().decode("utf-8").rstrip()
             if not line:
+                pdb.set_trace()
+                continue
+            if line == "Q":
                 break
-            if line == "R":
+            elif line == "R":
                 threads_ready_bar.update()
                 if threads_ready_bar.n >= threads_ready_bar.total:
                     threads_ready_bar.close()
@@ -188,6 +188,7 @@ def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, n
     for h in worker_handlers:
         h.join()
     jobs_given_bar.close()
+    print("All workers are closed!")
 
     for r in pattern_results:
         r.trim()
@@ -196,8 +197,8 @@ def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, n
     return pattern_results
 
 
-def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None):
-    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func)
+def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None, parallel=True):
+    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func, parallel)
 
     print("Results:")
     for i, (pattern, results) in enumerate(zip(target_patterns, pattern_results)):

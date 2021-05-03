@@ -6,20 +6,14 @@ from analysis import *
 views = json.loads(views)
 target_patterns: PatternsType = json.loads(patterns_str)
 
-print("creating repo")
 repo = LocalRepo(repo_name)
-print("creating repo done")
-print(repo.name)
-print(target_patterns)
 
 # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
 total_nodes = int(input())
-print("total nodes: " + str(total_nodes))
 
 node_list = []
 for n in range(total_nodes):
     node_list.append(input().strip())
-print("received " + str(len(node_list)) + " nodes")
 
 analysis_graphs = list([MetricManager.get(repo, g) for g in views])
 for g in analysis_graphs:
@@ -65,3 +59,4 @@ for i, results in enumerate(pattern_results):
     print("T " + str(i) + " " + json.dumps(results.data))
     sys.stdout.flush()
 print("Analysis worker closing " + ",".join(str(len(r.data)) for r in pattern_results))
+print("Q")
