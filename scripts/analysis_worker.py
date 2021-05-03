@@ -2,9 +2,9 @@ from local_repo import *
 from analysis import *
 
 # print(sys.argv)
-[_self_script_name, repo_name, views, patterns] = sys.argv
+[_self_script_name, repo_name, views, patterns_str] = sys.argv
 views = json.loads(views)
-patterns = json.loads(patterns)
+patterns: PatternsType = json.loads(patterns_str)
 
 print("creating repo")
 repo = LocalRepo(repo_name)
@@ -40,9 +40,9 @@ while True:
         start_nodes = node_list[range_start:range_end]
         for n1 in range(range_start, range_end):
             for n2 in range(0, n1):
-                result = analyze_pair((node_list[n1], node_list[n2]), analysis_graphs, patterns)
-                if result is not None:
-                    print("R " + json.dumps(result))
+                results = analyze_pair((node_list[n1], node_list[n2]), analysis_graphs, patterns)
+                if results is not None:
+                    print("R " + serialize_results(results, node_list, n1, n2))
         print("M")
         sys.stdout.flush()
         # profiler.dump_stats("/home/ebrendel/mvmm/scripts/profiling-stats.txt")

@@ -10,8 +10,12 @@ from metrics import *
 
 MIN_SUPPORT = 0  # how much relative support a result needs to not be discarded
 
+AnalysisResultType = Tuple[Tuple[float, ...], Tuple[str, str, Tuple[float, ...]]]
+PairAnalysisResultsType = List[List[AnalysisResultType]]
+PatternsType = List[List[Union[float, int, None, str]]]
 
-def analyze_pair(pair, analysis_graphs, target_patterns):
+
+def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Optional[PairAnalysisResultsType]:
     # pdb.set_trace()
     _a, _b = pair
     if _a.startswith(_b) or _b.startswith(_a):  # ignore nodes that are in a parent-child relation
@@ -20,21 +24,54 @@ def analyze_pair(pair, analysis_graphs, target_patterns):
     support_values = [min(supp_a, supp_b) for supp_a, supp_b in zip(*[
         [g.get_normalized_support(node) for g in analysis_graphs] for node in [_a, _b]
     ])]
-    result = [[] for p in target_patterns]
+    results: List[List[AnalysisResultType]] = [[] for p in target_patterns]
     for a, b in [(_a, _b), (_b, _a)]:
         normalized_coupling_values = tuple(g.get_normalized_coupling(a, b) for g in analysis_graphs)
         for i, pattern in enumerate(target_patterns):
             pattern_match_score_data = tuple(abs(p - v) for p, v in zip(pattern, normalized_coupling_values) if p is not None)
             support = min(support for i, support in enumerate(support_values) if pattern[i] is not None)
             if support >= MIN_SUPPORT:
-                result[i].append(((*pattern_match_score_data, -support), (a, b, (*normalized_coupling_values, support))))
-    return result
+                results[i].append(((*pattern_match_score_data, -support), (a, b, (*normalized_coupling_values, support))))
+    return results
+
+
+def serialize_results(results: PairAnalysisResultsType, all_nodes: List[str], n1: int, n2: int) -> str:
+    def get_node_index(name: str) -> int:
+        if name == all_nodes[n1]:
+            return n1
+        elif name == all_nodes[n2]:
+            return n2
+        else:
+            raise Exception("Unknown node for serialization!")
+    def ftos(f: float) -> str:
+        if abs(f) < 0.0000001:
+            return "0"
+        elif abs(f - 1) < 0.0000001:
+            return "1"
+        else:
+            return f'{f:.7f}'
+    return ";".join(
+        ":".join(
+            ",".join([*[ftos(x) for x in result[0]], str(get_node_index(result[1][0])), str(get_node_index(result[1][1])), *[ftos(x) for x in result[1][2]]])
+            for result in result_list)
+        for result_list in results)
+    # return json.dumps(results)
+
+
+def parse_results(data: str, all_nodes: List[str], target_patterns: List[List[Union[float, None, str]]]) -> PairAnalysisResultsType:
+    def to_result(single_data: str) -> AnalysisResultType:
+        parts = single_data.split(",")
+        varlength = (len(parts) - 2) // 2
+        return tuple(float(x) for x in parts[0:varlength]), (all_nodes[int(parts[varlength])], all_nodes[int(parts[varlength + 1])], tuple(float(x) for x in parts[varlength + 2:]))
+    results = [[to_result(single_data) for single_data in result_list.split(":")] for result_list in data.split(";")]
+    return results
+    # return json.loads(data)
 
 
 SHOW_RESULTS_SIZE = 50
 
 
-def analyze_disagreements(repo, views, target_patterns, node_filter_func=None):
+def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None):
     """
     when views are [struct, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled structurally, and the language does not matter
@@ -108,21 +145,21 @@ def analyze_disagreements(repo, views, target_patterns, node_filter_func=None):
     return pattern_results
 
 
-def analyze_disagreements_parallel(repo, views, target_patterns, node_filter_func=None):
+def analyze_disagreements_parallel(repo, views, target_patterns: PatternsType, node_filter_func=None):
     analysis_graphs = list([MetricManager.get(repo, g) for g in views])
     # for g in analysis_graphs:
     #    g.propagate_down(2, 0.2)
     analysis_graph_nodes = [g.get_node_set() for g in analysis_graphs]
     union_nodes = list(set.union(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
     union_nodes = [n for n in union_nodes if repo.get_tree().has_node(n)]
-    all_nodes = union_nodes
+    all_nodes: List[str] = union_nodes
     if node_filter_func is not None:
         all_nodes = [node for node in all_nodes if node_filter_func(node)]
 
     thread_count = 120
     batch_size_pairs = 1000
     batch_size = int(math.ceil(min(max(1.0, batch_size_pairs / len(all_nodes)), 10)))
-    jobs = [(start, min(start + batch_size, len(all_nodes))) for start in range(0, len(all_nodes), batch_size)][:500]
+    jobs = [(start, min(start + batch_size, len(all_nodes))) for start in range(0, len(all_nodes), batch_size)]
     print("Parallel analysis with " + str(thread_count) + " threads, batch size " + str(batch_size) + ", resulting in " + str(len(jobs)) + " jobs to handle " + str(len(all_nodes)) + " nodes.")
     worker_script = os.path.join(os.path.dirname(__file__), "analysis_worker.py")
 
@@ -163,7 +200,7 @@ def analyze_disagreements_parallel(repo, views, target_patterns, node_filter_fun
                     worker.stdin.flush()
                     worker.stdin.close()
             elif line.startswith("R "):  # results coming in
-                handle_results(json.loads(line[len("R "):]))
+                handle_results(parse_results(line[len("R "):], all_nodes, target_patterns))
             else:
                 print("[AW] " + line.rstrip())  # message from analysis worker
 
@@ -178,7 +215,7 @@ def analyze_disagreements_parallel(repo, views, target_patterns, node_filter_fun
     return pattern_results
 
 
-def interactive_analyze_disagreements(repo, views, target_patterns, node_filter_func=None):
+def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None):
     pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func)
 
     print("Results:")
