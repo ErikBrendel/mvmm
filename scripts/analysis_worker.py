@@ -58,5 +58,5 @@ for i, results in enumerate(pattern_results):
     results.trim()
     print("T " + str(i) + " " + json.dumps(results.data))
     sys.stdout.flush()
-print("Analysis worker closing " + ",".join(str(len(r.data)) for r in pattern_results))
+print("Analysis worker closing with result sizes: " + ",".join(str(len(r.data)) for r in pattern_results))
 print("Q")

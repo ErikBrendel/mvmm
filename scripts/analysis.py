@@ -88,10 +88,17 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
         all_nodes = [node for node in all_nodes if node_filter_func(node)]
     print("all filtered nodes:", len(all_nodes))
 
+    pattern_results = None
     if parallel:
-        return find_disagreement_results_parallel(repo, views, target_patterns, all_nodes)
+        pattern_results = find_disagreement_results_parallel(repo, views, target_patterns, all_nodes)
     else:
-        return find_disagreement_results_serial(analysis_graphs, target_patterns, all_nodes)
+        pattern_results = find_disagreement_results_serial(analysis_graphs, target_patterns, all_nodes)
+
+    # TODO do this in parallel as well once all the part results came in!
+    for r in log_progress(pattern_results, desc="Trimming merged result sets"):
+        r.trim()
+    print("Done")
+    return pattern_results
 
 
 def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsType, all_nodes: List[str]):
@@ -125,6 +132,7 @@ def find_disagreement_results_parallel(repo, views, target_patterns: PatternsTyp
     batch_size = int(math.ceil(min(max(1.0, batch_size_pairs / len(all_nodes)), 10)))
     jobs = [(start, min(start + batch_size, len(all_nodes))) for start in range(0, len(all_nodes), batch_size)]
     random.shuffle(jobs)
+    thread_count = min(thread_count, len(jobs))
     print("Parallel analysis with " + str(thread_count) + " threads, batch size " + str(batch_size) + ", resulting in " + str(len(jobs)) + " jobs to handle " + str(len(all_nodes)) + " nodes.")
     worker_script = os.path.join(os.path.dirname(__file__), "analysis_worker.py")
 
@@ -179,7 +187,7 @@ def find_disagreement_results_parallel(repo, views, target_patterns: PatternsTyp
                     results_received_bar.close()
                 parsed_line = line.split(" ", 2)
                 pattern_results[int(parsed_line[1])].add_all(json.loads(parsed_line[2]))
-            else:
+            elif not line.startswith("Using precalculated "):  # if it is some special output
                 print("[AW] " + line.rstrip())  # message from analysis worker
 
     worker_handlers = [threading.Thread(target=process_interaction, args=(w,)) for w in workers]
@@ -190,10 +198,6 @@ def find_disagreement_results_parallel(repo, views, target_patterns: PatternsTyp
     jobs_given_bar.close()
     print("All workers are closed!")
 
-    for r in pattern_results:
-        r.trim()
-
-    print("Done")
     return pattern_results
 
 

@@ -10,8 +10,8 @@ for f in os.listdir("images"):
 
 DIM = 3  # 2/3
 np.random.seed(19680801)
-brs = BestResultsSet(DIM, 3)
-N = 100
+brs = BestResultsSet(DIM, 4)
+N = 101
 
 
 def random_in_circle():
@@ -33,7 +33,7 @@ for i in range(N):
     print(i)
     for l in range(1):
         print(l)
-        brs.add_all([(random_in_circle(), tuple(np.random.rand(1))) for e in range(10000)])
+        brs.add_all([(random_in_circle(), tuple(np.random.rand(1))) for e in range(5000)])
     if i % 10 == 0:
         brs.trim()
     data_copy = brs.data[:]

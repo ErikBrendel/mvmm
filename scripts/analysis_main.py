@@ -67,7 +67,7 @@ for repo in repos:
         [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
         [1, None, 0, 1, "Weakly modularized code"],
         [0, 0, 0, 1, "Close but totally unrelated"],
-    ], node_filter)
+    ], node_filter, parallel=True)
     print(results)
 
 print("\nProgram is over!")

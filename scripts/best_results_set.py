@@ -42,7 +42,6 @@ class BestResultsSet:
         # import pprofile
         # profiler = pprofile.Profile()
         # with profiler:
-        dimensions = len(self.data[0][0])
         random.shuffle(self.data)
         hull_points = set()
         data_coordinates_indices = [(x[0], ind) for ind, x in enumerate(self.data)]
@@ -53,17 +52,27 @@ class BestResultsSet:
                     # print("Removing degenerate dimension " + str(d))
                     data_coordinates_indices = [(tuple(x[:d]+x[d+1:]), ind) for x, ind in data_coordinates_indices]
                     hull_data = None
-            if hull_data is None:
-                hull_data = [x for x, ind in data_coordinates_indices]
-            if len(hull_data[0]) < 2:
+            dimensions = len(data_coordinates_indices[0][0])
+            if dimensions < 2:
                 return  # degenerate nodes? just don't trim...
-            hull = ConvexHull(hull_data, qhull_options="Qs")
-            hull_points.update(data_coordinates_indices[i][1] for i in hull.vertices)
-            remove_indices(data_coordinates_indices, hull.vertices)
-            remove_indices(hull_data, hull.vertices)
+            if hull_data is None:
+                # add fake points to limit the hull to our quadrant only
+                outer_points = [([1] * dimensions) for _p in range(dimensions + 1)]
+                hull_data = outer_points + [x for x, ind in data_coordinates_indices]
+            # update outer points
+            min_values = [min(coords[d] for coords, ind in data_coordinates_indices) + 0.000001 for d in range(dimensions)]
+            fake_point_count = dimensions + 1
+            for d in range(dimensions):
+                hull_data[d][d] = min_values[d]
+            # do the hull
+            hull = ConvexHull(hull_data)  # qhull_options="Qs QJ0.001" ?
+            actual_indices = [i - fake_point_count for i in hull.vertices if i >= fake_point_count]
+            hull_points.update(data_coordinates_indices[i][1] for i in actual_indices)
+            remove_indices(data_coordinates_indices, actual_indices)
+            remove_indices(hull_data, [i for i in hull.vertices if i >= fake_point_count])
             if len(data_coordinates_indices) < dimensions + 2:
                 return  # just abort the whole trimming: all of the data points are important!
-        # print("Reduced result size from " + str(len(self.data)) + " to " + str(len(hull_points)))
+        print("Reduced result size from " + str(len(self.data)) + " to " + str(len(hull_points)))
         self.data = list(self.data[ind] for ind in hull_points)
 
         # import uuid
