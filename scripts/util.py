@@ -1,4 +1,5 @@
 import os
+from typing import *
 
 if os.environ.get("JUPYTER"):
     from tqdm.notebook import tqdm as log_progress
@@ -325,6 +326,15 @@ def remove_indices(list_to_modify, indices_list):
     result_length = len(list_to_modify) - len(indices_list)
     del list_to_modify[result_length:]
     # list_to_modify[:] = [x for i, x in enumerate(list_to_modify) if i not in indices]
+
+
+def fill_none_with_other(hole_list: List[Optional[any]], filler: List[any]):
+    """replace all the None elements in the given list with the values from the filler list"""
+    try:
+        for f in filler:
+            hole_list[hole_list.index(None)] = f
+    except ValueError:
+        return  # happens when no more None values are present
 
 
 if __name__ == "__MAIN__":

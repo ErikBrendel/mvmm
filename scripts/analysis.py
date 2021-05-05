@@ -5,15 +5,12 @@ import threading
 
 from best_results_set import BestResultsSet
 
+from custom_types import *
 from local_repo import *
 from metrics import *
 
 
 MIN_SUPPORT = 0  # how much relative support a result needs to not be discarded
-
-AnalysisResultType = Tuple[Tuple[float, ...], Tuple[str, str, Tuple[float, ...]]]
-PairAnalysisResultsType = List[List[AnalysisResultType]]
-PatternsType = List[List[Union[float, int, None, str]]]
 
 
 def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Optional[PairAnalysisResultsType]:
@@ -39,7 +36,7 @@ def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Option
 SHOW_RESULTS_SIZE = 50
 
 
-def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None, parallel=True):
+def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType, node_filter_func=None, parallel=True, ignore_previous_results=False) -> Optional[List[BestResultsSet]]:
     """
     when views are [struct, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled structurally, and the language does not matter
@@ -49,6 +46,16 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
     if not all([len(p) >= len(views) for p in target_patterns]):
         print("Patterns need at least one element per graph!")
         return
+
+    result_sets: List[Optional[BestResultsSet]] = [None for p in target_patterns]
+    if not ignore_previous_results:
+        for i, pattern in enumerate(target_patterns):
+            result = BestResultsSet.load(BestResultsSet.get_name(repo.name, views, pattern))
+            if result is not None:
+                result_sets[i] = result
+
+    if all(r is not None for r in result_sets):
+        return result_sets
 
     analysis_graphs = list([MetricManager.get(repo, g) for g in views])
     analysis_graph_nodes = [g.get_node_set() for g in analysis_graphs]
@@ -88,20 +95,25 @@ def analyze_disagreements(repo, views, target_patterns: PatternsType, node_filte
         all_nodes = [node for node in all_nodes if node_filter_func(node)]
     print("all filtered nodes:", len(all_nodes))
 
-    pattern_results = None
+    required_patterns = [p for p, r in zip(target_patterns, result_sets) if r is None]
+    calculated_results: List[BestResultsSet]
     if parallel:
-        pattern_results = find_disagreement_results_parallel(repo, views, target_patterns, all_nodes)
+        calculated_results = find_disagreement_results_parallel(repo, views, required_patterns, all_nodes)
     else:
-        pattern_results = find_disagreement_results_serial(analysis_graphs, target_patterns, all_nodes)
+        calculated_results = find_disagreement_results_serial(analysis_graphs, required_patterns, all_nodes)
 
     # TODO do this in parallel as well once all the part results came in!
-    for r in log_progress(pattern_results, desc="Trimming merged result sets"):
+    for r in log_progress(calculated_results, desc="Trimming merged result sets"):
         r.trim()
     print("Done")
-    return pattern_results
+
+    fill_none_with_other(result_sets, calculated_results)
+    for r, p in zip(result_sets, target_patterns):
+        r.export(BestResultsSet.get_name(repo.name, views, p))
+    return result_sets
 
 
-def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsType, all_nodes: List[str]):
+def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
     all_node_pairs = list(all_pairs(all_nodes))
 
     # all_node_pairs = all_node_pairs[:1000]
@@ -125,7 +137,7 @@ def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsT
     return pattern_results
 
 
-def find_disagreement_results_parallel(repo, views, target_patterns: PatternsType, all_nodes: List[str]):
+def find_disagreement_results_parallel(repo, views, target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
     random.shuffle(all_nodes)
     thread_count = 120
     batch_size_pairs = 1000

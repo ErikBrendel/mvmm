@@ -2,6 +2,7 @@ import logging; logging.basicConfig(level=logging.INFO)
 import pdb
 import pyfiglet
 
+from custom_types import *
 from local_repo import *
 from repos import *
 from metrics import *
@@ -12,8 +13,8 @@ repos = [
     # "wrandelshofer/jhotdraw/jhotdraw6",
     # "wrandelshofer/jhotdraw/jhotdraw7",
     # "wrandelshofer/jhotdraw/jhotdraw8",
-    "wumpz/jhotdraw",
-    # "ErikBrendel/LudumDare",  # 8 minutes BTM
+    # "wumpz/jhotdraw",
+    "ErikBrendel/LudumDare",  # 8 minutes BTM
     # "eclipse/eclipse.jdt.core",  # from duerschmidt
     # "jenkinsci/jenkins",
     # "neuland/jade4j",
@@ -34,7 +35,7 @@ for repo in repos:
     print(pyfiglet.figlet_format(r.name))
     r.update()
 
-    for view in ["structural", "evolutionary", "linguistic"]:  # ["structural", "evolutionary", "linguistic"]
+    for view in []:  # ["structural", "evolutionary", "linguistic"]
         # MetricManager.clear(r, view)
 
         coupling_graph = MetricManager.get(r, view)
@@ -68,6 +69,6 @@ for repo in repos:
         [1, None, 0, 1, "Weakly modularized code"],
         [0, 0, 0, 1, "Close but totally unrelated"],
     ], node_filter, parallel=True)
-    print(results)
+    print([len(r.data) for r in results])
 
 print("\nProgram is over!")
