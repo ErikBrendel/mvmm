@@ -1,17 +1,3 @@
-import networkx as nx
-from networkx.readwrite import json_graph
-import json
-import matplotlib.pyplot as plt
-import numpy as np
-import math
-import time
-from typing import List
-import re
-import regex  # the cooler "re"
-from random import shuffle
-from functools import partial
-import pdb
-
 from util import *
 from graph import *
 from local_repo import *
@@ -80,7 +66,7 @@ class MetricsGeneration:
 
         context = StructuralContext(self.repo)
         context.couple_files_by_import(coupling_graph)
-        context.couple_by_ineritance(coupling_graph)
+        context.couple_by_inheritance(coupling_graph)
         context.couple_members_by_content(coupling_graph)
         coupling_graph.cleanup(3)
         flush_unresolvable_vars()

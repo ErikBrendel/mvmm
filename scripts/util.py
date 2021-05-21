@@ -186,7 +186,7 @@ def debounce(s):
     """
 
     def decorate(f):
-        t = None
+        t: Optional[float] = None
 
         def wrapped(*args, **kwargs):
             nonlocal t

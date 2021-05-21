@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 from parsing import *
 from util import *
 from local_repo import *
@@ -10,7 +12,7 @@ ignored_types = set(builtin_types + stl_types + obj_methods)
 error_query = JA_LANGUAGE.query("(ERROR) @err")
 
 
-def _has_error(file) -> List[str]:
+def _has_error(file) -> bool:
     errors = error_query.captures(file.get_tree().root_node)
     return len(errors) > 1
 
@@ -32,14 +34,14 @@ def flush_unresolvable_vars():
         print("Unknown type for var:", var)
 
 
-class Env:
+class Env(ABC):
     """an identifier-lookup environment"""
 
     def __init__(self, context, path):
         self.context = context
         self.path = path
 
-    def get_env_for_name(self, compound_name):
+    def get_env_for_name(self, compound_name) -> Optional['Env']:
         if compound_name in ignored_types:
             return None
         if compound_name.endswith("]") and "[" in compound_name:
@@ -54,39 +56,41 @@ class Env:
         elif "." in compound_name:
             [first_step, rest] = compound_name.split(".", 1)
             step_result = self.get_env_for_single_name(first_step)
-            if step_result is None: return None
+            if step_result is None:
+                return None
             return step_result.get_env_for_name(rest)
         else:
             return self.get_env_for_single_name(compound_name)
 
-    def get_env_for_single_name(self, name):
-        print("Abstract env cannot resolve a name!")
-        return None
+    @abstractmethod
+    def get_env_for_single_name(self, name) -> Optional['Env']:
+        pass
 
-    def get_env_for_array_access(self):
+    def get_env_for_array_access(self) -> Optional['Env']:
         print("This env cannot be array-accessed")
         return None
 
-    def get_result_type_env(self):
+    @abstractmethod
+    def get_result_type_envs(self) -> List['Env']:
         """For methods: the return type. For fields: their variable type. For classes: self"""
-        print("Abstract env does not have a return value!")
-        return None
+        pass
 
-    def get_self_paths(self):
+    def get_self_paths(self) -> list[str]:
         """return all the paths that are present in this envs definition"""
         """Might be zero (nested env), one (class / method) or multiple (compound generic type)"""
         return []
 
-    def get_ungeneric_env(self):
-        return self
+    def get_ungeneric_env(self) -> Optional['RepoTreeEnv']:
+        return None
 
-    def debug_location_info(self):
+    @abstractmethod
+    def debug_location_info(self) -> str:
         pass
 
 
 class EnvWrapper(Env):
     def __init__(self, wrapped):
-        Env.__init__(wrapped.context, wrapped.path)
+        Env.__init__(self, wrapped.context, wrapped.path)
         self.wrapped = wrapped
 
     def get_env_for_single_name(self, name):
@@ -95,8 +99,8 @@ class EnvWrapper(Env):
     def get_env_for_array_access(self):
         return self.wrapped.get_env_for_array_access()
 
-    def get_result_type_env(self):
-        return self.wrapped.get_result_type_env()
+    def get_result_type_envs(self):
+        return self.wrapped.get_result_type_envs()
 
     def get_self_paths(self):
         return self.wrapped.get_self_paths()
@@ -145,15 +149,18 @@ class RepoTreeEnv(Env):
         else:
             return RepoTreeEnv(self.context, self.node.parent)
 
-    def get_result_type_env(self):
-        result_type_env = self.context.get_result_type(self.path)
-        if result_type_env is None:
-            return self  # if we don't know our type, we might as well be our own (happens e.g. in "Util.foo()")
-        return result_type_env
+    def get_result_type_envs(self):
+        result_type_envs = self.context.get_result_types(self.path)
+        if len(result_type_envs) == 0:
+            return [self]  # if we don't know our type, we might as well be our own (happens e.g. in "Util.foo()")
+        return result_type_envs
 
     def get_self_paths(self):
         """it's just this class"""
         return [self.path]
+
+    def get_ungeneric_env(self) -> 'RepoTreeEnv':
+        return self
 
     def debug_location_info(self):
         return self.path
@@ -178,7 +185,7 @@ class NestedEnv(Env):
             return self.local_vars[name]
         return self.parent_env.get_env_for_single_name(name)
 
-    def get_result_type_env(self):
+    def get_result_type_envs(self):
         print("Nested Env does not have a result type!")
         return None
 
@@ -202,14 +209,15 @@ class ArrayEnv(Env):
     def get_env_for_single_name(self, name):
         if name in ["length"]:
             return None  # primitive values like int are ignored
-        print("Array env cannot resolve a name: " + self.path + "." + name + " in " + self.debug_location_info())
+        # this is probably fine, as another overload / method / member of the same name is probably intended instead - TODO check that this is the case?
+        # print("Array env cannot resolve a name: " + self.path + "." + name + " in " + self.debug_location_info())
         return None
 
     def get_env_for_array_access(self):
         return self._get_base_env()
 
-    def get_result_type_env(self):
-        return self
+    def get_result_type_envs(self):
+        return [self]
 
     def get_self_paths(self):
         base_env = self._get_base_env()
@@ -244,8 +252,8 @@ class GenericEnv(Env):
         # TODO add a wrapper env that replaces the generic type names with the concrete types we know
         return base_env.get_env_for_single_name(name)
 
-    def get_result_type_env(self):
-        return self
+    def get_result_type_envs(self):
+        return [self]
 
     def get_self_paths(self):
         base_env = self._get_base_env()
@@ -255,7 +263,7 @@ class GenericEnv(Env):
         generic_parameter_paths = [[] if par_env is None else par_env.get_self_paths() for par_env in generic_parameter_envs]
         return [path for sublist in [base_paths, *generic_parameter_paths] for path in sublist]
 
-    def get_ungeneric_env(self):
+    def get_ungeneric_env(self) -> Optional['RepoTreeEnv']:
         return self._get_base_env()
 
     def debug_location_info(self):
@@ -268,16 +276,17 @@ class_query = JA_LANGUAGE.query("[(class_declaration name: (identifier) @decl) (
 
 
 class StructuralContext:
-    def __init__(self, repo):
+
+    def __init__(self, repo: LocalRepo):
         self.repo = repo
         self.files = repo.get_all_interesting_files()
-        self.full_class_name_to_path = {}
-        self.file_path_to_imports = {}
-        self.path_to_result_type_env = {}
-        self.class_path_to_base_class_envs = {}
-        self.class_path_to_generic_names = {}
+        self.full_class_name_to_path: dict[str, str] = {}
+        self.file_path_to_imports: dict[str, list[str]] = {}
+        self.path_to_result_type_envs: dict[str, list[Env]] = {}
+        self.class_path_to_base_class_envs: dict[str, list[Env]] = {}
+        self.class_path_to_generic_names: dict[str, list[str]] = {}
 
-        def _get_package(file) -> List[str]:
+        def _get_package(file) -> list[str]:
             packages = package_query.captures(file.get_tree().root_node)
             # assert len(packages) <= 1
             if len(packages) > 1:
@@ -287,7 +296,7 @@ class StructuralContext:
             else:
                 return []
 
-        def _get_import_strings(file) -> List[str]:
+        def _get_import_strings(file) -> list[str]:
             imports = import_query.captures(file.get_tree().root_node)
             result = []
             for import_statement in imports:
@@ -296,7 +305,7 @@ class StructuralContext:
                     result.append(import_string)
             return result
 
-        def _get_main_class_name(file) -> List[str]:
+        def _get_main_class_name(file) -> Optional[str]:
             classes = class_query.captures(file.get_tree().root_node)
             if len(classes) >= 1:
                 return file.node_text(classes[0][0])
@@ -330,9 +339,8 @@ class StructuralContext:
                 continue  # TODO filter those out / parse @interfaces
 
             # TODO keep in sync with evolutionary and linguistic view as well as RepoFile class
-            classes = node.get_descendants_of_type("class") + node.get_descendants_of_type("interface") + node.get_descendants_of_type("enum")
+            classes: list[RepoTree] = node.get_descendants_of_type("class") + node.get_descendants_of_type("interface") + node.get_descendants_of_type("enum")
             for class_node in classes:
-                # TODO store the names of generic parameters, if any
                 generics_ts_node = class_node.ts_node.child_by_field_name("type_parameters")
                 if generics_ts_node is not None:
                     self.class_path_to_generic_names[class_node.get_path()] = [file.node_text(child) for child in generics_ts_node.children if child.type == "type_parameter"]
@@ -360,20 +368,34 @@ class StructuralContext:
                 methods = class_node.get_children_of_type("method")
 
                 for pathable in (fields + methods):
-                    type_node = pathable.ts_node.child_by_field_name("type")
-                    if type_node is None:
-                        pdb.set_trace(header="field/method has no type?")
-                    result_type_text = file.node_text(type_node)
-                    result_type_env = self._resolve_type_env(result_type_text, node)
-                    if result_type_env is not None:
-                        self.path_to_result_type_env[pathable.get_path()] = result_type_env
+                    path = pathable.get_path()
+                    for ts_node in pathable.all_ts_nodes():
+                        type_node = ts_node.child_by_field_name("type")
+                        if type_node is None:
+                            pdb.set_trace(header="field/method has no type?")
+                        result_type_text = file.node_text(type_node)
+                        local_type_node = class_node.find_outer_node_named(result_type_text)
+                        if local_type_node is None and class_node.has_child(result_type_text):
+                            local_type_node = class_node.children[result_type_text]
+
+                        result_type_env: Optional[Env] = None
+                        if local_type_node is not None:
+                            result_type_env = RepoTreeEnv(self, local_type_node)
+                        if result_type_env is None:
+                            result_type_env = self._resolve_type_env(result_type_text, node)
+                        if result_type_env is not None:
+                            if path in self.path_to_result_type_envs:
+                                if all(e.path != result_type_env.path for e in self.path_to_result_type_envs[path]):
+                                    self.path_to_result_type_envs[path].append(result_type_env)
+                            else:
+                                self.path_to_result_type_envs[path] = [result_type_env]
 
     def couple_files_by_import(self, coupling_graph):
         for file in log_progress(self.files, desc="Connecting files by imports"):
             for imported_class_path in self.file_path_to_imports.get(file.get_path(), []):
                 coupling_graph.add_and_support(file.get_path(), imported_class_path, STRENGTH_FILE_IMPORT)
 
-    def couple_by_ineritance(self, coupling_graph):
+    def couple_by_inheritance(self, coupling_graph):
         for sub_type_path in log_progress(self.class_path_to_base_class_envs.keys(), desc="Connecting classes by inheritance"):
             super_type_envs = self.get_transitive_base_types(sub_type_path)
             sub_type_children_names = self.repo.get_tree().find_node(sub_type_path).children.keys()
@@ -412,8 +434,8 @@ class StructuralContext:
 
                     couple_member_by_content(member, couple_member_to, get_text, self)
 
-    def get_result_type(self, path):
-        return self.path_to_result_type_env.get(path, None)
+    def get_result_types(self, path):
+        return self.path_to_result_type_envs.get(path, [])
 
     def get_base_types(self, path):
         return self.class_path_to_base_class_envs.get(path, [])
@@ -422,8 +444,8 @@ class StructuralContext:
         return self.class_path_to_generic_names.get(path, [])
 
     def get_transitive_base_types(self, path):
-        result = set()
-        new_bases = set(self.get_base_types(path))
+        result: Set[Env] = set()
+        new_bases: Set[Env] = set(self.get_base_types(path))
         while len(new_bases) > 0:
             result.update(new_bases)
             todos = new_bases
@@ -436,7 +458,7 @@ class StructuralContext:
     def get_imports(self, path):
         return self.file_path_to_imports.get(path, [])
 
-    def _resolve_type_env(self, type_name, context_file_node):
+    def _resolve_type_env(self, type_name, context_file_node) -> Optional[Env]:
         """return the full path that is meant by that type_name, or None if not known"""
         imports = self.file_path_to_imports.get(context_file_node.get_path(), [])
         for import_path in imports:
@@ -480,32 +502,32 @@ def couple_member_by_content(
         else:
             return start_env.get_env_for_name(name)
 
-    def iterate_tree(cursor, env: Env) -> Env:
-        result_env = env
-        deeper_env = env
+    def iterate_tree(cursor, env: NestedEnv) -> List[Env]:
+        result_envs: List[Env] = [env]
+        deeper_env: NestedEnv = env
         if cursor.node.type in ["type_identifier", "scoped_type_identifier", "identifier", "scoped_identifier", "field_access"]:
             resolved_type_env = get_env_for_name(env, get_text(cursor.node))
             if couple_to(resolved_type_env, STRENGTH_ACCESS):
-                result_env = resolved_type_env.get_result_type_env()
+                result_envs = resolved_type_env.get_result_type_envs()
             else:
-                result_env = None
+                result_envs = []
         else:
             skip_children_for_iteration = []
             if cursor.node.type == "block":
-                deeper_env = NestedEnv(context, result_env)
+                deeper_env = NestedEnv(context, deeper_env)
             elif cursor.node.type == "method_invocation":
                 obj = cursor.node.child_by_field_name("object")
-                target_env = env
+                target_envs: List[Env] = [env]
                 if obj is not None:  # call on other object than ourselves?
                     rec_cursor = obj.walk()
-                    target_env = iterate_tree(rec_cursor, env)
+                    target_envs = iterate_tree(rec_cursor, env)
                     skip_children_for_iteration.append(obj)
-                if target_env is not None:  # target object resolve success?
-                    resolved_method_env = get_env_for_name(target_env, get_text(cursor.node.child_by_field_name("name")))
-                    if couple_to(resolved_method_env, STRENGTH_CALL):
-                        result_env = resolved_method_env.get_result_type_env()
-                    else:
-                        result_env = None
+                if len(target_envs) > 0:  # target object resolve success?
+                    result_envs = []
+                    for target_env in target_envs:
+                        resolved_method_env = get_env_for_name(target_env, get_text(cursor.node.child_by_field_name("name")))
+                        if couple_to(resolved_method_env, STRENGTH_CALL):
+                            result_envs += resolved_method_env.get_result_type_envs()
             elif cursor.node.type == "local_variable_declaration":
                 env.add_local_var(
                     get_text(cursor.node.child_by_field_name("declarator").child_by_field_name("name")),
@@ -526,6 +548,6 @@ def couple_member_by_content(
                     if cursor.node not in skip_children_for_iteration:
                         iterate_tree(cursor, deeper_env)
                 cursor.goto_parent()
-        return result_env
+        return result_envs
 
     iterate_tree(member.ts_node.walk(), NestedEnv(context, member_env))

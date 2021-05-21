@@ -1,7 +1,6 @@
 from tree_sitter import Language, Parser, Node
 # https://github.com/tree-sitter/py-tree-sitter
 
-from typing import Callable
 import pdb
 import regex
 

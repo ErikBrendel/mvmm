@@ -1,16 +1,7 @@
 import regex  # the cooler "re"
-from typing import *
-from biterm.btm import oBTM
-from biterm.utility import vec_to_biterms, topic_summuary  # helper functions
-from scipy.spatial import distance
-import pdb
-import subprocess
 from stop_words import get_stop_words
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer, FreqDist
-from gensim.corpora.dictionary import Dictionary
-from gensim import similarities
-from gensim.models import LdaModel, LdaMulticore
 import string
 import numpy as np
 

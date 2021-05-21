@@ -39,7 +39,7 @@ def get_commit_diff(commit_hash, repo):
                 walk_tree_cursor(cursor, prefix, content_bytes, node_handler)
             cursor.goto_parent()
 
-    def walk_tree(tree, content_bytes, base_path) -> RepoTree:
+    def walk_tree(tree, content_bytes, base_path) -> Optional[RepoTree]:
         """ node_handler gets the current logic-path and node for each ast node"""
         try:
             found_nodes = RepoTree(None, "")
@@ -56,7 +56,7 @@ def get_commit_diff(commit_hash, repo):
 
     error_query = JA_LANGUAGE.query("(ERROR) @err")
 
-    def _has_error(tree) -> List[str]:
+    def _has_error(tree) -> bool:
         errors = error_query.captures(tree.root_node)
         return len(errors) > 1
 

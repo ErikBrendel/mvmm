@@ -106,7 +106,7 @@ class LocalRepo:
         else:
             return [RepoFile(self, o) for o in self.get_file_objects() if o.path.startswith(self.sub_dir)]
 
-    def get_all_interesting_files(self):
+    def get_all_interesting_files(self) -> List['RepoFile']:
         test_skipper = DirectoryExclusionTracker(['test', 'tests', 'samples', 'example', 'examples'])
         all_files = self.get_all_files()
         result = [file for file in all_files if not (file.should_get_skipped() or test_skipper.should_get_skipped(file.get_path()))]
@@ -159,7 +159,7 @@ class RepoFile:
     def should_get_skipped(self):
         return should_skip_file(self.get_content())
 
-    def get_path(self):
+    def get_path(self) -> str:
         return self.file_obj.path
 
     def get_content(self):
@@ -239,14 +239,15 @@ class RepoTree:
         #     outfile.write(found_nodes.to_json())
         return found_nodes
 
-    def __init__(self, parent, name, ts_node=None):
+    def __init__(self, parent: Optional['RepoTree'], name: str, ts_node=None):
         self.parent = parent
         self.name = name
         if parent is not None and len(name) == 0:
             print("I have no name! I live in: " + parent.get_path())
             pdb.set_trace()
         self.ts_node = ts_node
-        self.children = {}
+        self.additional_ts_nodes = []
+        self.children: dict[str, 'RepoTree'] = {}
 
     # to allow for pickling (for multiprocessing), see https://stackoverflow.com/a/2345985/4354423
     def __getstate__(self):
@@ -262,7 +263,7 @@ class RepoTree:
             return self
         return self.parent.get_root()
 
-    def get_path(self):
+    def get_path(self) -> str:
         if self.parent is None or len(self.parent.name) == 0:
             return self.name
         else:
@@ -287,23 +288,27 @@ class RepoTree:
             raise Exception("Should not reach here!")
 
     def register_child(self, name, ts_node) -> 'RepoTree':
-        if not name in self.children:
+        if name not in self.children:  # new child with this name
             self.children[name] = RepoTree(self, name, ts_node)
-        else:
-            if ts_node is not None and self.children[name].ts_node is not None and ts_node != self.children[name].ts_node:
-                pass  # pdb.set_trace()  # TODO this is a name collision (e.g. java method overloading) - we should handle this somehow!!!
+        elif self.children[name].ts_node is None:  # known child receives ts_node
+            self.children[name].ts_node = ts_node
+        elif ts_node is not None and ts_node != self.children[name].ts_node: # this is a name collision (e.g. java method overloading) or a field and method sharing the same name
+            self.children[name].additional_ts_nodes.append(ts_node)
         return self.children[name]
 
-    def has_node(self, path):
+    def all_ts_nodes(self):
+        return [self.ts_node] + self.additional_ts_nodes
+
+    def has_node(self, path) -> bool:
         return self.find_node(path) is not None
 
-    def find_node(self, path) -> 'RepoTree':
+    def find_node(self, path) -> Optional['RepoTree']:
         if (len(path) == 0):
             return self
         else:
             return self.find_node_list(path.split("/"))
 
-    def find_node_list(self, path_segments) -> 'RepoTree':
+    def find_node_list(self, path_segments) -> Optional['RepoTree']:
         if len(path_segments) == 0:
             return self
         elif path_segments[0] in self.children:
@@ -311,7 +316,7 @@ class RepoTree:
         else:
             return None
 
-    def get_type(self) -> str:
+    def get_type(self) -> Optional[str]:
         if self.ts_node is None:
             return None
         node_type = self.ts_node.type
@@ -326,12 +331,19 @@ class RepoTree:
         children_descendants = [child.get_descendants_of_type(type_str) for child in self.children.values()]
         return self.get_children_of_type(type_str) + [descendant for sublist in children_descendants for descendant in sublist]
 
-    def get_text(self, file):
+    def find_outer_node_named(self, name):
+        if self.name == name:
+            return self
+        if self.parent is not None:
+            return self.parent.find_outer_node_named(name)
+        return None
+
+    def get_text(self, file) -> Optional[str]:
         if self.ts_node is None:
             return None
         return file.node_text(self.ts_node)
 
-    def get_preceding_comment_text(self, file):
+    def get_preceding_comment_text(self, file) -> Optional[str]:
         if self.parent is None or self.parent.ts_node is None:
             return None
         # search down from parent ts_node until we find one that has my own ts_node as child
@@ -353,12 +365,12 @@ class RepoTree:
             return None
         return file.node_text(previous_sibling)
 
-    def get_comment_and_own_text(self, file):
+    def get_comment_and_own_text(self, file) -> str:
         return (self.get_preceding_comment_text(file) or "") + "\n" + self.get_text(file)
 
-    def get_line_span(self):
+    def get_line_span(self) -> int:
         if self.ts_node is None:
-            return None
+            return 0
         return self.ts_node.end_point[0] - self.ts_node.start_point[0] + 1
 
     def has(self, path) -> bool:
@@ -369,7 +381,7 @@ class RepoTree:
             return False
         if len(path_segments) == 1:
             return True
-        return self.children(path_segments[0]).has_list(path_segments[1:])
+        return self.children[path_segments[0]].has_list(path_segments[1:])
 
     def has_child(self, name) -> bool:
         return name in self.children
