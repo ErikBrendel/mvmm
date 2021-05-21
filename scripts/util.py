@@ -85,7 +85,7 @@ def common_prefix_length(a, b):
 class DirectoryExclusionTracker:
     def __init__(self, exclusion_keywords):
         self.exclusion_keywords = exclusion_keywords
-        self.exclusion_regex = re.compile(r'\b' + '|'.join(exclusion_keywords) + r'\b')
+        self.exclusion_regex = re.compile(r'\b(' + '|'.join(exclusion_keywords) + r')\b')
         self.skipped_roots = []
 
     def should_get_skipped(self, path):
@@ -102,6 +102,9 @@ class DirectoryExclusionTracker:
 
     def _add_root_from(self, path):
         parts = re.findall(r'\w+|\W+', path)
+        seq = [w for w in self.exclusion_keywords if w in parts]
+        if len(seq) == 0:
+            return
         first_exclusion_pos = min(parts.index(exclusion_keyword) for exclusion_keyword in self.exclusion_keywords if
                                   exclusion_keyword in parts)
         root = "".join(parts[:first_exclusion_pos + 1])
@@ -198,12 +201,12 @@ def debounce(s):
     return decorate
 
 
-import ipywidgets as widgets
-from IPython.display import display
 
 
 def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="350px"):
     """names and getters: [('dim1', getter), ('dim2', getter)], names must be unique"""
+    import ipywidgets as widgets
+    from IPython.display import display
 
     dim_names = [name for name, getter, *_ in dimension_names_and_getters]
     slider_values = {}
@@ -277,6 +280,8 @@ def interactive_multi_sort(data, dimension_names_and_getters, callback_func, out
 
 
 def print_html(content):
+    import ipywidgets as widgets
+    from IPython.display import display
     display(widgets.HTML(value=content))
 
 

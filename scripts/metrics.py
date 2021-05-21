@@ -87,9 +87,9 @@ class MetricsGeneration:
 
         return coupling_graph
 
-    def post_structural(self, coupling_graph: CouplingGraph):
-        coupling_graph.dilate(1, 0.2)
+    def post_structural(self, coupling_graph: ExplicitCouplingGraph):
         coupling_graph.propagate_down(2, 0.5)
+        coupling_graph.dilate(1, 0.8)
         pass
 
     def calculate_linguistic_connections(self) -> CouplingGraph:

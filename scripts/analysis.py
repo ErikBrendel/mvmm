@@ -34,6 +34,7 @@ def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Option
 
 
 SHOW_RESULTS_SIZE = 50
+USE_NODE_UNION = False  # or intersection instead?
 
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType, node_filter_func=None, parallel=True, ignore_previous_results=False) -> Optional[List[BestResultsSet]]:
@@ -82,7 +83,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
             for path in in_union_not_view[:5]:
                 print("      " + repo.url_for(path) + " " + path.split("/")[-1])
 
-    all_nodes = union_nodes
+    all_nodes = union_nodes if USE_NODE_UNION else intersection_nodes
     print("Total node count:", len(all_nodes))
     print("Methods:", sum(repo.get_tree().find_node(path).get_type() == "method" for path in all_nodes))
     print("constructors:", sum(repo.get_tree().find_node(path).get_type() == "constructor" for path in all_nodes))
@@ -213,8 +214,8 @@ def find_disagreement_results_parallel(repo, views, target_patterns: PatternsTyp
     return pattern_results
 
 
-def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None, parallel=True):
-    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func, parallel)
+def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType, node_filter_func=None, parallel=True, ignore_previous_results=False):
+    pattern_results = analyze_disagreements(repo, views, target_patterns, node_filter_func, parallel, ignore_previous_results)
 
     print("Results:")
     for i, (pattern, results) in enumerate(zip(target_patterns, pattern_results)):

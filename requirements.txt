@@ -10,7 +10,6 @@ ipywidgets
 tqdm
 pyfiglet
 numpy
-sklearn
 biterm
 jupyterlab
 regex  # this one, as opposed to the standard re module, can also split strings with zero width patterns, which this project requires
@@ -20,6 +19,5 @@ scipy
 ipython
 cloudpickle
 dill
-scikit-learn
 pprofile
 mtprof

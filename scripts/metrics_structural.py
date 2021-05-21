@@ -80,6 +80,9 @@ class Env:
     def get_ungeneric_env(self):
         return self
 
+    def debug_location_info(self):
+        pass
+
 
 class EnvWrapper(Env):
     def __init__(self, wrapped):
@@ -101,6 +104,9 @@ class EnvWrapper(Env):
     def get_ungeneric_env(self):
         return self.wrapped.get_ungeneric_env()
 
+    def debug_location_info(self):
+        return self.wrapped.debug_location_info()
+
 
 class RepoTreeEnv(Env):
     """the identifier-lookup environment of a whole file"""
@@ -108,7 +114,6 @@ class RepoTreeEnv(Env):
     def __init__(self, context, node):
         Env.__init__(self, context, node.get_path())
         self.node = node
-        root_node = self.node.get_root()
         self.base_envs = self.context.get_base_types(self.path)
 
     def get_env_for_single_name(self, name):
@@ -150,6 +155,9 @@ class RepoTreeEnv(Env):
         """it's just this class"""
         return [self.path]
 
+    def debug_location_info(self):
+        return self.path
+
 
 class NestedEnv(Env):
     """used for a class, a method, a for loop etc"""
@@ -178,6 +186,9 @@ class NestedEnv(Env):
         print("Nested Env does not have a path!")
         return []
 
+    def debug_location_info(self):
+        return self.parent_env.debug_location_info() + "/"
+
 
 class ArrayEnv(Env):
     def __init__(self, context, base_type, containing_env):
@@ -191,8 +202,7 @@ class ArrayEnv(Env):
     def get_env_for_single_name(self, name):
         if name in ["length"]:
             return None  # primitive values like int are ignored
-        pdb.set_trace()
-        print("Array env cannot resolve a name!")
+        print("Array env cannot resolve a name: " + self.path + "." + name + " in " + self.debug_location_info())
         return None
 
     def get_env_for_array_access(self):
@@ -207,6 +217,9 @@ class ArrayEnv(Env):
             return []
         else:
             return base_env.get_self_paths()
+
+    def debug_location_info(self):
+        return self.containing_env.debug_location_info() + "/" + self.path
 
 
 class GenericEnv(Env):
@@ -244,6 +257,9 @@ class GenericEnv(Env):
 
     def get_ungeneric_env(self):
         return self._get_base_env()
+
+    def debug_location_info(self):
+        return self.containing_env.debug_location_info() + "/" + self.base_type + "<>"
 
 
 package_query = JA_LANGUAGE.query("(package_declaration (_) @decl)")
@@ -451,20 +467,20 @@ def couple_member_by_content(
     this_env = RepoTreeEnv(context, member.parent)
     member_env = RepoTreeEnv(context, member)
 
-    def couple_to(resolved_env, strength):
+    def couple_to(resolved_env: Env, strength: float) -> bool:
         if resolved_env not in [None, member_env]:
             for path in resolved_env.get_self_paths():
                 couple_member_to(path, strength)
             # print("-> Coupled to", resolved_env.path)
         return resolved_env is not None
 
-    def get_env_for_name(start_env, name):
+    def get_env_for_name(start_env: Env, name: str) -> Env:
         if name.startswith("this."):
             return this_env.get_env_for_name(name[len("this."):])
         else:
             return start_env.get_env_for_name(name)
 
-    def iterate_tree(cursor, env) -> Env:
+    def iterate_tree(cursor, env: Env) -> Env:
         result_env = env
         deeper_env = env
         if cursor.node.type in ["type_identifier", "scoped_type_identifier", "identifier", "scoped_identifier", "field_access"]:

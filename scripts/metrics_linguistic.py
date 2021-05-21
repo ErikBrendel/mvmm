@@ -1,7 +1,6 @@
 import regex  # the cooler "re"
 from typing import *
 from biterm.btm import oBTM
-from sklearn.feature_extraction.text import CountVectorizer
 from biterm.utility import vec_to_biterms, topic_summuary  # helper functions
 from scipy.spatial import distance
 import pdb
