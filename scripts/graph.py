@@ -69,10 +69,10 @@ class CouplingGraph(ABC):
 
     def how_well_predicted_by(self, other_graph: 'CouplingGraph', max_node_pairs_to_check=10000) -> float:
         node_set = self.get_node_set()
-        if node_set is None:
+        if node_set is None or len(node_set) < 10:
             print("Do not have a node set on my own, asking the other graph")
             node_set = other_graph.get_node_set()
-        if node_set is None:
+        if node_set is None or len(node_set) < 10:
             raise Exception("Neither me nor the other graph exposes its node set - cannot calculate predictability!")
         node_pairs = list(all_pairs(list(node_set)))
         random.seed(42)  # for reproducibility
@@ -83,16 +83,9 @@ class CouplingGraph(ABC):
             print("Node pair amount " + str(len(node_pairs)) + " does not exceed " + str(max_node_pairs_to_check) + ", all are used")
             random.shuffle(node_pairs)
 
-        data_with_result_values = [(self.get_normalized_coupling(a, b), other_graph.get_normalized_coupling(a, b)) for a, b in node_pairs]  # TODO wrap with log_progress here?
+        data_with_result_values = [(other_graph.get_normalized_coupling(a, b), self.get_normalized_coupling(a, b)) for a, b in node_pairs]  # TODO wrap with log_progress here?
 
-        # TODO instead of sampling multiple times, do some proper math here!
-        scores: List[float] = []
-        for i in range(10):
-            random.shuffle(data_with_result_values)
-            data_with_result_values.sort(key=lambda e: e[1])
-            predictability_score = 1.0 - count_relative_inversions(data_with_result_values, lambda e: e[0])
-            scores.append(predictability_score)
-        return sum(scores) / len(scores)
+        return score_sorting_similarity(data_with_result_values)
 
 
 class NodeSetCouplingGraph(CouplingGraph):

@@ -372,7 +372,8 @@ class StructuralContext:
                     for ts_node in pathable.all_ts_nodes():
                         type_node = ts_node.child_by_field_name("type")
                         if type_node is None:
-                            pdb.set_trace(header="field/method has no type?")
+                            # pdb.set_trace(header="field/method has no type?")
+                            continue
                         result_type_text = file.node_text(type_node)
                         local_type_node = class_node.find_outer_node_named(result_type_text)
                         if local_type_node is None and class_node.has_child(result_type_text):

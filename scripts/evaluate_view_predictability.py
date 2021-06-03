@@ -10,7 +10,14 @@ from local_repo import LocalRepo
 from metrics import MetricManager
 from util import log_progress
 
-repo = "ErikBrendel/LudumDare"
+# repo = "ErikBrendel/LudumDare"
+# repo = "ErikBrendel/LD35"
+# repo = "eclipse/eclipse.jdt.core"
+# repo = "jenkinsci/jenkins"
+# repo = "jOOQ/jOOQ"
+# repo = "wumpz/jhotdraw"
+repo = "neuland/jade4j"
+
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
 
 r = LocalRepo(repo)
@@ -22,7 +29,7 @@ for i, predicted_metric in enumerate(metrics):
     pred_graph = MetricManager.get(r, predicted_metric)
     comp_graph = WeightCombinedGraph([MetricManager.get(r, m) for m in other_metrics])
 
-    scale = 8
+    scale = 16
     total_sample_count = (scale + 1) * (scale + 2) / 2
     bar = log_progress("Calculating color values for plot", total=total_sample_count)
 
@@ -41,7 +48,7 @@ for i, predicted_metric in enumerate(metrics):
     tax.right_corner_label(other_metrics[0], fontsize=fontsize)
     tax.top_corner_label(other_metrics[1], fontsize=fontsize, offset=0.12)
     tax.left_corner_label(other_metrics[2], fontsize=fontsize)
-    tax.set_title("Predicting " + predicted_metric)
+    tax.set_title(repo + ": Predicting " + predicted_metric)
     tax.boundary(linewidth=1.0)
     plt.axis('off')
 

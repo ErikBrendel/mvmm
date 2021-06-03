@@ -1,4 +1,5 @@
 import os
+import random
 from typing import *
 
 if os.environ.get("JUPYTER"):
@@ -15,6 +16,8 @@ import time
 import re
 import regex
 from multiprocessing import Pool, TimeoutError, Process, Manager, Lock
+from matplotlib import pyplot as plt
+import numpy as np
 
 
 # https://github.com/kuk/log-progress
@@ -393,6 +396,18 @@ def count_relative_inversions(arr, key_fn=lambda e: e):
         print("[WARN] cannot really count inversions on this data!")
         return 0.5  # we do not know - so let's say it is about half sorted :D
     return count_inversions(arr, key_fn) / max_inversions
+
+
+def score_sorting_similarity(data: List[Tuple[float, float]]) -> float:
+    # TODO instead of sampling multiple times, do some proper math here!
+    random.seed(123456)
+    scores: List[float] = []
+    for _i in range(10):
+        random.shuffle(data)
+        data.sort(key=lambda e: e[0])
+        predictability_score = 1.0 - count_relative_inversions(data[:], lambda e: e[1])
+        scores.append(predictability_score)
+    return sum(scores) / len(scores)
 
 
 if __name__ == "__MAIN__":
