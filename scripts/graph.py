@@ -290,8 +290,10 @@ class ExplicitCouplingGraph(NormalizeCouplingWithChildren, NormalizeSupportWithC
         self.g.add_edge(a, b, weight=new_value)
 
     def get(self, a, b):
-        if a in self.g and b in self.g.adj[a]:
-            return self.g.adj[a][b]["weight"]
+        if a in self.g:
+            a_adj = self.g.adj[a]
+            if b in a_adj:
+                return a_adj[b]["weight"]
         return 0
 
     def get_direct_coupling(self, a, b):

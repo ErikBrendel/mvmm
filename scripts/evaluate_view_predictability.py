@@ -10,13 +10,13 @@ from local_repo import LocalRepo
 from metrics import MetricManager
 from util import log_progress
 
-# repo = "ErikBrendel/LudumDare"
+repo = "ErikBrendel/LudumDare"
 # repo = "ErikBrendel/LD35"
 # repo = "eclipse/eclipse.jdt.core"
 # repo = "jenkinsci/jenkins"
 # repo = "jOOQ/jOOQ"
 # repo = "wumpz/jhotdraw"
-repo = "neuland/jade4j"
+# repo = "neuland/jade4j"
 
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
 
@@ -40,12 +40,12 @@ for i, predicted_metric in enumerate(metrics):
         return pred_graph.how_well_predicted_by(comp_graph, max_node_pairs_to_check=1000)
 
     figure, tax = ternary.figure(scale=scale)
-    tax.heatmapf(check_predictability, boundary=True, style="hex")#, vmin=0.3, vmax=1)  # cmap="RdYlBu"
+    tax.heatmapf(check_predictability, boundary=True, style="hex", vmin=0.4, vmax=1)  # cmap="RdYlBu"
     bar.close()
     # tax.gridlines(color="blue", multiple=scale / 4)
 
     fontsize = 9
-    tax.right_corner_label(other_metrics[0], fontsize=fontsize)
+    tax.right_corner_label(other_metrics[0], fontsize=fontsize, position=(0.9, 0.04, 0.1))
     tax.top_corner_label(other_metrics[1], fontsize=fontsize, offset=0.12)
     tax.left_corner_label(other_metrics[2], fontsize=fontsize)
     tax.set_title(repo + ": Predicting " + predicted_metric)
