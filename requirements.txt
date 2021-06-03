@@ -2,6 +2,7 @@ GitPython
 tree_sitter
 networkx
 matplotlib
+python-ternary
 stop-words
 nltk
 gensim

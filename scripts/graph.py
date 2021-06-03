@@ -1,3 +1,4 @@
+import random
 from abc import ABC, abstractmethod
 import pickle
 import networkx as nx
@@ -17,7 +18,7 @@ class CouplingGraph(ABC):
     def __init__(self, name):
         self.name = name
 
-    def get_node_set(self):
+    def get_node_set(self) -> Optional[set[str]]:
         return None
 
     @abstractmethod
@@ -65,6 +66,27 @@ class CouplingGraph(ABC):
 
     def print_most_linked_nodes(self, amount=10):
         print("No Most Linked Nodes Data for " + type(self).__name__)
+
+    def how_well_predicted_by(self, other_graph: 'CouplingGraph', max_node_pairs_to_check=10000) -> float:
+        node_set = self.get_node_set()
+        if node_set is None:
+            print("Do not have a node set on my own, asking the other graph")
+            node_set = other_graph.get_node_set()
+        if node_set is None:
+            raise Exception("Neither me nor the other graph exposes its node set - cannot calculate predictability!")
+        node_pairs = list(all_pairs(list(node_set)))
+        random.seed(42)  # for reproducibility
+        if len(node_pairs) > max_node_pairs_to_check:
+            print("Sampling down node pairs from " + str(len(node_pairs)) + " to " + str(max_node_pairs_to_check))
+            node_pairs = random.sample(node_pairs, max_node_pairs_to_check)
+        else:
+            print("Node pair amount " + str(len(node_pairs)) + " does not exceed " + str(max_node_pairs_to_check) + ", all are used")
+            random.shuffle(node_pairs)
+
+        data_with_result_values = [(self.get_normalized_coupling(a, b), other_graph.get_normalized_coupling(a, b)) for a, b in node_pairs]  # TODO wrap with log_progress here?
+        data_with_result_values.sort(key=lambda e: e[1])
+        predictability_score = 1 - count_relative_inversions(data_with_result_values, lambda e: e[0])
+        return predictability_score
 
 
 class NodeSetCouplingGraph(CouplingGraph):
@@ -499,6 +521,43 @@ class ModuleDistanceCouplingGraph(CouplingGraph):
 
     def print_statistics(self):
         return "Module Distance"
+
+
+class WeightCombinedGraph(CouplingGraph):
+    graphs: List[CouplingGraph]
+    weights: List[float]
+
+    def __init__(self, graphs):
+        CouplingGraph.__init__(self, "Combined Graph")
+        self.graphs = graphs
+        initial_weight = 1.0 / len(self.graphs)
+        self.weights = [initial_weight] * len(self.graphs)
+
+    def get_node_set(self):
+        graph_nodes = [g.get_node_set() for g in self.graphs]
+        return set.union(*[nodes for nodes in graph_nodes if nodes is not None])
+
+    def get_normalized_support(self, node):
+        result = 0
+        for w, g in zip(self.weights, self.graphs):
+            if w == 0:
+                continue
+            result += w * g.get_normalized_support(node)
+        return result
+
+    def get_normalized_coupling(self, a, b):
+        result = 0
+        for w, g in zip(self.weights, self.graphs):
+            if w == 0:
+                continue
+            result += w * g.get_normalized_coupling(a, b)
+        return result
+
+    def plaintext_content(self):
+        raise Exception("Cannot save combined graph")
+
+    def print_statistics(self):
+        return "Combined graph statistics WIP"
 
 
 if __name__ == "__MAIN__":

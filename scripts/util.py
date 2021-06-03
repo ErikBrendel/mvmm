@@ -22,7 +22,7 @@ from multiprocessing import Pool, TimeoutError, Process, Manager, Lock
 # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py
 
 
-def all_pairs(data):
+def all_pairs(data: List[any]) -> Generator[Tuple[any, any], None, None]:
     length = len(data)
     for i in range(length):
         for j in range(i):
@@ -340,6 +340,56 @@ def fill_none_with_other(hole_list: List[Optional[any]], filler: List[any]):
             hole_list[hole_list.index(None)] = f
     except ValueError:
         return  # happens when no more None values are present
+
+
+def count_inversions(arr, key_fn=lambda e: e, count_equals_as_inversion=False):
+    """ from https://gist.github.com/dishaumarwani/b6d5f4a1b2f741d5bee8d0f69263c48f """
+    def merge(l, m, r):
+        # No need of merging if subarray form a sorted array after joining
+        if key_fn(arr[m]) <= key_fn(arr[m + 1]):
+            return 0
+
+        inversion_count = 0
+        L = arr[l:m + 1]
+        R = arr[m + 1:r + 1]
+
+        # Merge the temp arrays back into arr[l..r]
+
+        i = 0  # Initial index of first subarray
+        j = 0  # Initial index of second subarray
+        k = l  # Initial index of merged subarray
+
+        len_l = m + 1 - l
+        len_r = r - m
+
+        while i < len_l and j < len_r:
+            if key_fn(L[i]) <= key_fn(R[j]):
+                if count_equals_as_inversion and key_fn(L[i]) == key_fn(R[j]):
+                    inversion_count += len_l - i
+                arr[k] = L[i]
+                i += 1
+            else:
+                inversion_count += len_l - i
+                arr[k] = R[j]
+                j += 1
+            k += 1
+
+        arr[k: k + len_l - i] = L[i:]
+
+        return inversion_count
+
+    def merge_sort(l, r):
+        if l < r:
+            m = (l + r) // 2
+            return merge_sort(l, m) + merge_sort(m + 1, r) + merge(l, m, r)
+        return 0
+
+    return merge_sort(0, len(arr) - 1)
+
+
+def count_relative_inversions(arr, key_fn=lambda e: e, count_equals_as_inversion=False):
+    max_inversions = len(arr) * (len(arr) - 1) / 2
+    return count_inversions(arr, key_fn, count_equals_as_inversion) / max_inversions
 
 
 if __name__ == "__MAIN__":
