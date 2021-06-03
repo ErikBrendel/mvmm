@@ -22,13 +22,21 @@ repos = [
     # "eclipse/eclipse.jdt.core",
     # "jenkinsci/jenkins",
     # "jOOQ/jOOQ",
-    # "wumpz/jhotdraw",
+    "wumpz/jhotdraw",
     "neuland/jade4j",
+    # "square/okhttp", <-- node sets too small???
+    "apache/log4j",
+    "junit-team/junit4",
+    "jfree/jfreechart",
+    "vanzin/jEdit",
+    "hunterhacker/jdom",
 ]
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
 
+repos.sort(key=lambda repo: len(LocalRepo(repo).get_all_interesting_files()))
 
-fig, axes = plt.subplots(len(repos), 4, figsize=(12, len(repos) * 3))
+
+fig, axes = plt.subplots(len(repos), 4, figsize=(15, len(repos) * 2.5), constrained_layout=True)
 fig.suptitle('How well can a combination of three views predict the fourth?', fontsize=15)
 
 repo_obj_cache: dict[str, LocalRepo] = dict()
@@ -85,7 +93,7 @@ for ri, repo in enumerate(repos):
         tax.boundary(linewidth=1.0)
         axes[ri, mi].axis('off')
         if mi == 0:
-            axes[ri, mi].text(-0.4, 0.5, repo, horizontalalignment='center',
+            axes[ri, mi].text(-0.4, 0.5, " / ".join(repo.split("/")), horizontalalignment='center',
                               verticalalignment='center', transform=axes[ri, mi].transAxes,
                               rotation="vertical", fontsize=12)
         if ri == 0:
