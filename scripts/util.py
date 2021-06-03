@@ -342,7 +342,7 @@ def fill_none_with_other(hole_list: List[Optional[any]], filler: List[any]):
         return  # happens when no more None values are present
 
 
-def count_inversions(arr, key_fn=lambda e: e, count_equals_as_inversion=False):
+def count_inversions(arr, key_fn=lambda e: e):
     """ from https://gist.github.com/dishaumarwani/b6d5f4a1b2f741d5bee8d0f69263c48f """
     def merge(l, m, r):
         # No need of merging if subarray form a sorted array after joining
@@ -364,8 +364,6 @@ def count_inversions(arr, key_fn=lambda e: e, count_equals_as_inversion=False):
 
         while i < len_l and j < len_r:
             if key_fn(L[i]) <= key_fn(R[j]):
-                if count_equals_as_inversion and key_fn(L[i]) == key_fn(R[j]):
-                    inversion_count += len_l - i
                 arr[k] = L[i]
                 i += 1
             else:
@@ -387,9 +385,14 @@ def count_inversions(arr, key_fn=lambda e: e, count_equals_as_inversion=False):
     return merge_sort(0, len(arr) - 1)
 
 
-def count_relative_inversions(arr, key_fn=lambda e: e, count_equals_as_inversion=False):
-    max_inversions = len(arr) * (len(arr) - 1) / 2
-    return count_inversions(arr, key_fn, count_equals_as_inversion) / max_inversions
+def count_relative_inversions(arr, key_fn=lambda e: e):
+    comp_values = [key_fn(e) for e in arr]
+    comp_values.sort(reverse=True)
+    max_inversions = count_inversions(comp_values)
+    if max_inversions == 0:
+        print("[WARN] cannot really count inversions on this data!")
+        return 0.5  # we do not know - so let's say it is about half sorted :D
+    return count_inversions(arr, key_fn) / max_inversions
 
 
 if __name__ == "__MAIN__":

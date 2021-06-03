@@ -84,9 +84,15 @@ class CouplingGraph(ABC):
             random.shuffle(node_pairs)
 
         data_with_result_values = [(self.get_normalized_coupling(a, b), other_graph.get_normalized_coupling(a, b)) for a, b in node_pairs]  # TODO wrap with log_progress here?
-        data_with_result_values.sort(key=lambda e: e[1])
-        predictability_score = 1 - count_relative_inversions(data_with_result_values, lambda e: e[0])
-        return predictability_score
+
+        # TODO instead of sampling multiple times, do some proper math here!
+        scores: List[float] = []
+        for i in range(10):
+            random.shuffle(data_with_result_values)
+            data_with_result_values.sort(key=lambda e: e[1])
+            predictability_score = 1.0 - count_relative_inversions(data_with_result_values, lambda e: e[0])
+            scores.append(predictability_score)
+        return sum(scores) / len(scores)
 
 
 class NodeSetCouplingGraph(CouplingGraph):

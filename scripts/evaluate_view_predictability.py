@@ -33,13 +33,13 @@ for i, predicted_metric in enumerate(metrics):
         return pred_graph.how_well_predicted_by(comp_graph, max_node_pairs_to_check=1000)
 
     figure, tax = ternary.figure(scale=scale)
-    tax.heatmapf(check_predictability, boundary=True, style="hex") # vmin=0, vmax=1
+    tax.heatmapf(check_predictability, boundary=True, style="hex")#, vmin=0.3, vmax=1)  # cmap="RdYlBu"
     bar.close()
     # tax.gridlines(color="blue", multiple=scale / 4)
 
-    fontsize = 12
+    fontsize = 9
     tax.right_corner_label(other_metrics[0], fontsize=fontsize)
-    tax.top_corner_label(other_metrics[1], fontsize=fontsize)
+    tax.top_corner_label(other_metrics[1], fontsize=fontsize, offset=0.12)
     tax.left_corner_label(other_metrics[2], fontsize=fontsize)
     tax.set_title("Predicting " + predicted_metric)
     tax.boundary(linewidth=1.0)
