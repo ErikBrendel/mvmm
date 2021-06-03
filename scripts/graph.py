@@ -528,11 +528,14 @@ class WeightCombinedGraph(CouplingGraph):
     graphs: List[CouplingGraph]
     weights: List[float]
 
-    def __init__(self, graphs):
+    def __init__(self, graphs, weights=None):
         CouplingGraph.__init__(self, "Combined Graph")
         self.graphs = graphs
-        initial_weight = 1.0 / len(self.graphs)
-        self.weights = [initial_weight] * len(self.graphs)
+        if weights is None:
+            initial_weight = 1.0 / len(self.graphs)
+            self.weights = [initial_weight] * len(self.graphs)
+        else:
+            self.weights = weights
 
     def get_node_set(self):
         graph_nodes = [g.get_node_set() for g in self.graphs]
