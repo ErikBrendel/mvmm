@@ -21,16 +21,19 @@ repos = [
     "ErikBrendel/LudumDare",
     "ErikBrendel/LD35",
     # "eclipse/eclipse.jdt.core",
-    # "jenkinsci/jenkins",
-    # "jOOQ/jOOQ",
+    "jenkinsci/jenkins",
+    "jOOQ/jOOQ",
     "wumpz/jhotdraw",
     "neuland/jade4j",
-    # "square/okhttp", <-- node sets too small???
     "apache/log4j",
     "junit-team/junit4",
     "jfree/jfreechart",
     "vanzin/jEdit",
     "hunterhacker/jdom",
+    # "SonarSource/sonarqube",
+    "brettwooldridge/HikariCP",
+    "adamfisk/LittleProxy",
+    "dynjs/dynjs",
 ]
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
 
@@ -82,6 +85,7 @@ def check_predictability_params_fast(repo: str, metric: str, other_metrics: tupl
     target_data_list: list[tuple[float, float]] = [(other_combination(entry), entry[mi]) for entry in metric_values]
     return score_sorting_similarity(target_data_list)
 # check_predictability_params_fast.clear_cache()
+print("Cached values at: " + check_predictability_params_fast.cache_dpath())
 
 @cachier()
 def check_predictability_params(repo: str, metric: str, other_metrics: tuple[str], weights: tuple[float]) -> float:
@@ -133,4 +137,5 @@ for ri, repo in enumerate(repos):
         # tax.show()
         # noinspection PyProtectedMember
         tax._redraw_labels()
+print("Cached values at: " + check_predictability_params_fast.cache_dpath())
 plt.show()

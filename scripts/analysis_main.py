@@ -24,7 +24,6 @@ repos = [
     # "adamfisk/LittleProxy",  # 1.5h BTM
     # "dynjs/dynjs",  # 2.5h BTM
     "SonarSource/sonarqube",
-    # "square/okhttp",
     # "eclipse/che",
     # "elastic/elasticsearch",
     # "apache/camel",

@@ -6,7 +6,6 @@
 # repos_db = ["/".join(url[0].split("/")[-2:]) for url in result]
 
 repos_big = [
-    "square/okhttp",
     "eclipse/che",
     "apache/flink",
     "apache/camel",
@@ -30,7 +29,6 @@ repos_big = [
 ]
 
 repos_medium = [
-    "square/okhttp",
     "eclipse/che",
     "apache/flink",
     "apache/camel",
@@ -42,7 +40,6 @@ repos_medium = [
 ]
 
 repos_small = [
-    "square/okhttp",
     "jenkinsci/jenkins",
     "eclipse/che",
     "elastic/elasticsearch",
