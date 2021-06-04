@@ -399,15 +399,13 @@ def count_relative_inversions(arr, key_fn=lambda e: e):
 
 
 def score_sorting_similarity(data: List[Tuple[float, float]]) -> float:
-    # TODO instead of sampling multiple times, do some proper math here!
-    random.seed(123456)
-    scores: List[float] = []
-    for _i in range(10):
-        random.shuffle(data)
-        data.sort(key=lambda e: e[0])
-        predictability_score = 1.0 - count_relative_inversions(data[:], lambda e: e[1])
-        scores.append(predictability_score)
-    return sum(scores) / len(scores)
+    # data.sort(key=lambda e: e[0] * 10000000 + e[1])
+    # predictability_score = 1.0 - count_relative_inversions(data[:], lambda e: e[1])
+    # best_score = predictability_score
+    data.sort(key=lambda e: e[0] * 10000000 - e[1])
+    predictability_score = 1.0 - count_relative_inversions(data[:], lambda e: e[1])
+    worst_score = predictability_score
+    return worst_score
 
 
 if __name__ == "__MAIN__":

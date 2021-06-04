@@ -58,8 +58,8 @@ def get_view(repo: str, view: str) -> CouplingGraph:
 def get_metric_values(repo: str, max_node_pairs_to_check=10000) -> list[list[float]]:
     if repo not in repo_metric_values_cache:
         graphs = [get_view(repo, view) for view in metrics]
-        node_set = get_graph_node_set_combination(graphs)
-        node_pairs = list(all_pairs(list(node_set)))
+        nodes = sorted(list(get_graph_node_set_combination(graphs)))
+        node_pairs = list(all_pairs(nodes))
         random.seed(42)  # for reproducibility
         if len(node_pairs) > max_node_pairs_to_check:
             print("Sampling down node pairs from " + str(len(node_pairs)) + " to " + str(max_node_pairs_to_check))
@@ -81,7 +81,7 @@ def check_predictability_params_fast(repo: str, metric: str, other_metrics: tupl
 
     target_data_list: list[tuple[float, float]] = [(other_combination(entry), entry[mi]) for entry in metric_values]
     return score_sorting_similarity(target_data_list)
-
+# check_predictability_params_fast.clear_cache()
 
 @cachier()
 def check_predictability_params(repo: str, metric: str, other_metrics: tuple[str], weights: tuple[float]) -> float:
@@ -97,7 +97,7 @@ for ri, repo in enumerate(repos):
     for mi, predicted_metric in enumerate(metrics):
         other_metrics = tuple(metrics[:mi] + metrics[mi + 1:])
 
-        scale = 8
+        scale = 16
         total_sample_count = (scale + 1) * (scale + 2) / 2
         bar = log_progress("Calculating color values for plot", total=total_sample_count)
 
