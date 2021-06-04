@@ -22,11 +22,11 @@ class CouplingGraph(ABC):
         return None
 
     @abstractmethod
-    def get_normalized_support(self, node):
+    def get_normalized_support(self, node: str) -> float:
         pass
 
     @abstractmethod
-    def get_normalized_coupling(self, a, b):
+    def get_normalized_coupling(self, a: str, b: str) -> float:
         pass
 
     def save(self, repo_name):
@@ -35,23 +35,23 @@ class CouplingGraph(ABC):
             pickle.dump(self, f)
 
     @staticmethod
-    def load(repo_name, name) -> 'CouplingGraph':
+    def load(repo_name: str, name: str) -> 'CouplingGraph':
         with open(CouplingGraph.pickle_path(repo_name, name), 'rb') as f:
             return pickle.load(f)
 
     @staticmethod
-    def pickle_path(repo_name, name):
+    def pickle_path(repo_name: str, name: str):
         # see https://networkx.github.io/documentation/stable/reference/readwrite/gpickle.html
         return METRICS_SAVE_PATH + repo_name + "/" + name + ".gpickle"
 
-    def plaintext_save(self, repo_name):
+    def plaintext_save(self, repo_name: str):
         content = self.plaintext_content()
         os.makedirs(EXPORT_SAVE_PATH + repo_name, exist_ok=True)
         with open(EXPORT_SAVE_PATH + repo_name + "/" + self.name + ".graph.txt", "w") as f:
             f.write(content)
 
     @abstractmethod
-    def plaintext_content(self):
+    def plaintext_content(self) -> str:
         pass
 
     @abstractmethod
@@ -524,6 +524,11 @@ class ModuleDistanceCouplingGraph(CouplingGraph):
         return "Module Distance"
 
 
+def get_graph_node_set_combination(graphs: list[CouplingGraph]) -> set[str]:
+    graph_nodes = [g.get_node_set() for g in graphs]
+    return set.union(*[nodes for nodes in graph_nodes if nodes is not None])
+
+
 class WeightCombinedGraph(CouplingGraph):
     graphs: List[CouplingGraph]
     weights: List[float]
@@ -538,8 +543,7 @@ class WeightCombinedGraph(CouplingGraph):
             self.weights = weights
 
     def get_node_set(self):
-        graph_nodes = [g.get_node_set() for g in self.graphs]
-        return set.union(*[nodes for nodes in graph_nodes if nodes is not None])
+        return get_graph_node_set_combination(self.graphs)
 
     def get_normalized_support(self, node):
         result = 0

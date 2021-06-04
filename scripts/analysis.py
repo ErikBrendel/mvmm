@@ -65,6 +65,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
 
     union_nodes = list(set.union(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
     union_nodes = set([n for n in union_nodes if repo.get_tree().has_node(n)])
+    # TODO use get_graph_node_set_combination instead
     print("Intersection Nodes: " + str(len(intersection_nodes)) + ", Union Nodes: " + str(len(union_nodes)))
     for view, graph in zip(views, analysis_graphs):
         graph_nodes = graph.get_node_set()
