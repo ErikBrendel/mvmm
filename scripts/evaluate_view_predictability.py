@@ -58,10 +58,10 @@ def get_view(repo: str, view: str) -> CouplingGraph:
     return repo_metric_cache[key]
 
 
-def get_metric_values(repo: str, max_node_pairs_to_check=10000) -> list[list[float]]:
+def get_metric_values(repo: str, max_node_pairs_to_check=100000) -> list[list[float]]:
     if repo not in repo_metric_values_cache:
         graphs = [get_view(repo, view) for view in metrics]
-        nodes = sorted(list(get_graph_node_set_combination(graphs)))
+        nodes = sorted([tree_node.get_path() for tree_node in repo_obj_cache[repo].get_tree().traverse_gen() if tree_node.get_type() == "method" and tree_node.get_line_span() >= 1])
         node_pairs = list(all_pairs(nodes))
         random.seed(42)  # for reproducibility
         if len(node_pairs) > max_node_pairs_to_check:
@@ -75,7 +75,7 @@ def get_metric_values(repo: str, max_node_pairs_to_check=10000) -> list[list[flo
 
 
 @cachier()
-def check_predictability_params_fast(repo: str, metric: str, other_metrics: tuple[str], weights: tuple[float]) -> float:
+def check_predictability_params_fast_method_nodes(repo: str, metric: str, other_metrics: tuple[str], weights: tuple[float]) -> float:
     metric_values = get_metric_values(repo)
     mi = metrics.index(metric)
     other_indices = [metrics.index(other_metric) for other_metric in other_metrics]
@@ -85,15 +85,7 @@ def check_predictability_params_fast(repo: str, metric: str, other_metrics: tupl
     target_data_list: list[tuple[float, float]] = [(other_combination(entry), entry[mi]) for entry in metric_values]
     return score_sorting_similarity(target_data_list)
 # check_predictability_params_fast.clear_cache()
-print("Cached values at: " + check_predictability_params_fast.cache_dpath())
-
-@cachier()
-def check_predictability_params(repo: str, metric: str, other_metrics: tuple[str], weights: tuple[float]) -> float:
-    pred_graph = get_view(repo, metric)
-    comp_graph = WeightCombinedGraph([get_view(repo, m) for m in other_metrics], weights)
-    return pred_graph.how_well_predicted_by(comp_graph, max_node_pairs_to_check=5000)
-# print(check_predictability_params.cache_dpath())
-# check_predictability_params.clear_cache()
+print("Cached values at: " + check_predictability_params_fast_method_nodes.cache_dpath())
 
 for ri, repo in enumerate(repos):
     print(pyfiglet.figlet_format(repo))
@@ -108,7 +100,7 @@ for ri, repo in enumerate(repos):
         def check_predictability(weights):
             global bar
             bar.update()
-            return check_predictability_params_fast(repo, predicted_metric, other_metrics, tuple(weights))
+            return check_predictability_params_fast_method_nodes(repo, predicted_metric, other_metrics, tuple(weights))
 
         tax = ternary.TernaryAxesSubplot(ax=axes[ri, mi], scale=scale)
         tax.heatmapf(check_predictability, boundary=True,
@@ -137,5 +129,5 @@ for ri, repo in enumerate(repos):
         # tax.show()
         # noinspection PyProtectedMember
         tax._redraw_labels()
-print("Cached values at: " + check_predictability_params_fast.cache_dpath())
+print("Cached values at: " + check_predictability_params_fast_method_nodes.cache_dpath())
 plt.show()

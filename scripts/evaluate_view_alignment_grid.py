@@ -57,10 +57,10 @@ def get_view(repo: str, view: str) -> CouplingGraph:
     return repo_metric_cache[key]
 
 
-def get_metric_values(repo: str, max_node_pairs_to_check=10000) -> list[list[float]]:
+def get_metric_values(repo: str, max_node_pairs_to_check=100000) -> list[list[float]]:
     if repo not in repo_metric_values_cache:
         graphs = [get_view(repo, view) for view in metrics]
-        nodes = sorted(list(get_graph_node_set_combination(graphs)))
+        nodes = sorted([tree_node.get_path() for tree_node in repo_obj_cache[repo].get_tree().traverse_gen() if tree_node.get_type() == "method" and tree_node.get_line_span() >= 1])
         node_pairs = list(all_pairs(nodes))
         random.seed(42)  # for reproducibility
         if len(node_pairs) > max_node_pairs_to_check:
@@ -74,7 +74,7 @@ def get_metric_values(repo: str, max_node_pairs_to_check=10000) -> list[list[flo
 
 
 @cachier()
-def check_view_alignment(repo: str, metric: str, other_metric: str) -> float:
+def check_view_alignment_method_nodes(repo: str, metric: str, other_metric: str) -> float:
     metric_values = get_metric_values(repo)
     mi1 = metrics.index(metric)
     mi2 = metrics.index(other_metric)
@@ -82,7 +82,7 @@ def check_view_alignment(repo: str, metric: str, other_metric: str) -> float:
     target_data_list: list[tuple[float, float]] = [(entry[mi2], entry[mi1]) for entry in metric_values]
     return score_sorting_similarity(target_data_list)
 # check_predictability_params_fast.clear_cache()
-print("Cached values at: " + check_view_alignment.cache_dpath())
+print("Cached values at: " + check_view_alignment_method_nodes.cache_dpath())
 
 for ri, repo in enumerate(repos):
     print(pyfiglet.figlet_format(repo))
@@ -90,15 +90,16 @@ for ri, repo in enumerate(repos):
 
     columns = tuple(" " + m[0].upper() + " " for m in metrics)
     # Add a table at the bottom of the axes
-    colors = [[sm.to_rgba(check_view_alignment(repo, m1, m2)) for m2 in metrics] for m1 in metrics]
+    colors = [[sm.to_rgba(check_view_alignment_method_nodes(repo, m1, m2)) for m2 in metrics] for m1 in metrics]
+    # cellText = [[str(int(check_view_alignment(repo, m1, m2) * 100)) + "%" for m2 in metrics] for m1 in metrics]
 
     axes[ri].set_aspect('equal')
     axes[ri].set_title(repo)
     axes[ri].axis('tight')
     axes[ri].axis('off')
-    axes[ri].table(cellColours=colors, colLabels=columns, rowLabels=columns, loc='center').scale(0.7, 1.5)
+    axes[ri].table(cellColours=colors, colLabels=columns, rowLabels=columns, loc='center', cellLoc="center").scale(0.7, 1.5)
 
     plt.colorbar(sm, ax=axes[ri])
 
-print("Cached values at: " + check_view_alignment.cache_dpath())
+print("Cached values at: " + check_view_alignment_method_nodes.cache_dpath())
 plt.show()

@@ -430,3 +430,9 @@ class RepoTree:
             if my_content != other_content:
                 results.append(self.get_path())
         return results
+
+    def traverse_gen(self):
+        # yield me and all my recursive children
+        yield self
+        for child in self.children.values():
+            yield from child.traverse_gen()
