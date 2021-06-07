@@ -1,5 +1,8 @@
 from local_repo import LocalRepo
 from metrics import MetricManager
+from metrics_evolutionary import get_commit_diff
+from graph import WeightCombinedGraph
+from util import log_progress, generate_one_distributions
 
 repos = [
     "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
@@ -15,3 +18,33 @@ for repo in repos:
     metric_graphs = [MetricManager.get(r, m) for m in metrics]
     for g in metric_graphs:
         g.print_statistics()
+
+    def node_filter(tree_node):
+        return tree_node is not None and tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
+
+    prediction_tests: list[tuple[str, list[str]]] = []
+
+    future_commit_diffs = [get_commit_diff(ch, r) for ch in r.get_future_commits()]
+    future_commit_diffs = [[path for path in diff if node_filter(r.get_tree().find_node(path))] for diff in future_commit_diffs if diff is not None]
+    commits_to_evaluate = [diffs for diffs in future_commit_diffs if len(diffs) > 1]
+    for commit_to_evaluate in log_progress(commits_to_evaluate, desc="Constructing evaluation data set"):
+        for i, method_to_predict in enumerate(commit_to_evaluate):
+            other_methods: list[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
+            prediction_tests.append((method_to_predict, other_methods))
+
+    all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
+    results = []
+    weight_combinations = list(generate_one_distributions(len(metrics), 4))
+    for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
+        scores = []
+        for missing, others in prediction_tests:
+            scores.append(WeightCombinedGraph(metric_graphs, weights).how_well_predicts_missing_node(others, missing, all_nodes))
+        score = sum(scores) / len(scores)
+        results.append((", ".join(str(w) for w in weights), score))
+
+    results.sort(key=lambda e: e[1])
+    for r in results:
+        print(r)
+
+    print("nice")
+

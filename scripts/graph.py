@@ -68,6 +68,7 @@ class CouplingGraph(ABC):
         print("No Most Linked Nodes Data for " + type(self).__name__)
 
     def how_well_predicted_by(self, other_graph: 'CouplingGraph', max_node_pairs_to_check=10000) -> float:
+        """how similar is ordering node-pairs according to me to what the other graph would do?"""
         node_set = self.get_node_set()
         if node_set is None or len(node_set) < 10:
             print("Do not have a node set on my own, asking the other graph")
@@ -87,6 +88,15 @@ class CouplingGraph(ABC):
 
         return score_sorting_similarity(data_with_result_values)
 
+    def how_well_predicts_missing_node(self, node_set: list[str], node_missing_from_set: str, all_nodes: list[str]) -> float:
+        """given a set of nodes and another node missing from that set, how well does this graph predict that this node is missing from the set?"""
+        coupling_sorted_nodes = all_nodes[:]
+        def sort_key(node):
+            bias = -0.00001 if node == node_missing_from_set else 0  # when same values - sort target as far back as possible, for the worst possible result
+            avg_coupling = sum(self.get_normalized_coupling(set_node, node) for set_node in node_set) / len(node_set)
+            return bias + avg_coupling
+        coupling_sorted_nodes.sort(key=sort_key, reverse=True)
+        return 1 - (coupling_sorted_nodes.index(node_missing_from_set) / float(len(coupling_sorted_nodes)))
 
 class NodeSetCouplingGraph(CouplingGraph):
     def __init__(self, name):

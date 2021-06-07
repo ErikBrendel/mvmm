@@ -6,7 +6,7 @@ MAX_COMMIT_FILES = 50
 
 
 # needs to be separate so that multiprocessing lib can find it
-def get_commit_diff(commit_hash, repo):
+def get_commit_diff(commit_hash, repo) -> Optional[list[str]]:
     # repo_tree = repo.get_tree()
 
     def walk_tree_cursor(cursor, prefix, content_bytes, node_handler):
