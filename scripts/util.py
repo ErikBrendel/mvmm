@@ -46,7 +46,7 @@ def frange(start, stop, step):
     yield stop
 
 
-def generate_one_distributions(dim, precision=10):
+def generate_one_distributions(dim: int, precision=10) -> Generator[list[float], None, None]:
     """precision = how many steps between 0 and 1"""
     decrement_step = -1 / precision
     result = [0 for i in range(dim)]

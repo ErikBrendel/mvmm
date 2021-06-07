@@ -2,7 +2,7 @@ from __future__ import annotations
 from local_repo import LocalRepo
 from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
-from graph import WeightCombinedGraph, ResultCachedGraph
+from graph import WeightCombinedGraph, ResultCachedGraph, CouplingGraph
 from prcoessify import processify
 from util import log_progress, generate_one_distributions
 from typing import *
@@ -10,10 +10,10 @@ from typing import *
 repos = [
     # "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
     # "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
-    # "neuland/jade4j:v1.2.5",  # current is 1.3.2
+    "neuland/jade4j:v1.2.5",  # current is 1.3.2
     # "neuland/jade4j:v1.1.4",
     # "neuland/jade4j:v1.0.0",
-    "apache/log4j:v1_2_15",  # current is 1.2.17
+    # "apache/log4j:v1_2_15",  # current is 1.2.17
     # "apache/log4j:v1_2_11",
     # "apache/log4j:v1_2_6",
     # "apache/log4j:v1_2_1",
@@ -28,36 +28,50 @@ def get_commit_diff_processified(*args):
     return get_commit_diff(*args)
 
 
+def node_filter(tree_node):
+    return tree_node is not None and tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
+
+
+repo_objects = {repo: LocalRepo(repo) for repo in repos}
+nodes_tests_cache: dict[str, Tuple[list[str], List[tuple[str, List[str]]]]] = {}
+graph_cache: dict[str, List[CouplingGraph]] = {}
+def get_nodes_and_tests(repo: str):
+    if repo not in nodes_tests_cache:
+        r = repo_objects[repo]
+        all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
+        prediction_tests: List[tuple[str, List[str]]] = []
+        future_commit_diffs = [get_commit_diff_processified(ch, r) for ch in r.get_future_commits()]
+        future_commit_diffs = [[path for path in diff if node_filter(r.get_tree().find_node(path))] for diff in future_commit_diffs if diff is not None]
+        commits_to_evaluate = [diffs for diffs in future_commit_diffs if len(diffs) > 1]
+        for commit_to_evaluate in commits_to_evaluate:
+            for i, method_to_predict in enumerate(commit_to_evaluate):
+                other_methods: List[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
+                prediction_tests.append((method_to_predict, other_methods))
+        nodes_tests_cache[repo] = (all_nodes, prediction_tests)
+    return nodes_tests_cache[repo]
+def get_graphs(repo: str):
+    if repo not in graph_cache:
+        graph_cache[repo] = [ResultCachedGraph(MetricManager.get(repo_objects[repo], m)) for m in metrics]
+    return graph_cache[repo]
+
+
+def get_prediction_score(repo: str, weights: list[float]):
+    all_nodes, prediction_tests = get_nodes_and_tests(repo)
+    scores = []
+    for missing, others in prediction_tests:
+        scores.append(WeightCombinedGraph(get_graphs(repo), weights).how_well_predicts_missing_node(others, missing, all_nodes))
+    return sum(scores) / len(scores)
+
+
 for repo in repos:
     r = LocalRepo(repo)
     r.update()
     print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
-    metric_graphs = [ResultCachedGraph(MetricManager.get(r, m)) for m in metrics]
-    for g in metric_graphs:
-        g.print_statistics()
-
-    def node_filter(tree_node):
-        return tree_node is not None and tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
-
-    all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
-
-    prediction_tests: List[tuple[str, List[str]]] = []
-
-    future_commit_diffs = [get_commit_diff_processified(ch, r) for ch in r.get_future_commits()]
-    future_commit_diffs = [[path for path in diff if node_filter(r.get_tree().find_node(path))] for diff in future_commit_diffs if diff is not None]
-    commits_to_evaluate = [diffs for diffs in future_commit_diffs if len(diffs) > 1]
-    for commit_to_evaluate in log_progress(commits_to_evaluate, desc="Constructing evaluation data set"):
-        for i, method_to_predict in enumerate(commit_to_evaluate):
-            other_methods: List[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
-            prediction_tests.append((method_to_predict, other_methods))
 
     results = []
     weight_combinations = list(generate_one_distributions(len(metrics), 8))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
-        scores = []
-        for missing, others in prediction_tests:
-            scores.append(WeightCombinedGraph(metric_graphs, weights).how_well_predicts_missing_node(others, missing, all_nodes))
-        score = sum(scores) / len(scores)
+        score = get_prediction_score(repo, weights)
         score = score ** 4  # todo make this power slider interactive?
         results.append((", ".join(str(w) for w in weights), score))
 
