@@ -105,17 +105,17 @@ class MetricManager:
     graph_cache = {}
 
     @staticmethod
-    def cache_key(repo, name):
+    def cache_key(repo: LocalRepo, name: str) -> str:
         return repo.name + "-" + name
 
     @staticmethod
-    def clear(repo, name):
+    def clear(repo: LocalRepo, name: str):
         MetricManager.graph_cache.pop(MetricManager.cache_key(repo, name), None)
         if MetricManager._data_present(repo.name, name):
             os.remove(CouplingGraph.pickle_path(repo.name, name))
 
     @staticmethod
-    def get(repo, name) -> CouplingGraph:
+    def get(repo: LocalRepo, name: str) -> CouplingGraph:
         if name == "module_distance":
             return ModuleDistanceCouplingGraph()
         if MetricManager.cache_key(repo, name) in MetricManager.graph_cache:
@@ -135,5 +135,5 @@ class MetricManager:
         return graph
 
     @staticmethod
-    def _data_present(repo_name, name):
+    def _data_present(repo_name: str, name: str):
         return os.path.isfile(CouplingGraph.pickle_path(repo_name, name))

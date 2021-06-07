@@ -18,8 +18,12 @@ ADD_LINE_NUMBER_TO_LINK = True
 class LocalRepo:
     def __init__(self, name):
         self.name = name
-        self.repo_name = "/".join(self.name.split("/")[:2])
-        self.sub_dir = None if len(self.repo_name) == len(self.name) else self.name[len(self.repo_name) + 1:]
+        self.committish = None
+        name_path_part = name
+        if ":" in name:
+            name_path_part, self.committish = name.split(":")
+        self.repo_name = "/".join(name_path_part.split("/")[:2])
+        self.sub_dir = None if len(self.repo_name) == len(name_path_part) else name_path_part[len(self.repo_name) + 1:]
         self.tree = None
         if not self.is_cloned():
             print("cloning " + self.repo_name + ", this may take a while...")
@@ -87,6 +91,8 @@ class LocalRepo:
         return self.path_to_file_cache.get(path)
 
     def get_file_objects(self, commit_hash=None):
+        if commit_hash is None and self.committish is not None:
+            commit_hash = self.committish
         commit = None
         if commit_hash is None:
             commit = self.repo.head.commit
@@ -117,10 +123,23 @@ class LocalRepo:
     def get_file_object_content(self, git_object):
         return git_object.data_stream.read()
 
-    def get_all_commits(self):
-        return Git(self.path()).log("--pretty=%H").split("\n")
+    def get_all_commits(self) -> list[str]:
+        commit_hash_list: list[str] = Git(self.path()).log("--pretty=%H").split("\n")
+        if self.committish is None:
+            return commit_hash_list
+        else:
+            current_commit_date = self.get_commit(self.committish).committed_date
+            return [ch for ch in commit_hash_list if self.get_commit(ch).committed_date <= current_commit_date]
 
-    def get_commit(self, sha):
+    def get_future_commits(self) -> list[str]:
+        if self.committish is None:
+            return []
+        commit_hash_list = Git(self.path()).log("--pretty=%H").split("\n")
+        current_commit_date = self.get_commit(self.committish).committed_date
+        return [ch for ch in commit_hash_list if self.get_commit(ch).committed_date > current_commit_date]
+
+
+    def get_commit(self, sha: str):
         return self.repo.commit(sha)
 
     def get_tree(self):
@@ -131,11 +150,11 @@ class LocalRepo:
     # to allow for pickling, see https://stackoverflow.com/a/2345985/4354423
     def __getstate__(self):
         """Return state values to be pickled."""
-        return (self.name, self.repo_name, self.sub_dir, self.repo)
+        return (self.name, self.repo_name, self.sub_dir, self.repo, self.committish)
 
     def __setstate__(self, state):
         """Restore state from the unpickled state values."""
-        self.name, self.repo_name, self.sub_dir, self.repo = state
+        self.name, self.repo_name, self.sub_dir, self.repo, self.committish = state
 
 
 def should_skip_file(content_bytes):
@@ -150,7 +169,7 @@ def should_skip_file(content_bytes):
 
 
 class RepoFile:
-    def __init__(self, repo, file_obj):
+    def __init__(self, repo: LocalRepo, file_obj):
         self.repo = repo
         self.file_obj = file_obj
         self.content = None
