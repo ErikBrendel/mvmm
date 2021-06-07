@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cachier import cachier
 from local_repo import LocalRepo
 from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
@@ -8,9 +9,9 @@ from util import log_progress, generate_one_distributions
 from typing import *
 
 repos = [
-    # "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
+    "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
     # "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
-    "neuland/jade4j:v1.2.5",  # current is 1.3.2
+    # "neuland/jade4j:v1.2.5",  # current is 1.3.2
     # "neuland/jade4j:v1.1.4",
     # "neuland/jade4j:v1.0.0",
     # "apache/log4j:v1_2_15",  # current is 1.2.17
@@ -55,7 +56,8 @@ def get_graphs(repo: str):
     return graph_cache[repo]
 
 
-def get_prediction_score(repo: str, weights: list[float]):
+@cachier()
+def get_commit_prediction_score(repo: str, weights: Tuple[float]):
     all_nodes, prediction_tests = get_nodes_and_tests(repo)
     scores = []
     for missing, others in prediction_tests:
@@ -71,7 +73,7 @@ for repo in repos:
     results = []
     weight_combinations = list(generate_one_distributions(len(metrics), 8))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
-        score = get_prediction_score(repo, weights)
+        score = get_commit_prediction_score(repo, tuple(weights))
         score = score ** 4  # todo make this power slider interactive?
         results.append((", ".join(str(w) for w in weights), score))
 
