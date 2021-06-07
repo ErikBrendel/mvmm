@@ -5,8 +5,16 @@ from graph import WeightCombinedGraph, ResultCachedGraph
 from util import log_progress, generate_one_distributions
 
 repos = [
-    "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
-    "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
+    # "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
+    # "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
+    # "neuland/jade4j:v1.2.5",  # current is 1.3.2
+    # "neuland/jade4j:v1.1.4",
+    # "neuland/jade4j:v1.0.0",
+    "apache/log4j:v1_2_15",  # current is 1.2.17
+    "apache/log4j:v1_2_11",
+    "apache/log4j:v1_2_6",
+    "apache/log4j:v1_2_1",
+    "apache/log4j:v1_1_1",
 ]
 
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
