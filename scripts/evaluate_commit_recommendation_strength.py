@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import ternary
+from matplotlib import pyplot as plt
 from cachier import cachier
 from local_repo import LocalRepo
 from metrics import MetricManager
@@ -74,12 +77,38 @@ for repo in repos:
     weight_combinations = list(generate_one_distributions(len(metrics), 8))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
         score = get_commit_prediction_score(repo, tuple(weights))
-        score = score ** 4  # todo make this power slider interactive?
+        score = score ** 10  # todo make this power slider interactive?
         results.append((", ".join(str(w) for w in weights), score))
-
     results.sort(key=lambda e: e[1])
-    for r in results:
-        print(r[0] + ", " + str(r[1]))
+    for res in results:
+        print(res[0] + ", " + str(res[1]))
 
-    print("nice")
+    fig, axes = plt.subplots(1, 4, figsize=(15, 3), constrained_layout=True)
+    fig.suptitle(r.display_name() + " - How well can view combinations complete future commits?")
+    scale = 8
+    for mi, omitted_metric in enumerate(metrics):
+        other_metrics = tuple(metrics[:mi] + metrics[mi + 1:])
+
+        def ternary_fn(tw):
+            weights = tw[:]
+            weights.insert(mi, 0)
+            return get_commit_prediction_score(repo, tuple(weights))
+
+        tax = ternary.TernaryAxesSubplot(ax=axes[mi], scale=scale)
+        tax.heatmapf(ternary_fn, boundary=True,
+                     style="hex", colorbar=True,
+                     vmin=0.5, vmax=1)
+        fontsize = 9
+        tax.right_corner_label(other_metrics[0], fontsize=fontsize, position=(0.9, 0.04, 0.1))
+        tax.top_corner_label(other_metrics[1], fontsize=fontsize, offset=0.12)
+        tax.left_corner_label(other_metrics[2], fontsize=fontsize, position=(0.08, 0.04, 0))
+
+        # tax.set_title(r.display_name() + ": Without " + omitted_metric)
+        tax.boundary(linewidth=1.0)
+
+        # tax.show()
+        axes[mi].axis("off")
+        # noinspection PyProtectedMember
+        tax._redraw_labels()
+    plt.show()
 

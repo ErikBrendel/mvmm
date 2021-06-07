@@ -32,6 +32,12 @@ class LocalRepo:
         self.url_cache = {}
         self.path_to_file_cache = None
 
+    def display_name(self):
+        if self.committish is None or len(self.committish) < 30:
+            return self.name
+        else:
+            return self.name[:-len(self.committish)] + self.committish[:10]
+
     def update(self):
         print("updating " + self.repo_name + "...")
         self.pull()
