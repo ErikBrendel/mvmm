@@ -18,7 +18,7 @@ class CouplingGraph(ABC):
     def __init__(self, name):
         self.name = name
 
-    def get_node_set(self) -> Optional[set[str]]:
+    def get_node_set(self) -> Optional[Set[str]]:
         return None
 
     @abstractmethod
@@ -88,7 +88,7 @@ class CouplingGraph(ABC):
 
         return score_sorting_similarity(data_with_result_values)
 
-    def how_well_predicts_missing_node(self, node_set: list[str], node_missing_from_set: str, all_nodes: list[str]) -> float:
+    def how_well_predicts_missing_node(self, node_set: List[str], node_missing_from_set: str, all_nodes: List[str]) -> float:
         """given a set of nodes and another node missing from that set, how well does this graph predict that this node is missing from the set?"""
         coupling_sorted_nodes = all_nodes[:]
         def sort_key(node):
@@ -534,7 +534,7 @@ class ModuleDistanceCouplingGraph(CouplingGraph):
         return "Module Distance"
 
 
-def get_graph_node_set_combination(graphs: list[CouplingGraph]) -> set[str]:
+def get_graph_node_set_combination(graphs: List[CouplingGraph]) -> Set[str]:
     graph_nodes = [g.get_node_set() for g in graphs]
     return set.union(*[nodes for nodes in graph_nodes if nodes is not None])
 
@@ -586,7 +586,7 @@ class ResultCachedGraph(CouplingGraph):
         self.support_cache: dict[str, float] = {}
         self.coupling_cache: dict[tuple[str, str], float] = {}
 
-    def get_node_set(self) -> Optional[set[str]]:
+    def get_node_set(self) -> Optional[Set[str]]:
         return self.wrapped.get_node_set()
 
     def get_normalized_support(self, node: str) -> float:

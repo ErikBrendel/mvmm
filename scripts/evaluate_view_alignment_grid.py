@@ -1,6 +1,7 @@
 import math
 import random
 import time
+from typing import *
 
 import matplotlib.pyplot as plt
 import pyfiglet
@@ -44,7 +45,7 @@ fig.suptitle('Correlations between views', fontsize=15)
 
 repo_obj_cache: dict[str, LocalRepo] = dict()
 repo_metric_cache: dict[str, CouplingGraph] = dict()
-repo_metric_values_cache: dict[str, list[list[float]]] = dict()
+repo_metric_values_cache: dict[str, List[List[float]]] = dict()
 
 
 def get_view(repo: str, view: str) -> CouplingGraph:
@@ -57,7 +58,7 @@ def get_view(repo: str, view: str) -> CouplingGraph:
     return repo_metric_cache[key]
 
 
-def get_metric_values(repo: str, max_node_pairs_to_check=100000) -> list[list[float]]:
+def get_metric_values(repo: str, max_node_pairs_to_check=100000) -> List[List[float]]:
     if repo not in repo_metric_values_cache:
         graphs = [get_view(repo, view) for view in metrics]
         nodes = sorted([tree_node.get_path() for tree_node in repo_obj_cache[repo].get_tree().traverse_gen() if tree_node.get_type() == "method" and tree_node.get_line_span() >= 1])
@@ -79,7 +80,7 @@ def check_view_alignment_method_nodes(repo: str, metric: str, other_metric: str)
     mi1 = metrics.index(metric)
     mi2 = metrics.index(other_metric)
 
-    target_data_list: list[tuple[float, float]] = [(entry[mi2], entry[mi1]) for entry in metric_values]
+    target_data_list: List[tuple[float, float]] = [(entry[mi2], entry[mi1]) for entry in metric_values]
     return score_sorting_similarity(target_data_list)
 # check_predictability_params_fast.clear_cache()
 print("Cached values at: " + check_view_alignment_method_nodes.cache_dpath())

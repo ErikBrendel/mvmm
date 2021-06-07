@@ -123,15 +123,15 @@ class LocalRepo:
     def get_file_object_content(self, git_object):
         return git_object.data_stream.read()
 
-    def get_all_commits(self) -> list[str]:
-        commit_hash_list: list[str] = Git(self.path()).log("--pretty=%H").split("\n")
+    def get_all_commits(self) -> List[str]:
+        commit_hash_list: List[str] = Git(self.path()).log("--pretty=%H").split("\n")
         if self.committish is None:
             return commit_hash_list
         else:
             current_commit_date = self.get_commit(self.committish).committed_date
             return [ch for ch in commit_hash_list if self.get_commit(ch).committed_date <= current_commit_date]
 
-    def get_future_commits(self) -> list[str]:
+    def get_future_commits(self) -> List[str]:
         if self.committish is None:
             return []
         commit_hash_list = Git(self.path()).log("--pretty=%H").split("\n")

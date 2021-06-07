@@ -75,7 +75,7 @@ class Env(ABC):
         """For methods: the return type. For fields: their variable type. For classes: self"""
         pass
 
-    def get_self_paths(self) -> list[str]:
+    def get_self_paths(self) -> List[str]:
         """return all the paths that are present in this envs definition"""
         """Might be zero (nested env), one (class / method) or multiple (compound generic type)"""
         return []
@@ -281,12 +281,12 @@ class StructuralContext:
         self.repo = repo
         self.files = repo.get_all_interesting_files()
         self.full_class_name_to_path: dict[str, str] = {}
-        self.file_path_to_imports: dict[str, list[str]] = {}
-        self.path_to_result_type_envs: dict[str, list[Env]] = {}
-        self.class_path_to_base_class_envs: dict[str, list[Env]] = {}
-        self.class_path_to_generic_names: dict[str, list[str]] = {}
+        self.file_path_to_imports: dict[str, List[str]] = {}
+        self.path_to_result_type_envs: dict[str, List[Env]] = {}
+        self.class_path_to_base_class_envs: dict[str, List[Env]] = {}
+        self.class_path_to_generic_names: dict[str, List[str]] = {}
 
-        def _get_package(file) -> list[str]:
+        def _get_package(file) -> List[str]:
             packages = package_query.captures(file.get_tree().root_node)
             # assert len(packages) <= 1
             if len(packages) > 1:
@@ -296,7 +296,7 @@ class StructuralContext:
             else:
                 return []
 
-        def _get_import_strings(file) -> list[str]:
+        def _get_import_strings(file) -> List[str]:
             imports = import_query.captures(file.get_tree().root_node)
             result = []
             for import_statement in imports:
@@ -339,7 +339,7 @@ class StructuralContext:
                 continue  # TODO filter those out / parse @interfaces
 
             # TODO keep in sync with evolutionary and linguistic view as well as RepoFile class
-            classes: list[RepoTree] = node.get_descendants_of_type("class") + node.get_descendants_of_type("interface") + node.get_descendants_of_type("enum")
+            classes: List[RepoTree] = node.get_descendants_of_type("class") + node.get_descendants_of_type("interface") + node.get_descendants_of_type("enum")
             for class_node in classes:
                 generics_ts_node = class_node.ts_node.child_by_field_name("type_parameters")
                 if generics_ts_node is not None:

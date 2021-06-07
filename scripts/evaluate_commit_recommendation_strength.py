@@ -1,8 +1,11 @@
+from __future__ import annotations
 from local_repo import LocalRepo
 from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
 from graph import WeightCombinedGraph, ResultCachedGraph
+from prcoessify import processify
 from util import log_progress, generate_one_distributions
+from typing import *
 
 repos = [
     # "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
@@ -11,13 +14,19 @@ repos = [
     # "neuland/jade4j:v1.1.4",
     # "neuland/jade4j:v1.0.0",
     "apache/log4j:v1_2_15",  # current is 1.2.17
-    "apache/log4j:v1_2_11",
-    "apache/log4j:v1_2_6",
-    "apache/log4j:v1_2_1",
-    "apache/log4j:v1_1_1",
+    # "apache/log4j:v1_2_11",
+    # "apache/log4j:v1_2_6",
+    # "apache/log4j:v1_2_1",
+    # "apache/log4j:v1_1_1",
 ]
 
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
+
+
+@processify
+def get_commit_diff_processified(*args):
+    return get_commit_diff(*args)
+
 
 for repo in repos:
     r = LocalRepo(repo)
@@ -32,14 +41,14 @@ for repo in repos:
 
     all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
 
-    prediction_tests: list[tuple[str, list[str]]] = []
+    prediction_tests: List[tuple[str, List[str]]] = []
 
-    future_commit_diffs = [get_commit_diff(ch, r) for ch in r.get_future_commits()]
+    future_commit_diffs = [get_commit_diff_processified(ch, r) for ch in r.get_future_commits()]
     future_commit_diffs = [[path for path in diff if node_filter(r.get_tree().find_node(path))] for diff in future_commit_diffs if diff is not None]
     commits_to_evaluate = [diffs for diffs in future_commit_diffs if len(diffs) > 1]
     for commit_to_evaluate in log_progress(commits_to_evaluate, desc="Constructing evaluation data set"):
         for i, method_to_predict in enumerate(commit_to_evaluate):
-            other_methods: list[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
+            other_methods: List[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
             prediction_tests.append((method_to_predict, other_methods))
 
     results = []
@@ -49,6 +58,7 @@ for repo in repos:
         for missing, others in prediction_tests:
             scores.append(WeightCombinedGraph(metric_graphs, weights).how_well_predicts_missing_node(others, missing, all_nodes))
         score = sum(scores) / len(scores)
+        score = score ** 4  # todo make this power slider interactive?
         results.append((", ".join(str(w) for w in weights), score))
 
     results.sort(key=lambda e: e[1])
