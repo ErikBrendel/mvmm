@@ -578,6 +578,35 @@ class WeightCombinedGraph(CouplingGraph):
         return "Combined graph statistics WIP"
 
 
+class ResultCachedGraph(CouplingGraph):
+    def __init__(self, wrapped: CouplingGraph):
+        self.wrapped = wrapped
+        CouplingGraph.__init__(self, wrapped.name)
+
+        self.support_cache: dict[str, float] = {}
+        self.coupling_cache: dict[tuple[str, str], float] = {}
+
+    def get_node_set(self) -> Optional[set[str]]:
+        return self.wrapped.get_node_set()
+
+    def get_normalized_support(self, node: str) -> float:
+        if node not in self.support_cache:
+            self.support_cache[node] = self.wrapped.get_normalized_support(node)
+        return self.support_cache[node]
+
+    def get_normalized_coupling(self, a: str, b: str) -> float:
+        key = (a, b)
+        if key not in self.coupling_cache:
+            self.coupling_cache[key] = self.wrapped.get_normalized_coupling(a, b)
+        return self.coupling_cache[key]
+
+    def plaintext_content(self) -> str:
+        raise Exception("Cannot save graph wrapper!")
+
+    def print_statistics(self):
+        pass
+
+
 if __name__ == "__MAIN__":
     g1 = ModuleDistanceCouplingGraph()
     print(g1.name)

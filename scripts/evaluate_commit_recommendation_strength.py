@@ -1,7 +1,7 @@
 from local_repo import LocalRepo
 from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
-from graph import WeightCombinedGraph
+from graph import WeightCombinedGraph, ResultCachedGraph
 from util import log_progress, generate_one_distributions
 
 repos = [
@@ -15,12 +15,14 @@ for repo in repos:
     r = LocalRepo(repo)
     r.update()
     print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
-    metric_graphs = [MetricManager.get(r, m) for m in metrics]
+    metric_graphs = [ResultCachedGraph(MetricManager.get(r, m)) for m in metrics]
     for g in metric_graphs:
         g.print_statistics()
 
     def node_filter(tree_node):
         return tree_node is not None and tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
+
+    all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
 
     prediction_tests: list[tuple[str, list[str]]] = []
 
@@ -32,9 +34,8 @@ for repo in repos:
             other_methods: list[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
             prediction_tests.append((method_to_predict, other_methods))
 
-    all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
     results = []
-    weight_combinations = list(generate_one_distributions(len(metrics), 4))
+    weight_combinations = list(generate_one_distributions(len(metrics), 8))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
         scores = []
         for missing, others in prediction_tests:
@@ -44,7 +45,7 @@ for repo in repos:
 
     results.sort(key=lambda e: e[1])
     for r in results:
-        print(r)
+        print(r[0] + ", " + str(r[1]))
 
     print("nice")
 
