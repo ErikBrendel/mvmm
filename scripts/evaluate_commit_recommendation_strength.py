@@ -8,6 +8,7 @@ from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
 from graph import WeightCombinedGraph, ResultCachedGraph, CouplingGraph
 from prcoessify import processify
+from plotting import parallel_coordinates
 from util import log_progress, generate_one_distributions
 from typing import *
 
@@ -22,6 +23,11 @@ repos = [
     # "apache/log4j:v1_2_6",
     # "apache/log4j:v1_2_1",
     # "apache/log4j:v1_1_1",
+    # "brettwooldridge/HikariCP:HikariCP-3.1.0",  # current: 4.0.3
+    # "jenkinsci/jenkins:jenkins-2.289",  # current: 2.296
+    # "jenkinsci/jenkins:jenkins-2.277",  # current: 2.296
+    # "jenkinsci/jenkins:jenkins-2.263",  # current: 2.296
+    # "jenkinsci/jenkins:jenkins-2.250",  # current: 2.296
 ]
 
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
@@ -37,7 +43,7 @@ def node_filter(tree_node):
 
 
 repo_objects = {repo: LocalRepo(repo) for repo in repos}
-nodes_tests_cache: dict[str, Tuple[list[str], List[tuple[str, List[str]]]]] = {}
+nodes_tests_cache: dict[str, Tuple[List[str], List[tuple[str, List[str]]]]] = {}
 graph_cache: dict[str, List[CouplingGraph]] = {}
 def get_nodes_and_tests(repo: str):
     if repo not in nodes_tests_cache:
@@ -52,6 +58,8 @@ def get_nodes_and_tests(repo: str):
                 other_methods: List[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
                 prediction_tests.append((method_to_predict, other_methods))
         nodes_tests_cache[repo] = (all_nodes, prediction_tests)
+        print("Total method nodes: " + str(len(all_nodes)))
+        print("Total future tests: " + str(len(prediction_tests)))
     return nodes_tests_cache[repo]
 def get_graphs(repo: str):
     if repo not in graph_cache:
@@ -110,5 +118,14 @@ for repo in repos:
         axes[mi].axis("off")
         # noinspection PyProtectedMember
         tax._redraw_labels()
+    plt.show()
+
+    # parallel coordinates plot:
+
+    parallel_data: List[Tuple[List[float], float]] = [
+        (w, get_commit_prediction_score(repo, tuple(w)))
+        for w in generate_one_distributions(len(metrics), scale)
+    ]
+    parallel_coordinates(None, metrics, parallel_data, 0.4 / scale)
     plt.show()
 
