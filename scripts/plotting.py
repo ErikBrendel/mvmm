@@ -39,9 +39,9 @@ def parallel_coordinates(ax, dimensions: List[str], data: List[Tuple[List[float]
 
     sm = plt.cm.ScalarMappable(cmap=None, norm=plt.Normalize(vmin=min_value, vmax=max_value))
 
-    for alpha in [1, 0.5, 0.25, 0.125, 0.05]:
+    for alpha in [1]:
         for y, color_value in data:
-            rgba = sm.to_rgba(color_value, alpha=alpha)
+            rgba = (0.5, 0, 0, color_value ** 15)
             # rgba = tuple(list(rgba[0:3]) + [alpha])
             ax.plot(x, y, color=rgba, **kwargs)
 

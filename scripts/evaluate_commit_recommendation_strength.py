@@ -14,17 +14,17 @@ from typing import *
 
 repos = [
     "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
-    # "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
-    # "neuland/jade4j:v1.2.5",  # current is 1.3.2
+    "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
+    "neuland/jade4j:v1.2.5",  # current is 1.3.2
     # "neuland/jade4j:v1.1.4",
     # "neuland/jade4j:v1.0.0",
     # "apache/log4j:v1_2_15",  # current is 1.2.17
-    # "apache/log4j:v1_2_11",
+    "apache/log4j:v1_2_11",
     # "apache/log4j:v1_2_6",
     # "apache/log4j:v1_2_1",
     # "apache/log4j:v1_1_1",
-    # "brettwooldridge/HikariCP:HikariCP-3.1.0",  # current: 4.0.3
-    # "jenkinsci/jenkins:jenkins-2.289",  # current: 2.296
+    "brettwooldridge/HikariCP:HikariCP-3.1.0",  # current: 4.0.3
+    "jenkinsci/jenkins:jenkins-2.289",  # current: 2.296
     # "jenkinsci/jenkins:jenkins-2.277",  # current: 2.296
     # "jenkinsci/jenkins:jenkins-2.263",  # current: 2.296
     # "jenkinsci/jenkins:jenkins-2.250",  # current: 2.296
@@ -81,8 +81,9 @@ for repo in repos:
     r.update()
     print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
 
+    scale = 8
     results = []
-    weight_combinations = list(generate_one_distributions(len(metrics), 8))
+    weight_combinations = list(generate_one_distributions(len(metrics), scale))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
         score = get_commit_prediction_score(repo, tuple(weights))
         score = score ** 10  # todo make this power slider interactive?
@@ -93,7 +94,6 @@ for repo in repos:
 
     fig, axes = plt.subplots(1, 4, figsize=(15, 3), constrained_layout=True)
     fig.suptitle(r.display_name() + " - How well can view combinations complete future commits?")
-    scale = 8
     for mi, omitted_metric in enumerate(metrics):
         other_metrics = tuple(metrics[:mi] + metrics[mi + 1:])
 
@@ -121,11 +121,12 @@ for repo in repos:
     plt.show()
 
     # parallel coordinates plot:
-
+    """  # seem rather bad, research in that direction is halted for now
     parallel_data: List[Tuple[List[float], float]] = [
         (w, get_commit_prediction_score(repo, tuple(w)))
         for w in generate_one_distributions(len(metrics), scale)
     ]
     parallel_coordinates(None, metrics, parallel_data, 0.4 / scale)
     plt.show()
+    """
 
