@@ -100,12 +100,12 @@ for repo in repos:
         def ternary_fn(tw):
             weights = tw[:]
             weights.insert(mi, 0)
-            return get_commit_prediction_score(repo, tuple(weights))
+            return get_commit_prediction_score(repo, tuple(weights)) ** 5
 
         tax = ternary.TernaryAxesSubplot(ax=axes[mi], scale=scale)
         tax.heatmapf(ternary_fn, boundary=True,
                      style="hex", colorbar=True,
-                     vmin=0.5, vmax=1)
+                     vmin=0, vmax=1)
         fontsize = 9
         tax.right_corner_label(other_metrics[0], fontsize=fontsize, position=(0.9, 0.04, 0.1))
         tax.top_corner_label(other_metrics[1], fontsize=fontsize, offset=0.12)
