@@ -115,22 +115,24 @@ class MetricManager:
             os.remove(CouplingGraph.pickle_path(repo.name, name))
 
     @staticmethod
-    def get(repo: LocalRepo, name: str) -> CouplingGraph:
+    def get(repo: LocalRepo, name: str, ignore_post_processing=False) -> CouplingGraph:
         if name == "module_distance":
             return ModuleDistanceCouplingGraph()
         if MetricManager.cache_key(repo, name) in MetricManager.graph_cache:
             return MetricManager.graph_cache[MetricManager.cache_key(repo, name)]
         if MetricManager._data_present(repo.name, name):
-            print("Using precalculated " + name + " values")
+            # print("Using precalculated " + name + " values")
             graph = CouplingGraph.load(repo.name, name)
-            getattr(MetricsGeneration(repo), "post_" + name)(graph)
+            if not ignore_post_processing:
+                getattr(MetricsGeneration(repo), "post_" + name)(graph)
             MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
             return graph
         print("No precalculated " + name + " values found, starting calculations...")
         graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
         print("Calculated " + name + " values, saving them now...")
         graph.save(repo.name)
-        getattr(MetricsGeneration(repo), "post_" + name)(graph)
+        if not ignore_post_processing:
+            getattr(MetricsGeneration(repo), "post_" + name)(graph)
         MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
         return graph
 
