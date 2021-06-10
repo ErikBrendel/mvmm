@@ -1,14 +1,14 @@
 
-from cpp_graph import CppGraph, CppExplicitCouplingGraph, graph_manager
+from cpp_graph import Graph, ExplicitCouplingGraph, graph_manager
 
-g = CppExplicitCouplingGraph("foo")
+g = ExplicitCouplingGraph("foo")
 g.add_and_support("test", "foo", 4)
 g.add_and_support("test", "foo", 5)
 g.add_and_support("test", "foo2", 2)
 
 g.save("testperson/testrepo")
 
-g2 = CppGraph.load("testperson/testrepo", "foo", CppExplicitCouplingGraph)
+g2 = Graph.load("testperson/testrepo", "foo", ExplicitCouplingGraph)
 
 
 ns = graph_manager.create_node_set(["test", "lol", "xd"])

@@ -6,7 +6,7 @@ from cachier import cachier
 from local_repo import LocalRepo
 from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
-from graph import WeightCombinedGraph, ResultCachedGraph, CouplingGraph
+from legacy_graph import LegacyWeightCombinedGraph, LegacyResultCachedGraph, LegacyCouplingGraph
 from prcoessify import processify
 from plotting import parallel_coordinates
 from util import log_progress, generate_one_distributions
@@ -44,7 +44,7 @@ def node_filter(tree_node):
 
 repo_objects = {repo: LocalRepo(repo) for repo in repos}
 nodes_tests_cache: dict[str, Tuple[List[str], List[tuple[str, List[str]]]]] = {}
-graph_cache: dict[str, List[CouplingGraph]] = {}
+graph_cache: dict[str, List[LegacyCouplingGraph]] = {}
 def get_nodes_and_tests(repo: str):
     if repo not in nodes_tests_cache:
         r = repo_objects[repo]
@@ -63,16 +63,16 @@ def get_nodes_and_tests(repo: str):
     return nodes_tests_cache[repo]
 def get_graphs(repo: str):
     if repo not in graph_cache:
-        graph_cache[repo] = [ResultCachedGraph(MetricManager.get(repo_objects[repo], m)) for m in metrics]
+        graph_cache[repo] = [LegacyResultCachedGraph(MetricManager.get(repo_objects[repo], m)) for m in metrics]
     return graph_cache[repo]
 
 
 @cachier()
-def get_commit_prediction_score(repo: str, weights: Tuple[float]):
+def get_commit_prediction_score_cpp(repo: str, weights: Tuple[float]):
     all_nodes, prediction_tests = get_nodes_and_tests(repo)
     scores = []
     for missing, others in prediction_tests:
-        scores.append(WeightCombinedGraph(get_graphs(repo), weights).how_well_predicts_missing_node(others, missing, all_nodes))
+        scores.append(LegacyWeightCombinedGraph(get_graphs(repo), weights).how_well_predicts_missing_node(others, missing, all_nodes))
     return sum(scores) / len(scores)
 
 
@@ -85,7 +85,7 @@ for repo in repos:
     results = []
     weight_combinations = list(generate_one_distributions(len(metrics), scale))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
-        score = get_commit_prediction_score(repo, tuple(weights))
+        score = get_commit_prediction_score_cpp(repo, tuple(weights))
         score = score ** 10  # todo make this power slider interactive?
         results.append((", ".join(str(w) for w in weights), score))
     results.sort(key=lambda e: e[1])
@@ -100,7 +100,7 @@ for repo in repos:
         def ternary_fn(tw):
             weights = tw[:]
             weights.insert(mi, 0)
-            return get_commit_prediction_score(repo, tuple(weights)) ** 5
+            return get_commit_prediction_score_cpp(repo, tuple(weights)) ** 5
 
         tax = ternary.TernaryAxesSubplot(ax=axes[mi], scale=scale)
         tax.heatmapf(ternary_fn, boundary=True,

@@ -6,7 +6,7 @@ CPP_GRAPH_CLI_PATH = "/home/ebrendel/util/mvmm-graphs/coupling_graphs"
 METRICS_SAVE_PATH = "../metrics/"
 
 
-class CppGraphManager:
+class GraphManager:
     def __init__(self):
         self.process = subprocess.Popen(
             [CPP_GRAPH_CLI_PATH],
@@ -54,10 +54,10 @@ class CppGraphManager:
         return self.process.stdout.readline().decode("utf-8").rstrip()
 
 
-graph_manager = CppGraphManager()
+graph_manager = GraphManager()
 
 
-class CppGraph:
+class Graph:
     def __init__(self, creation_cmd_or_id: Union[int, List[str]]):
         if isinstance(creation_cmd_or_id, int):
             self.id = creation_cmd_or_id
@@ -84,9 +84,9 @@ class CppGraph:
         self._exec_void("save", [repo_name, METRICS_SAVE_PATH])
 
     @staticmethod
-    def load(repo_name: str, name: str, cls=None) -> 'CppGraph':
+    def load(repo_name: str, name: str, cls=None) -> 'Graph':
         if cls is None:
-            cls = CppGraph
+            cls = Graph
         return cls(graph_manager.execute_int(["load", repo_name, name, METRICS_SAVE_PATH]))
 
     def how_well_predicts_missing_node(self, node_set: List[str], node_missing_from_set: str, all_nodes_id: int) -> float:
@@ -111,12 +111,12 @@ class CppGraph:
         return graph_manager.execute_strings([cmd, str(self.id)] + other_args)
 
 
-class CppExplicitCouplingGraph(CppGraph):
+class ExplicitCouplingGraph(Graph):
     def __init__(self, name_or_id: Union[int, str]):
         if isinstance(name_or_id, int):
-            CppGraph.__init__(self, name_or_id)
+            Graph.__init__(self, name_or_id)
         else:
-            CppGraph.__init__(self, ["createExplicit", name_or_id])
+            Graph.__init__(self, ["createExplicit", name_or_id])
 
     def add(self, a: str, b: str, delta: float):
         self._exec_void("explicitAdd", [a, b, str(delta)])
@@ -137,53 +137,53 @@ class CppExplicitCouplingGraph(CppGraph):
         self._exec_void("explicitDilate", [str(iterations), str(weight_factor)])
 
 
-class CppSimilarityCouplingGraph(CppGraph):
+class SimilarityCouplingGraph(Graph):
     def __init__(self, name_or_id: Union[int, str]):
         if isinstance(name_or_id, int):
-            CppGraph.__init__(self, name_or_id)
+            Graph.__init__(self, name_or_id)
         else:
-            CppGraph.__init__(self, ["createSimilarity", name_or_id])
+            Graph.__init__(self, ["createSimilarity", name_or_id])
 
     def add_node(self, node: str, coordinates: List[float], support: float):
         self._exec_void("similarityAddNode", [node] + [str(c) for c in coordinates] + [str(support)])
 
 
-class CppModuleDistanceCouplingGraph(CppGraph):
+class ModuleDistanceCouplingGraph(Graph):
     def __init__(self, id: Optional[int] = None):
         if id is None:
-            CppGraph.__init__(self, ["createModuleDistance"])
+            Graph.__init__(self, ["createModuleDistance"])
         else:
-            CppGraph.__init__(self, id)
+            Graph.__init__(self, id)
 
 
-class CppCachedCouplingGraph(CppGraph):
-    def __init__(self, wrapped_or_id: Union[int, CppGraph]):
+class CachedCouplingGraph(Graph):
+    def __init__(self, wrapped_or_id: Union[int, Graph]):
         if isinstance(wrapped_or_id, int):
-            CppGraph.__init__(self, wrapped_or_id)
+            Graph.__init__(self, wrapped_or_id)
         else:
-            CppGraph.__init__(self, ["createCached", str(wrapped_or_id.id)])
+            Graph.__init__(self, ["createCached", str(wrapped_or_id.id)])
 
 
-class CppCombinedCouplingGraph(CppGraph):
-    def __init__(self, graphs_or_id: Union[int, List[CppGraph]], weights: Optional[List[float]] = None):
+class CombinedCouplingGraph(Graph):
+    def __init__(self, graphs_or_id: Union[int, List[Graph]], weights: Optional[List[float]] = None):
         if isinstance(graphs_or_id, int):
-            CppGraph.__init__(self, graphs_or_id)
+            Graph.__init__(self, graphs_or_id)
         else:
             if weights is None:
-                CppGraph.__init__(self, ["createCombination"] + [str(g.id) for g in graphs_or_id])
+                Graph.__init__(self, ["createCombination"] + [str(g.id) for g in graphs_or_id])
             else:
-                CppGraph.__init__(self, ["createCombinationWeights"] + [str(g.id) for g in graphs_or_id] + [str(w) for w in weights])
+                Graph.__init__(self, ["createCombinationWeights"] + [str(g.id) for g in graphs_or_id] + [str(w) for w in weights])
 
     def set_weights(self, new_weights: List[float]):
         self._exec_void("combinedSetWeights", [str(w) for w in new_weights])
 
 
 if __name__ == "__main__":
-    g1 = CppModuleDistanceCouplingGraph()
+    g1 = ModuleDistanceCouplingGraph()
     print(g1.name)
     g1.print_statistics()
 
-    g2 = CppExplicitCouplingGraph("structural")
+    g2 = ExplicitCouplingGraph("structural")
     g2.add_and_support("test1", "test2", 2)
     g2.add_and_support("test3", "test2", 1)
     print(g2.name)
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     print(g2.get_normalized_coupling("test4", "test3"))
     g2.print_statistics()
 
-    g3 = CppSimilarityCouplingGraph("linguistic")
+    g3 = SimilarityCouplingGraph("linguistic")
     g3.add_node("test1", [0.8, 0.2, 0], 10)
     g3.add_node("test2", [0.4, 0.4, 0.2], 3)
     g3.add_node("test3", [0.2, 0.6, 0.2], 30)

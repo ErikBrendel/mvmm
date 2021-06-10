@@ -2,8 +2,8 @@ import math
 import random
 import sys
 
-from cpp_graph import CppGraph, CppExplicitCouplingGraph, CppSimilarityCouplingGraph, graph_manager
-from graph import ExplicitCouplingGraph, SimilarityCouplingGraph
+from cpp_graph import Graph, ExplicitCouplingGraph, SimilarityCouplingGraph, graph_manager
+from legacy_graph import LegacyExplicitCouplingGraph, LegacySimilarityCouplingGraph
 from metrics import MetricManager, MetricsGeneration
 from local_repo import LocalRepo
 from util import log_progress, all_pairs
@@ -50,7 +50,7 @@ for repo, name in log_progress(repo_names, desc="Converting"):
 for repo, name in log_progress(repo_names, desc="Checking"):
     r = LocalRepo(repo)
     old_graph = MetricManager.get(r, name, ignore_post_processing=True)
-    new_graph = CppGraph.load(repo, name)
+    new_graph = Graph.load(repo, name)
     old_node_set = old_graph.get_node_set()
     new_node_set = set(new_graph.get_node_set())
     if old_node_set != new_node_set:

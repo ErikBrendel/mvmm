@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pyfiglet
 import ternary
 
-from graph import WeightCombinedGraph, CouplingGraph, get_graph_node_set_combination
+from legacy_graph import LegacyWeightCombinedGraph, LegacyCouplingGraph, get_graph_node_set_combination
 from local_repo import LocalRepo
 from metrics import MetricManager
 from util import log_progress, all_pairs, score_sorting_similarity
@@ -45,11 +45,11 @@ fig, axes = plt.subplots(len(repos), 4, figsize=(15, len(repos) * 2.5), constrai
 fig.suptitle('How well can a combination of three views predict the fourth?', fontsize=15)
 
 repo_obj_cache: dict[str, LocalRepo] = dict()
-repo_metric_cache: dict[str, CouplingGraph] = dict()
+repo_metric_cache: dict[str, LegacyCouplingGraph] = dict()
 repo_metric_values_cache: dict[str, List[List[float]]] = dict()
 
 
-def get_view(repo: str, view: str) -> CouplingGraph:
+def get_view(repo: str, view: str) -> LegacyCouplingGraph:
     key = repo + "-" + view
     if key not in repo_metric_cache:
         if repo not in repo_obj_cache:

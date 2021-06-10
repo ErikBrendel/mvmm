@@ -14,7 +14,7 @@ METRICS_SAVE_PATH = "../metrics/"
 EXPORT_SAVE_PATH = "../export/"
 
 
-class CouplingGraph(ABC):
+class LegacyCouplingGraph(ABC):
     def __init__(self, name):
         self.name = name
 
@@ -31,12 +31,12 @@ class CouplingGraph(ABC):
 
     def save(self, repo_name):
         os.makedirs(METRICS_SAVE_PATH + repo_name, exist_ok=True)
-        with open(CouplingGraph.pickle_path(repo_name, self.name), 'wb') as f:
+        with open(LegacyCouplingGraph.pickle_path(repo_name, self.name), 'wb') as f:
             pickle.dump(self, f)
 
     @staticmethod
-    def load(repo_name: str, name: str) -> 'CouplingGraph':
-        with open(CouplingGraph.pickle_path(repo_name, name), 'rb') as f:
+    def load(repo_name: str, name: str) -> 'LegacyCouplingGraph':
+        with open(LegacyCouplingGraph.pickle_path(repo_name, name), 'rb') as f:
             return pickle.load(f)
 
     @staticmethod
@@ -67,7 +67,7 @@ class CouplingGraph(ABC):
     def print_most_linked_nodes(self, amount=10):
         print("No Most Linked Nodes Data for " + type(self).__name__)
 
-    def how_well_predicted_by(self, other_graph: 'CouplingGraph', max_node_pairs_to_check=10000) -> float:
+    def how_well_predicted_by(self, other_graph: 'LegacyCouplingGraph', max_node_pairs_to_check=10000) -> float:
         """how similar is ordering node-pairs according to me to what the other graph would do?"""
         node_set = self.get_node_set()
         if node_set is None or len(node_set) < 10:
@@ -98,9 +98,9 @@ class CouplingGraph(ABC):
         coupling_sorted_nodes.sort(key=sort_key, reverse=True)
         return 1 - (coupling_sorted_nodes.index(node_missing_from_set) / float(len(coupling_sorted_nodes)))
 
-class NodeSetCouplingGraph(CouplingGraph):
+class LegacyNodeSetCouplingGraph(LegacyCouplingGraph):
     def __init__(self, name):
-        CouplingGraph.__init__(self, name)
+        LegacyCouplingGraph.__init__(self, name)
         self.children = None
 
     @abstractmethod
@@ -127,7 +127,7 @@ class NodeSetCouplingGraph(CouplingGraph):
         return "/".join(node.split("/")[:-1])
 
 
-class NormalizeSupport(ABC):
+class LegacyNormalizeSupport(ABC):
     def __init__(self):
         self.normalized_support_per_node_cache = {}
         self.median_maximum_support_cache = None
@@ -164,9 +164,9 @@ class NormalizeSupport(ABC):
         return self.median_maximum_support_cache
 
 
-class NormalizeSupportWithChildren(NormalizeSupport):
+class LegacyNormalizeSupportWithChildren(LegacyNormalizeSupport):
     def __init__(self):
-        NormalizeSupport.__init__(self)
+        LegacyNormalizeSupport.__init__(self)
 
     """@abstractmethod
     def get_absolute_self_support(self, node):
@@ -183,7 +183,7 @@ class NormalizeSupportWithChildren(NormalizeSupport):
         return result
 
 
-class NormalizeCouplingWithChildren:
+class LegacyNormalizeCouplingWithChildren:
     def __init__(self):
         self.total_relative_coupling_cache = {}
 
@@ -283,11 +283,11 @@ class NormalizeCouplingWithChildren:
         return target_coupling / total_coupling
 
 
-class ExplicitCouplingGraph(NormalizeCouplingWithChildren, NormalizeSupportWithChildren, NodeSetCouplingGraph):
+class LegacyExplicitCouplingGraph(LegacyNormalizeCouplingWithChildren, LegacyNormalizeSupportWithChildren, LegacyNodeSetCouplingGraph):
     def __init__(self, name):
-        NormalizeCouplingWithChildren.__init__(self)
-        NormalizeSupportWithChildren.__init__(self)
-        NodeSetCouplingGraph.__init__(self, name)
+        LegacyNormalizeCouplingWithChildren.__init__(self)
+        LegacyNormalizeSupportWithChildren.__init__(self)
+        LegacyNodeSetCouplingGraph.__init__(self, name)
         self.g = nx.Graph()
 
     def get_node_set(self):
@@ -453,12 +453,12 @@ class ExplicitCouplingGraph(NormalizeCouplingWithChildren, NormalizeSupportWithC
 DOCUMENT_SIMILARITY_EXP = 8  # higher = lower equality values, lower = equality values are all closer to 1
 
 
-class SimilarityCouplingGraph(NormalizeSupport, NodeSetCouplingGraph):
+class LegacySimilarityCouplingGraph(LegacyNormalizeSupport, LegacyNodeSetCouplingGraph):
     """assigns d-dimensional coordinates to nodes, coupling is defined by their closeness."""
 
     def __init__(self, name):
-        NodeSetCouplingGraph.__init__(self, name)
-        NormalizeSupport.__init__(self)
+        LegacyNodeSetCouplingGraph.__init__(self, name)
+        LegacyNormalizeSupport.__init__(self)
         self.support = {}
         self.coords = {}
 
@@ -515,9 +515,9 @@ class SimilarityCouplingGraph(NormalizeSupport, NodeSetCouplingGraph):
         print("Node support values:", node_supports[0:5], "...", node_supports[-5:], ", mean:", np.array(node_supports).mean())
 
 
-class ModuleDistanceCouplingGraph(CouplingGraph):
+class LegacyModuleDistanceCouplingGraph(LegacyCouplingGraph):
     def __init__(self):
-        CouplingGraph.__init__(self, "module_distance")
+        LegacyCouplingGraph.__init__(self, "module_distance")
 
     def get_normalized_support(self, node):
         return 1
@@ -534,17 +534,17 @@ class ModuleDistanceCouplingGraph(CouplingGraph):
         return "Module Distance"
 
 
-def get_graph_node_set_combination(graphs: List[CouplingGraph]) -> Set[str]:
+def get_graph_node_set_combination(graphs: List[LegacyCouplingGraph]) -> Set[str]:
     graph_nodes = [g.get_node_set() for g in graphs]
     return set.union(*[nodes for nodes in graph_nodes if nodes is not None])
 
 
-class WeightCombinedGraph(CouplingGraph):
-    graphs: List[CouplingGraph]
+class LegacyWeightCombinedGraph(LegacyCouplingGraph):
+    graphs: List[LegacyCouplingGraph]
     weights: List[float]
 
     def __init__(self, graphs, weights=None):
-        CouplingGraph.__init__(self, "Combined Graph")
+        LegacyCouplingGraph.__init__(self, "Combined Graph")
         self.graphs = graphs
         if weights is None:
             initial_weight = 1.0 / len(self.graphs)
@@ -578,10 +578,10 @@ class WeightCombinedGraph(CouplingGraph):
         return "Combined graph statistics WIP"
 
 
-class ResultCachedGraph(CouplingGraph):
-    def __init__(self, wrapped: CouplingGraph):
+class LegacyResultCachedGraph(LegacyCouplingGraph):
+    def __init__(self, wrapped: LegacyCouplingGraph):
         self.wrapped = wrapped
-        CouplingGraph.__init__(self, wrapped.name)
+        LegacyCouplingGraph.__init__(self, wrapped.name)
 
         self.support_cache: dict[str, float] = {}
         self.coupling_cache: dict[tuple[str, str], float] = {}
@@ -608,11 +608,11 @@ class ResultCachedGraph(CouplingGraph):
 
 
 if __name__ == "__main__":
-    g1 = ModuleDistanceCouplingGraph()
+    g1 = LegacyModuleDistanceCouplingGraph()
     print(g1.name)
     g1.print_statistics()
 
-    g2 = ExplicitCouplingGraph("structural")
+    g2 = LegacyExplicitCouplingGraph("structural")
     g2.add_and_support("test1", "test2", 2)
     g2.add_and_support("test3", "test2", 1)
     print(g2.name)
@@ -629,7 +629,7 @@ if __name__ == "__main__":
     print(g2.get_normalized_coupling("test4", "test3"))
     g2.print_statistics()
 
-    g3 = SimilarityCouplingGraph("linguistic")
+    g3 = LegacySimilarityCouplingGraph("linguistic")
     g3.add_node("test1", [0.8, 0.2, 0], 10)
     g3.add_node("test2", [0.4, 0.4, 0.2], 3)
     g3.add_node("test3", [0.2, 0.6, 0.2], 30)
