@@ -86,5 +86,4 @@ for repo in ["ErikBrendel/LudumDare", "ErikBrendel/LD35", "vanzin/jEdit", "wumpz
         if not is_close(old_graph.get_normalized_coupling(a, b), new_graph.get_normalized_coupling(a, b)):
             old_graph.get_normalized_coupling(a, b)
             raise Exception("coupling values not equal!")
-
 """

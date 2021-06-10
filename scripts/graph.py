@@ -607,7 +607,7 @@ class ResultCachedGraph(CouplingGraph):
         pass
 
 
-if __name__ == "__MAIN__":
+if __name__ == "__main__":
     g1 = ModuleDistanceCouplingGraph()
     print(g1.name)
     g1.print_statistics()

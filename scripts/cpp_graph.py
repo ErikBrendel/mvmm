@@ -64,6 +64,10 @@ class CppGraph:
         else:
             self.id = graph_manager.execute_int(creation_cmd_or_id)
 
+    @property
+    def name(self):
+        return self._exec_string("getGraphName")
+
     def get_node_set(self):
         return self._exec_strings("getGraphNodeSet")
 
@@ -173,3 +177,43 @@ class CppCombinedCouplingGraph(CppGraph):
     def set_weights(self, new_weights: List[float]):
         self._exec_void("combinedSetWeights", [str(w) for w in new_weights])
 
+
+if __name__ == "__main__":
+    g1 = CppModuleDistanceCouplingGraph()
+    print(g1.name)
+    g1.print_statistics()
+
+    g2 = CppExplicitCouplingGraph("structural")
+    g2.add_and_support("test1", "test2", 2)
+    g2.add_and_support("test3", "test2", 1)
+    print(g2.name)
+    print(g2.get_normalized_support("test1"))
+    print(g2.get_normalized_support("test2"))
+    print(g2.get_normalized_support("test3"))
+    print(g2.get_normalized_support("test4"))
+    print(g2.get_normalized_coupling("test1", "test2"))
+    print(g2.get_normalized_coupling("test2", "test1"))
+    print(g2.get_normalized_coupling("test3", "test2"))
+    print(g2.get_normalized_coupling("test2", "test3"))
+    print(g2.get_normalized_coupling("test3", "test1"))
+    print(g2.get_normalized_coupling("test1", "test3"))
+    print(g2.get_normalized_coupling("test4", "test3"))
+    g2.print_statistics()
+
+    g3 = CppSimilarityCouplingGraph("linguistic")
+    g3.add_node("test1", [0.8, 0.2, 0], 10)
+    g3.add_node("test2", [0.4, 0.4, 0.2], 3)
+    g3.add_node("test3", [0.2, 0.6, 0.2], 30)
+    print(g3.name)
+    print(g3.get_normalized_support("test1"))
+    print(g3.get_normalized_support("test2"))
+    print(g3.get_normalized_support("test3"))
+    print(g3.get_normalized_support("test4"))
+    print(g3.get_normalized_coupling("test1", "test2"))
+    print(g3.get_normalized_coupling("test2", "test1"))
+    print(g3.get_normalized_coupling("test3", "test2"))
+    print(g3.get_normalized_coupling("test2", "test3"))
+    print(g3.get_normalized_coupling("test3", "test1"))
+    print(g3.get_normalized_coupling("test1", "test3"))
+    print(g3.get_normalized_coupling("test4", "test3"))
+    g3.print_statistics()
