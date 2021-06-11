@@ -6,7 +6,7 @@ import string
 import numpy as np
 
 from local_repo import *
-from scripts.graph import SimilarityCouplingGraph
+from graph import SimilarityCouplingGraph
 from util import *
 
 # constants

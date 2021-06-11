@@ -23,11 +23,12 @@ repos = [
     # "brettwooldridge/HikariCP",  # 1.2h BTM
     # "adamfisk/LittleProxy",  # 1.5h BTM
     # "dynjs/dynjs",  # 2.5h BTM
-    "SonarSource/sonarqube",
+    # "SonarSource/sonarqube",
     # "eclipse/che",
     # "elastic/elasticsearch",
     # "apache/camel",
     # "jOOQ/jOOQ",
+    "netty/netty",
 ]
 
 for repo in repos:
@@ -35,8 +36,8 @@ for repo in repos:
     print(pyfiglet.figlet_format(r.name))
     r.update()
 
-    for view in ["structural"]:  # ["structural", "evolutionary", "linguistic"]
-        MetricManager.clear(r, view)
+    for view in ["structural", "evolutionary", "linguistic"]:  # ["structural", "evolutionary", "linguistic"]
+        # MetricManager.clear(r, view)
 
         coupling_graph = MetricManager.get(r, view)
         # coupling_graph.plaintext_save(repo)
@@ -62,30 +63,30 @@ for repo in repos:
 
 
     results = analyze_disagreements(r, ["structural", "evolutionary", "linguistic", "module_distance"], [
-        # [0, 1, 1, 1, "Non-struct?"],
-        # [1, 1, 1, 0, "Too far apart"],
-        # [0, 0, 1, 0, "Independent Feature duplication"],
-        # [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
-        # [1, None, 0, 1, "Weakly modularized code"],
-        # [0, 0, 0, 1, "Close but totally unrelated"],
+        [0, 1, 1, 1, "Non-struct?"],
+        [1, 1, 1, 0, "Too far apart"],
+        [0, 0, 1, 0, "Independent Feature duplication"],
+        [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
+        [1, None, 0, 1, "Weakly modularized code"],
+        [0, 0, 0, 1, "Close but totally unrelated"],
 
         # full 16 for testing:
-        [0, 0, 0, 0, 'Not coupled at all'],
-        [0, 0, 0, 1, 'Only "project structure": Close but completely unrelated to each other'],
-        [0, 0, 1, 0, 'Only "linguistic": Independent feature duplication'],
-        [0, 0, 1, 1, 'Close independent feature duplication?'],
-        [0, 1, 0, 0, 'Only "evolutionary": Modules are related to each other on an unknown and hidden level'],
-        [0, 1, 0, 1, 'Your code is successfully modularized by "things that change together", but your language and structure do not reflect this modularity'],
-        [0, 1, 1, 0, 'Parallel-Maintained feature duplication'],
-        [0, 1, 1, 1, 'Everything except structural: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the structural metric is bad?'],
-        [1, 0, 0, 0, 'Only "structural": Using "library code" somewhere else'],
-        [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and structurally coupled, but semantically disjoint'],
-        [1, 0, 1, 0, 'Using and/or extending a library'],
-        [1, 0, 1, 1, 'Everything except evolutionary: One module developed in independent parts OR using a weird committing policy in the company OR one big chunk of code copied into the repo'],
-        [1, 1, 0, 0, 'Separate modules developed together because they need each other.'],
-        [1, 1, 0, 1, 'Weakly modularized code: dependent on each other, but semantically disjoint'],
-        [1, 1, 1, 0, 'Too far apart: These modules seem to belong closer together than they currently are in the project structure'],
-        [1, 1, 1, 1, 'Evenly coupled across all metrics'],
+        # [0, 0, 0, 0, 'Not coupled at all'],
+        # [0, 0, 0, 1, 'Only "project structure": Close but completely unrelated to each other'],
+        # [0, 0, 1, 0, 'Only "linguistic": Independent feature duplication'],
+        # [0, 0, 1, 1, 'Close independent feature duplication?'],
+        # [0, 1, 0, 0, 'Only "evolutionary": Modules are related to each other on an unknown and hidden level'],
+        # [0, 1, 0, 1, 'Your code is successfully modularized by "things that change together", but your language and structure do not reflect this modularity'],
+        # [0, 1, 1, 0, 'Parallel-Maintained feature duplication'],
+        # [0, 1, 1, 1, 'Everything except structural: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the structural metric is bad?'],
+        # [1, 0, 0, 0, 'Only "structural": Using "library code" somewhere else'],
+        # [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and structurally coupled, but semantically disjoint'],
+        # [1, 0, 1, 0, 'Using and/or extending a library'],
+        # [1, 0, 1, 1, 'Everything except evolutionary: One module developed in independent parts OR using a weird committing policy in the company OR one big chunk of code copied into the repo'],
+        # [1, 1, 0, 0, 'Separate modules developed together because they need each other.'],
+        # [1, 1, 0, 1, 'Weakly modularized code: dependent on each other, but semantically disjoint'],
+        # [1, 1, 1, 0, 'Too far apart: These modules seem to belong closer together than they currently are in the project structure'],
+        # [1, 1, 1, 1, 'Evenly coupled across all metrics'],
     ], node_filter, parallel=False, ignore_previous_results=True)
     print([len(r.data) for r in results])
 

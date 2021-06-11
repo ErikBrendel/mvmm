@@ -2,6 +2,8 @@ import subprocess
 import sys
 from typing import *
 
+from util import log_progress
+
 CPP_GRAPH_CLI_PATH = "/home/ebrendel/util/mvmm-graphs/coupling_graphs"
 METRICS_SAVE_PATH = "../metrics/"
 
@@ -12,14 +14,16 @@ class GraphManager:
             [CPP_GRAPH_CLI_PATH],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
-        self.cmd_history: List[str] = []
+        self.current_progress_bar = None
+        self.progress_name: Optional[str] = None
 
     def execute_void(self, commands: List[str]) -> None:
         for part in commands:
             if "|" in part:
                 raise Exception("Found | in command! '" + part + "'")
+            if "\n" in part:
+                raise Exception("Found line break in command! '" + part.replace("\n", "\\n") + "'")
         cmd = "|".join(commands) + "\n"
-        self.cmd_history.append(cmd)
         self.process.stdin.write(cmd.encode("utf-8"))
         self.process.stdin.flush()
 
@@ -28,10 +32,14 @@ class GraphManager:
         line = self._read_line()
         while not line.startswith("#result "):
             if line.startswith("#progress "):
-                pass  # TODO use awesome progress bars!
+                progress_parts = line[len("#progress "):].split(" ", 2)
+                self._show_progress(int(progress_parts[0]), int(progress_parts[1]), progress_parts[2])
             else:
-                print("[GRAPHS] " + line)
-                sys.stdout.flush()
+                if "Unknown command" in line:
+                    raise Exception("LAST COMMAND FAILED: " + "|".join(commands))
+                if len(line) > 0:
+                    print("[G] " + line)
+                    sys.stdout.flush()
             line = self._read_line()
         return line[len("#result "):]
 
@@ -52,6 +60,20 @@ class GraphManager:
 
     def _read_line(self):
         return self.process.stdout.readline().decode("utf-8").rstrip()
+
+    def _show_progress(self, progress, total, description):
+        if description != self.progress_name and self.current_progress_bar is not None:
+            self.current_progress_bar.close()
+            self.current_progress_bar = None
+        if self.current_progress_bar is None:
+            self.progress_name = description
+            self.current_progress_bar = log_progress(desc="[G] " + description)
+        self.current_progress_bar.total = total
+        self.current_progress_bar.n = progress
+        self.current_progress_bar.update(0)
+        if progress == total:
+            self.current_progress_bar.close()
+            self.current_progress_bar = None
 
 
 graph_manager = GraphManager()
@@ -124,24 +146,31 @@ class ExplicitCouplingGraph(CouplingGraph):
 
     def add(self, a: str, b: str, delta: float):
         self._exec_void("explicitAdd", [a, b, str(delta)])
+        self._exec_string("getGraphName")
 
     def add_support(self, node: str, delta: float):
         self._exec_void("explicitAddSupport", [node, str(delta)])
+        self._exec_string("getGraphName")
 
     def add_and_support(self, a: str, b: str, delta: float):
         self._exec_void("explicitAddAndSupport", [a, b, str(delta)])
+        self._exec_string("getGraphName")
 
     def cutoff_edges(self, minimum_weight: float):
         self._exec_void("explicitCutoffEdges", [str(minimum_weight)])
+        self._exec_string("getGraphName")
 
     def remove_small_components(self, minimum_component_size: int):
-        self._exec_void("removeSmallComponents", [str(minimum_component_size)])
+        self._exec_void("explicitRemoveSmallComponents", [str(minimum_component_size)])
+        self._exec_string("getGraphName")
 
     def propagate_down(self, layers=1, weight_factor=0.2):
         self._exec_void("explicitPropagateDown", [str(layers), str(weight_factor)])
+        self._exec_string("getGraphName")
 
     def dilate(self, iterations=1, weight_factor=0.2):
         self._exec_void("explicitDilate", [str(iterations), str(weight_factor)])
+        self._exec_string("getGraphName")
 
 
 class SimilarityCouplingGraph(CouplingGraph):
@@ -162,7 +191,7 @@ class ModuleDistanceCouplingGraph(CouplingGraph):
         else:
             CouplingGraph.__init__(self, id)
 
-    def save_node_set(self):
+    def save(self, repo_name: str):
         pass
 
 

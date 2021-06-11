@@ -103,13 +103,13 @@ class MetricsGeneration:
 
         return coupling_graph
 
-    def post_linguistic(self, coupling_graph: CouplingGraph):
+    def post_linguistic(self, coupling_graph: SimilarityCouplingGraph):
         pass
 
     def calculate_module_distance_connections(self) -> CouplingGraph:
         return ModuleDistanceCouplingGraph()
 
-    def post_module_distance(self):
+    def post_module_distance(self, coupling_graph: ModuleDistanceCouplingGraph):
         pass
 
     # -------------------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ class MetricManager:
         if MetricManager.cache_key(repo, name) in MetricManager.graph_cache:
             return MetricManager.graph_cache[MetricManager.cache_key(repo, name)]
         if MetricManager._data_present(repo.name, name):
-            # print("Using precalculated " + name + " values")
+            print("Using precalculated " + name + " values")
             graph = CouplingGraph.load(repo.name, name, METRIC_GRAPH_CLASSES[name])
             if not ignore_post_processing:
                 getattr(MetricsGeneration(repo), "post_" + name)(graph)
@@ -141,6 +141,7 @@ class MetricManager:
             return graph
         print("No precalculated " + name + " values found, starting calculations...")
         graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
+        graph.print_statistics()
         print("Calculated " + name + " values, saving them now...")
         graph.save(repo.name)
         if not ignore_post_processing:

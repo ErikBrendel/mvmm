@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from parsing import *
-from scripts.graph import ExplicitCouplingGraph
+from graph import ExplicitCouplingGraph
 from util import *
 from local_repo import *
 
@@ -53,7 +53,7 @@ class Env(ABC):
         elif compound_name.endswith(">") and "<" in compound_name:
             [base, parameter] = compound_name[:-1].split("<", 1)
             parameter_types = regex.split(r",(?![^<]*>)", parameter)  # TODO this regex is not quite right: We want to match all commas that are not nested within <> brackets
-            return GenericEnv(self.context, base, parameter_types, self)
+            return GenericEnv(self.context, base, [pt.strip() for pt in parameter_types], self)
         elif "." in compound_name:
             [first_step, rest] = compound_name.split(".", 1)
             step_result = self.get_env_for_single_name(first_step)
