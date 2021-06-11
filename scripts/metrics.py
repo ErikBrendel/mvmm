@@ -1,9 +1,17 @@
 from util import *
-from legacy_graph import *
+from graph import *
 from local_repo import *
 from metrics_evolutionary import *
 from metrics_structural import *
 from metrics_linguistic import *
+
+
+METRIC_GRAPH_CLASSES = {
+    "evolutionary": ExplicitCouplingGraph,
+    "structural": ExplicitCouplingGraph,
+    "linguistic": SimilarityCouplingGraph,
+    "module_distance": ModuleDistanceCouplingGraph,
+}
 
 
 class MetricsGeneration:
@@ -11,7 +19,7 @@ class MetricsGeneration:
     def __init__(self, repo):
         self.repo = repo
 
-    def calculate_evolutionary_connections(self) -> LegacyCouplingGraph:
+    def calculate_evolutionary_connections(self) -> CouplingGraph:
         """
 ,------.,--.   ,--.,-----. ,--.   ,--. ,--.,--------.,--. ,-----. ,--.  ,--.  ,---.  ,------.,--.   ,--. 
 |  .---' \  `.'  /'  .-.  '|  |   |  | |  |'--.  .--'|  |'  .-.  '|  ,'.|  | /  O  \ |  .--. '\  `.'  /  
@@ -21,7 +29,7 @@ class MetricsGeneration:
         """
         # MAX_COMMIT_FILES = 50  # Ignore too large commits. (constant moved)
 
-        coupling_graph = LegacyExplicitCouplingGraph("evolutionary")
+        coupling_graph = ExplicitCouplingGraph("evolutionary")
 
         def processDiffs(diffs):
             score = 2 / len(diffs)
@@ -47,38 +55,38 @@ class MetricsGeneration:
         )
 
         coupling_graph.cutoff_edges(0.005)
-        coupling_graph.cleanup(3)
+        coupling_graph.remove_small_components(3)
         return coupling_graph
 
-    def post_evolutionary(self, coupling_graph: LegacyCouplingGraph):
+    def post_evolutionary(self, coupling_graph: CouplingGraph):
         pass
 
-    def calculate_structural_connections(self) -> LegacyCouplingGraph:
+    def calculate_structural_connections(self) -> CouplingGraph:
         """
- ,---. ,--------.,------. ,--. ,--. ,-----.,--------.,--. ,--.,------.   ,---.  ,--.                     
-'   .-''--.  .--'|  .--. '|  | |  |'  .--./'--.  .--'|  | |  ||  .--. ' /  O  \ |  |                     
-`.  `-.   |  |   |  '--'.'|  | |  ||  |       |  |   |  | |  ||  '--'.'|  .-.  ||  |                     
-.-'    |  |  |   |  |\  \ '  '-'  ''  '--'\   |  |   '  '-'  '|  |\  \ |  | |  ||  '--.                  
-`-----'   `--'   `--' '--' `-----'  `-----'   `--'    `-----' `--' '--'`--' `--'`-----'   
+ ,---. ,--------.,------. ,--. ,--. ,-----.,--------.,--. ,--.,------.   ,---.  ,--.
+'   .-''--.  .--'|  .--. '|  | |  |'  .--./'--.  .--'|  | |  ||  .--. ' /  O  \ |  |
+`.  `-.   |  |   |  '--'.'|  | |  ||  |       |  |   |  | |  ||  '--'.'|  .-.  ||  |
+.-'    |  |  |   |  |\  \ '  '-'  ''  '--'\   |  |   '  '-'  '|  |\  \ |  | |  ||  '--.
+`-----'   `--'   `--' '--' `-----'  `-----'   `--'    `-----' `--' '--'`--' `--'`-----'
         """
 
-        coupling_graph = LegacyExplicitCouplingGraph("structural")
+        coupling_graph = ExplicitCouplingGraph("structural")
 
         context = StructuralContext(self.repo)
         context.couple_files_by_import(coupling_graph)
         context.couple_by_inheritance(coupling_graph)
         context.couple_members_by_content(coupling_graph)
-        coupling_graph.cleanup(3)
+        coupling_graph.remove_small_components(3)
         flush_unresolvable_vars()
 
         return coupling_graph
 
-    def post_structural(self, coupling_graph: LegacyExplicitCouplingGraph):
+    def post_structural(self, coupling_graph: ExplicitCouplingGraph):
         coupling_graph.propagate_down(2, 0.5)
         coupling_graph.dilate(1, 0.8)
         pass
 
-    def calculate_linguistic_connections(self) -> LegacyCouplingGraph:
+    def calculate_linguistic_connections(self) -> CouplingGraph:
         """
 ,--.   ,--.,--.  ,--. ,----.   ,--. ,--.,--. ,---. ,--------.,--. ,-----.                                
 |  |   |  ||  ,'.|  |'  .-./   |  | |  ||  |'   .-''--.  .--'|  |'  .--./                                
@@ -87,7 +95,7 @@ class MetricsGeneration:
 `-----'`--'`--'  `--' `------'  `-----' `--'`-----'   `--'   `--' `-----'              
         """
 
-        coupling_graph = LegacySimilarityCouplingGraph("linguistic")
+        coupling_graph = SimilarityCouplingGraph("linguistic")
 
         node_words = extract_topic_model_documents(self.repo.get_all_interesting_files())
         topics = train_topic_model(node_words)
@@ -95,7 +103,13 @@ class MetricsGeneration:
 
         return coupling_graph
 
-    def post_linguistic(self, coupling_graph: LegacyCouplingGraph):
+    def post_linguistic(self, coupling_graph: CouplingGraph):
+        pass
+
+    def calculate_module_distance_connections(self) -> CouplingGraph:
+        return ModuleDistanceCouplingGraph()
+
+    def post_module_distance(self):
         pass
 
     # -------------------------------------------------------------------------------------------
@@ -112,23 +126,21 @@ class MetricManager:
     def clear(repo: LocalRepo, name: str):
         MetricManager.graph_cache.pop(MetricManager.cache_key(repo, name), None)
         if MetricManager._data_present(repo.name, name):
-            os.remove(LegacyCouplingGraph.pickle_path(repo.name, name))
+            os.remove(CouplingGraph.pickle_path(repo.name, name))
 
     @staticmethod
-    def get(repo: LocalRepo, name: str, ignore_post_processing=False) -> LegacyCouplingGraph:
-        if name == "module_distance":
-            return LegacyModuleDistanceCouplingGraph()
+    def get(repo: LocalRepo, name: str, ignore_post_processing=False) -> CouplingGraph:
         if MetricManager.cache_key(repo, name) in MetricManager.graph_cache:
             return MetricManager.graph_cache[MetricManager.cache_key(repo, name)]
         if MetricManager._data_present(repo.name, name):
             # print("Using precalculated " + name + " values")
-            graph = LegacyCouplingGraph.load(repo.name, name)
+            graph = CouplingGraph.load(repo.name, name, METRIC_GRAPH_CLASSES[name])
             if not ignore_post_processing:
                 getattr(MetricsGeneration(repo), "post_" + name)(graph)
             MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
             return graph
         print("No precalculated " + name + " values found, starting calculations...")
-        graph: LegacyCouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
+        graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
         print("Calculated " + name + " values, saving them now...")
         graph.save(repo.name)
         if not ignore_post_processing:
@@ -138,4 +150,4 @@ class MetricManager:
 
     @staticmethod
     def _data_present(repo_name: str, name: str):
-        return os.path.isfile(LegacyCouplingGraph.pickle_path(repo_name, name))
+        return os.path.isfile(CouplingGraph.pickle_path(repo_name, name))

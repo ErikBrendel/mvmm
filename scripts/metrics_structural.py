@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from parsing import *
+from scripts.graph import ExplicitCouplingGraph
 from util import *
 from local_repo import *
 
@@ -391,12 +392,12 @@ class StructuralContext:
                             else:
                                 self.path_to_result_type_envs[path] = [result_type_env]
 
-    def couple_files_by_import(self, coupling_graph):
+    def couple_files_by_import(self, coupling_graph: ExplicitCouplingGraph):
         for file in log_progress(self.files, desc="Connecting files by imports"):
             for imported_class_path in self.file_path_to_imports.get(file.get_path(), []):
                 coupling_graph.add_and_support(file.get_path(), imported_class_path, STRENGTH_FILE_IMPORT)
 
-    def couple_by_inheritance(self, coupling_graph):
+    def couple_by_inheritance(self, coupling_graph: ExplicitCouplingGraph):
         for sub_type_path in log_progress(self.class_path_to_base_class_envs.keys(), desc="Connecting classes by inheritance"):
             super_type_envs = self.get_transitive_base_types(sub_type_path)
             sub_type_children_names = self.repo.get_tree().find_node(sub_type_path).children.keys()
@@ -409,7 +410,7 @@ class StructuralContext:
                         if super_type_node.has_child(sub_child):
                             coupling_graph.add_and_support(sub_type_path + "/" + sub_child, super_type_env.path + "/" + sub_child, STRENGTH_MEMBER_OVERRIDE)
 
-    def couple_members_by_content(self, coupling_graph):
+    def couple_members_by_content(self, coupling_graph: ExplicitCouplingGraph):
         # TODO make sure that the methods are also coupled to their parameter types and their return type
         # TODO make also sure that fields are coupled to their type (and maybe their init code content?)
         for file in log_progress(self.files, desc="Connecting methods and fields by content"):

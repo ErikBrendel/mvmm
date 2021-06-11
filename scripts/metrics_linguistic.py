@@ -6,6 +6,7 @@ import string
 import numpy as np
 
 from local_repo import *
+from scripts.graph import SimilarityCouplingGraph
 from util import *
 
 # constants
@@ -128,7 +129,7 @@ def train_topic_model(node_words: List[Tuple[RepoTree, List[str]]]):
     return np.array(doctop)
 
 
-def couple_by_topic_similarity(node_words: List[Tuple[RepoTree, List[str]]], doctop, coupling_graph):
+def couple_by_topic_similarity(node_words: List[Tuple[RepoTree, List[str]]], doctop, coupling_graph: SimilarityCouplingGraph):
     for (repo_tree, words), topics in log_progress(zip(node_words, doctop), total=len(node_words), desc="Generating coupling graph"):
         if not all(x < 0.001 for x in topics):  # if it is not topic-less
             coupling_graph.add_node(repo_tree.get_path(), topics, len(words))

@@ -57,7 +57,7 @@ class GraphManager:
 graph_manager = GraphManager()
 
 
-class Graph:
+class CouplingGraph:
     def __init__(self, creation_cmd_or_id: Union[int, List[str]]):
         if isinstance(creation_cmd_or_id, int):
             self.id = creation_cmd_or_id
@@ -84,10 +84,14 @@ class Graph:
         self._exec_void("save", [repo_name, METRICS_SAVE_PATH])
 
     @staticmethod
-    def load(repo_name: str, name: str, cls=None) -> 'Graph':
+    def load(repo_name: str, name: str, cls=None) -> 'CouplingGraph':
         if cls is None:
-            cls = Graph
+            cls = CouplingGraph
         return cls(graph_manager.execute_int(["load", repo_name, name, METRICS_SAVE_PATH]))
+
+    @staticmethod
+    def pickle_path(repo_name, name):
+        return graph_manager.execute_string(["getSaveLocation", repo_name, name, METRICS_SAVE_PATH])
 
     def how_well_predicts_missing_node(self, node_set: List[str], node_missing_from_set: str, all_nodes_id: int) -> float:
         return self._exec_float("howWellPredictsMissingNode", [str(all_nodes_id), node_missing_from_set] + node_set)
@@ -111,12 +115,12 @@ class Graph:
         return graph_manager.execute_strings([cmd, str(self.id)] + other_args)
 
 
-class ExplicitCouplingGraph(Graph):
+class ExplicitCouplingGraph(CouplingGraph):
     def __init__(self, name_or_id: Union[int, str]):
         if isinstance(name_or_id, int):
-            Graph.__init__(self, name_or_id)
+            CouplingGraph.__init__(self, name_or_id)
         else:
-            Graph.__init__(self, ["createExplicit", name_or_id])
+            CouplingGraph.__init__(self, ["createExplicit", name_or_id])
 
     def add(self, a: str, b: str, delta: float):
         self._exec_void("explicitAdd", [a, b, str(delta)])
@@ -130,6 +134,9 @@ class ExplicitCouplingGraph(Graph):
     def cutoff_edges(self, minimum_weight: float):
         self._exec_void("explicitCutoffEdges", [str(minimum_weight)])
 
+    def remove_small_components(self, minimum_component_size: int):
+        self._exec_void("removeSmallComponents", [str(minimum_component_size)])
+
     def propagate_down(self, layers=1, weight_factor=0.2):
         self._exec_void("explicitPropagateDown", [str(layers), str(weight_factor)])
 
@@ -137,42 +144,45 @@ class ExplicitCouplingGraph(Graph):
         self._exec_void("explicitDilate", [str(iterations), str(weight_factor)])
 
 
-class SimilarityCouplingGraph(Graph):
+class SimilarityCouplingGraph(CouplingGraph):
     def __init__(self, name_or_id: Union[int, str]):
         if isinstance(name_or_id, int):
-            Graph.__init__(self, name_or_id)
+            CouplingGraph.__init__(self, name_or_id)
         else:
-            Graph.__init__(self, ["createSimilarity", name_or_id])
+            CouplingGraph.__init__(self, ["createSimilarity", name_or_id])
 
     def add_node(self, node: str, coordinates: List[float], support: float):
         self._exec_void("similarityAddNode", [node] + [str(c) for c in coordinates] + [str(support)])
 
 
-class ModuleDistanceCouplingGraph(Graph):
+class ModuleDistanceCouplingGraph(CouplingGraph):
     def __init__(self, id: Optional[int] = None):
         if id is None:
-            Graph.__init__(self, ["createModuleDistance"])
+            CouplingGraph.__init__(self, ["createModuleDistance"])
         else:
-            Graph.__init__(self, id)
+            CouplingGraph.__init__(self, id)
+
+    def save_node_set(self):
+        pass
 
 
-class CachedCouplingGraph(Graph):
-    def __init__(self, wrapped_or_id: Union[int, Graph]):
+class CachedCouplingGraph(CouplingGraph):
+    def __init__(self, wrapped_or_id: Union[int, CouplingGraph]):
         if isinstance(wrapped_or_id, int):
-            Graph.__init__(self, wrapped_or_id)
+            CouplingGraph.__init__(self, wrapped_or_id)
         else:
-            Graph.__init__(self, ["createCached", str(wrapped_or_id.id)])
+            CouplingGraph.__init__(self, ["createCached", str(wrapped_or_id.id)])
 
 
-class CombinedCouplingGraph(Graph):
-    def __init__(self, graphs_or_id: Union[int, List[Graph]], weights: Optional[List[float]] = None):
+class CombinedCouplingGraph(CouplingGraph):
+    def __init__(self, graphs_or_id: Union[int, List[CouplingGraph]], weights: Optional[List[float]] = None):
         if isinstance(graphs_or_id, int):
-            Graph.__init__(self, graphs_or_id)
+            CouplingGraph.__init__(self, graphs_or_id)
         else:
             if weights is None:
-                Graph.__init__(self, ["createCombination"] + [str(g.id) for g in graphs_or_id])
+                CouplingGraph.__init__(self, ["createCombination"] + [str(g.id) for g in graphs_or_id])
             else:
-                Graph.__init__(self, ["createCombinationWeights"] + [str(g.id) for g in graphs_or_id] + [str(w) for w in weights])
+                CouplingGraph.__init__(self, ["createCombinationWeights"] + [str(g.id) for g in graphs_or_id] + [str(w) for w in weights])
 
     def set_weights(self, new_weights: List[float]):
         self._exec_void("combinedSetWeights", [str(w) for w in new_weights])
