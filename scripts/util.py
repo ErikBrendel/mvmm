@@ -119,7 +119,7 @@ PARALLEL_MAP_DEBUG_MODE = False
 PARALLEL_THREADS = 64
 MIN_PARALLEL_BATCH_SIZE = 64
 MAX_PARALLEL_BATCH_SIZE = 1024
-MIN_STEP_SIZE = 10  # at most a thenth of data should be done in one batch
+MIN_STEP_SIZE = 10  # at most a tenth of data should be done in one batch
 
 
 def map_parallel(data_list, mapper, result_handler, desc, force_non_parallel=False):

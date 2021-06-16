@@ -16,7 +16,7 @@ repos = [
     # "wumpz/jhotdraw",
     # "ErikBrendel/LudumDare",  # 8 minutes BTM
     # "ErikBrendel/LD35",
-    # "eclipse/eclipse.jdt.core",  # from duerschmidt
+    "eclipse/eclipse.jdt.core",  # from duerschmidt
     # "jenkinsci/jenkins",
     # "neuland/jade4j",
     # "jfree/jfreechart",
@@ -28,7 +28,7 @@ repos = [
     # "elastic/elasticsearch",
     # "apache/camel",
     # "jOOQ/jOOQ",
-    "netty/netty",
+    # "netty/netty",
 ]
 
 for repo in repos:
@@ -36,7 +36,7 @@ for repo in repos:
     print(pyfiglet.figlet_format(r.name))
     r.update()
 
-    for view in ["structural", "evolutionary", "linguistic"]:  # ["structural", "evolutionary", "linguistic"]
+    for view in []:  # ["structural", "evolutionary", "linguistic"]
         # MetricManager.clear(r, view)
 
         coupling_graph = MetricManager.get(r, view)
@@ -53,13 +53,13 @@ for repo in repos:
         print("\n")
     # continue
 
-    # amalysis
+    # analysis
     repo_tree = r.get_tree()
 
 
     def node_filter(node_path):
         tree_node = repo_tree.find_node(node_path)
-        return tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
+        return tree_node.get_type() == "method" and tree_node.get_line_span() >= 5
 
 
     results = analyze_disagreements(r, ["structural", "evolutionary", "linguistic", "module_distance"], [

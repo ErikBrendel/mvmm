@@ -30,7 +30,7 @@ class GraphManager:
     def execute_string(self, commands: List[str]) -> str:
         self.execute_void(commands)
         line = self._read_line()
-        while not line.startswith("#result "):
+        while not line.startswith("#result"):
             if line.startswith("#progress "):
                 progress_parts = line[len("#progress "):].split(" ", 2)
                 self._show_progress(int(progress_parts[0]), int(progress_parts[1]), progress_parts[2])
@@ -41,7 +41,7 @@ class GraphManager:
                     print("[G] " + line)
                     sys.stdout.flush()
             line = self._read_line()
-        return line[len("#result "):]
+        return line[len("#result"):].lstrip()
 
     def execute_int(self, commands: List[str]) -> int:
         return int(self.execute_string(commands))
@@ -50,7 +50,10 @@ class GraphManager:
         return float(self.execute_string(commands))
 
     def execute_strings(self, commands: List[str]) -> List[str]:
-        return self.execute_string(commands).split("|")
+        result = self.execute_string(commands)
+        if len(result) == 0:
+            return []
+        return result.split("|")
 
     def create_node_set(self, nodes: List[str]):
         return self.execute_int(["createNodeSet"] + nodes)
@@ -90,8 +93,8 @@ class CouplingGraph:
     def name(self):
         return self._exec_string("getGraphName")
 
-    def get_node_set(self):
-        return self._exec_strings("getGraphNodeSet")
+    def get_node_set(self) -> Optional[Set[str]]:
+        return set(self._exec_strings("getGraphNodeSet"))
 
     def save_node_set(self):
         return self._exec_int("saveNodeSet")
@@ -120,6 +123,7 @@ class CouplingGraph:
 
     def print_statistics(self):
         self._exec_void("printStatistics")
+        self._exec_string("getGraphName")  # TODO remove
 
     def _exec_void(self, cmd: str, other_args: List[str] = []) -> None:
         graph_manager.execute_void([cmd, str(self.id)] + other_args)
@@ -193,6 +197,9 @@ class ModuleDistanceCouplingGraph(CouplingGraph):
 
     def save(self, repo_name: str):
         pass
+
+    def get_node_set(self) -> None:
+        return None
 
 
 class CachedCouplingGraph(CouplingGraph):

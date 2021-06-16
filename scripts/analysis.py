@@ -26,11 +26,11 @@ def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Option
     results: List[List[AnalysisResultType]] = [[] for p in target_patterns]
     for a, b in [(_a, _b), (_b, _a)]:
         normalized_coupling_values = tuple(g.get_normalized_coupling(a, b) for g in analysis_graphs)
-        for i, pattern in enumerate(target_patterns):
+        for p, pattern in enumerate(target_patterns):
             pattern_match_score_data = tuple(abs(p - v) for p, v in zip(pattern, normalized_coupling_values) if p is not None)
             support = min(support for i, support in enumerate(support_values) if pattern[i] is not None)
             if support >= MIN_SUPPORT:
-                results[i].append(((*pattern_match_score_data, -support), (a, b, (*normalized_coupling_values, support))))
+                results[p].append(((*pattern_match_score_data, -support), (a, b, (*normalized_coupling_values, support))))
     return results
 
 
@@ -126,9 +126,17 @@ def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsT
         BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
         for p in target_patterns]
 
-    def handle_results(pattern_results_part):
+    def handle_results(pattern_results_part: PairAnalysisResultsType):
         for i, part in enumerate(pattern_results_part):
             pattern_results[i].add_all(part)
+            # tuple[
+            #   tuple[
+            #     float, ...
+            #   ],
+            #   tuple[
+            #     str, str, tuple[float, ...]
+            #   ]
+            # ]
 
     map_parallel(
         all_node_pairs,

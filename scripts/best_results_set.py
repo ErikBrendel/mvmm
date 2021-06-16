@@ -22,7 +22,7 @@ class BestResultsSet:
 
     def get_best(self, dim_weights):
         def sort_key(datum):
-            return sum(datum[0][i] * weight for i, weight in enumerate(dim_weights))
+            return sum(datum[0][d] * weight for d, weight in enumerate(dim_weights))
 
         self.data.sort(key=sort_key)
         return self.data[:self.result_keep_size]
@@ -52,7 +52,8 @@ class BestResultsSet:
             hull_data = None
             for _it in range(self.result_keep_size):
                 for d in range(len(data_coordinates_indices[0][0]) - 1, -1, -1):  # eliminate degenerate dimensions
-                    if all(abs(x[d] - data_coordinates_indices[0][0][d]) < 0.000001 for x, ind in data_coordinates_indices):
+                    reference_value = data_coordinates_indices[0][0][d]
+                    if all(abs(x[d] - reference_value) < 0.000001 for x, ind in data_coordinates_indices):
                         # print("Removing degenerate dimension " + str(d))
                         data_coordinates_indices = [(tuple(x[:d]+x[d+1:]), ind) for x, ind in data_coordinates_indices]
                         hull_data = None
