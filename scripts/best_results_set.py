@@ -16,6 +16,10 @@ class BestResultsSet:
         self.data = []  # pair of ([coordinates per dimension], user-data)
         self.total_amount = 0
 
+    def add(self, new_data):
+        self.data.append(new_data)
+        self.total_amount += 1
+
     def add_all(self, new_data):
         self.data += new_data
         self.total_amount += len(new_data)

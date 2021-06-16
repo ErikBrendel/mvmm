@@ -14,15 +14,15 @@ repos = [
     # "wrandelshofer/jhotdraw/jhotdraw7",
     # "wrandelshofer/jhotdraw/jhotdraw8",
     # "wumpz/jhotdraw",
-    # "ErikBrendel/LudumDare",  # 8 minutes BTM
+    # "ErikBrendel/LudumDare",
     # "ErikBrendel/LD35",
-    "eclipse/eclipse.jdt.core",  # from duerschmidt
+    # "eclipse/eclipse.jdt.core",  # from duerschmidt
     # "jenkinsci/jenkins",
     # "neuland/jade4j",
     # "jfree/jfreechart",
-    # "brettwooldridge/HikariCP",  # 1.2h BTM
-    # "adamfisk/LittleProxy",  # 1.5h BTM
-    # "dynjs/dynjs",  # 2.5h BTM
+    "brettwooldridge/HikariCP",
+    # "adamfisk/LittleProxy",
+    # "dynjs/dynjs",
     # "SonarSource/sonarqube",
     # "eclipse/che",
     # "elastic/elasticsearch",

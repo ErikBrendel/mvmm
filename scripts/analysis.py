@@ -103,7 +103,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     if parallel:
         calculated_results = find_disagreement_results_parallel(repo, views, required_patterns, all_nodes)
     else:
-        calculated_results = find_disagreement_results_serial(analysis_graphs, required_patterns, all_nodes)
+        calculated_results = find_disagreement_results_serial_cpp(analysis_graphs, required_patterns, all_nodes)
 
     # TODO do this in parallel as well once all the part results came in!
     for r in log_progress(calculated_results, desc="Trimming merged result sets"):
@@ -116,7 +116,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     return result_sets
 
 
-def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
+def find_disagreement_results_serial(analysis_graphs: List[CouplingGraph], target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
     all_node_pairs = list(all_pairs(all_nodes))
 
     # all_node_pairs = all_node_pairs[:1000]
@@ -145,6 +145,41 @@ def find_disagreement_results_serial(analysis_graphs, target_patterns: PatternsT
         "Analyzing edges",
         force_non_parallel=True
     )
+    return pattern_results
+
+
+def find_disagreement_results_serial_cpp(analysis_graphs: List[CouplingGraph], target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
+    ns = graph_manager.create_node_set(all_nodes)
+
+    # "findDisagreements", "nodeSetId resultSize graphAmount graphs... patternsComponents...
+    fixed_args = ["findDisagreements", str(ns), str(SHOW_RESULTS_SIZE), str(len(analysis_graphs))]
+    graph_args = [str(g.id) for g in analysis_graphs]
+    patterns_args = ["nan" if v is None else str(v) for pattern in target_patterns for v in pattern[:len(analysis_graphs)]]
+    raw_results = graph_manager.execute_strings(fixed_args + graph_args + patterns_args)
+
+    pattern_results = [
+        BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
+        for p in target_patterns]
+
+    result_i = 0
+    brs_i = 0
+
+    all_dim_count = len(analysis_graphs) + 1  # and support
+    while result_i < len(raw_results):
+        if len(raw_results[result_i]) == 0:
+            result_i += 1
+            brs_i += 1
+        else:
+            dimension_count = pattern_results[brs_i].dimension_count
+            sort_values = tuple(float(raw_results[result_i + i]) for i in range(dimension_count))
+            name1 = raw_results[result_i + dimension_count]
+            name2 = raw_results[result_i + dimension_count + 1]
+            display_values = tuple(float(raw_results[result_i + dimension_count + 2 + i]) for i in range(all_dim_count))
+
+            pattern_results[brs_i].add((sort_values, (name1, name2, display_values)))
+
+            result_i += dimension_count + 2 + all_dim_count  # sort values, the two node names, display values
+
     return pattern_results
 
 
