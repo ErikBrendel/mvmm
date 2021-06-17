@@ -408,7 +408,7 @@ def score_sorting_similarity(data: List[Tuple[float, float]]) -> float:
     return worst_score
 
 
-if __name__ == "__MAIN__":
+if __name__ == "__main__":
     print(len(list(generate_one_distributions(5, 5))))
     for x in generate_one_distributions(5, 5):
         print(" ".join("{:1.1f}".format(d) for d in x))
