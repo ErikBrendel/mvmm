@@ -125,6 +125,15 @@ class CouplingGraph:
         self._exec_void("printStatistics")
         self._exec_string("getGraphName")  # TODO remove
 
+    def get_most_linked_node_pairs(self, amount: int) -> List[Tuple[float, str, str]]:
+        return [(float(w), a, b) for w, a, b in (p.split(";") for p in self._exec_strings("getMostLinkedNodePairs", [str(amount)]))]
+
+    def print_most_linked_nodes(self, amount=10):
+        print("Most linked nodes:")
+        debug_list = self.get_most_linked_node_pairs(amount)
+        for w, a, b in debug_list[0:amount]:
+            print(str(w) + ": " + a + " <> " + b)
+
     def _exec_void(self, cmd: str, other_args: List[str] = []) -> None:
         graph_manager.execute_void([cmd, str(self.id)] + other_args)
 
