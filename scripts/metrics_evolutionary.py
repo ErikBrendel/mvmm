@@ -2,7 +2,10 @@ from util import *
 from local_repo import *
 from timeit import default_timer as timer
 
+MIN_COMMIT_FILES = 1
 MAX_COMMIT_FILES = 50
+MIN_COMMIT_METHODS = 2
+MAX_COMMIT_METHODS = 200
 
 
 # needs to be separate so that multiprocessing lib can find it
@@ -95,7 +98,7 @@ def get_commit_diff(commit_hash, repo) -> Optional[List[str]]:
         # t4 = timer()
         diff = c1.diff(c2)
         # t5 = timer()
-        if len(diff) > MAX_COMMIT_FILES or len(diff) <= 1:  # this is duplicated here for performance
+        if not (MIN_COMMIT_FILES <= len(diff) <= MAX_COMMIT_FILES):
             return None
         diffs = [result for d in diff for result in blob_diff(d)]  # if repo_tree.has_node(result)
         # t6 = timer()
@@ -114,6 +117,6 @@ def get_commit_diff(commit_hash, repo) -> Optional[List[str]]:
         # diffs = list(set(diffs_1).intersection(set(diffs_2)))
     else:
         return None
-    if len(diffs) > MAX_COMMIT_FILES or len(diffs) <= 1:
+    if not (MIN_COMMIT_METHODS <= len(diffs) <= MAX_COMMIT_METHODS):
         return None
     return diffs
