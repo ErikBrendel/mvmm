@@ -290,16 +290,29 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
 
         def make_show_data(dim):
             def show_data(multi_sorted_results):
-                print(results.total_amount, "raw results,", len(multi_sorted_results), "final results")
+                non_duplicated_data = []
+                seen_node_pairs = set()
+                duplication_skip = 0
+                for datum in multi_sorted_results[:SHOW_RESULTS_SIZE]:
+                    a, b = datum[1][0:2]
+                    if a > b:
+                        a, b = b, a
+                    key = a + "|" + b
+                    if key not in seen_node_pairs:
+                        seen_node_pairs.add(key)
+                        non_duplicated_data.append(datum)
+                    else:
+                        duplication_skip += 1
 
-                display_data = multi_sorted_results[:SHOW_RESULTS_SIZE]
+                print(results.total_amount, "raw results,", len(multi_sorted_results), "final results, skipped", duplication_skip, "duplicates")
+
                 # for d in display_data:
                 #    print(d)
                 display_data = [
                     ["{:1.4f}".format(raw_getter(datum)) for name, getter, raw_getter in dim] +
                     ['<a target="_blank" href="' + repo.url_for(path) + '" title="' + path + '">' + nice_path(path) + '</a>' for path in datum[1][0:2]]
-                    for datum in display_data]
-                header = [name for name, *_ in dim] + ["support", "method 1", "method 2"]
+                    for datum in non_duplicated_data]
+                header = [name for name, *_ in dim] + ["method 1", "method 2"]
                 show_html_table([header] + display_data, len(dim) + 2)
 
             return show_data
