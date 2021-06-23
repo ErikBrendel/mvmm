@@ -436,7 +436,7 @@ class RepoTree:
         return sum([c.node_count() for c in self.children.values()]) + 1
 
     def calculate_diff_to(self, other: 'RepoTree', my_content_bytes, other_content_bytes) -> List[str]:
-        """return list of pathes of minimal nodes that have changed content or are unmappable"""
+        """return list of paths of minimal nodes that have changed content or are unmappable"""
         # assumption: self.name == other.name
         results = []
         for my_child in self.children.values():
@@ -461,3 +461,16 @@ class RepoTree:
         yield self
         for child in self.children.values():
             yield from child.traverse_gen()
+
+    def print_statistics(self):
+        all_nodes = list(self.traverse_gen())
+        print("Total node count:", len(all_nodes))
+        print("Methods:", sum(node.get_type() == "method" for node in all_nodes))
+        print("(Long Methods #lines >= 5:", sum(node.get_type() == "method" and node.get_line_span() >= 5 for node in all_nodes), ")")
+        print("constructors:", sum(node.get_type() == "constructor" for node in all_nodes))
+        print("fields:", sum(node.get_type() == "field" for node in all_nodes))
+        print("classes:", sum(node.get_type() == "class" for node in all_nodes))
+        print("interfaces:", sum(node.get_type() == "interface" for node in all_nodes))
+        print("enums:", sum(node.get_type() == "enum" for node in all_nodes))
+        print("other type:", sum(node.get_type() is not None and node.get_type() not in ["method", "constructor", "field", "class", "interface", "enum"] for node in all_nodes))
+        print("without type:", sum(node.get_type() is None for node in all_nodes))
