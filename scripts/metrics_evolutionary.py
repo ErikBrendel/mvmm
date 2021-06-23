@@ -66,7 +66,7 @@ def get_commit_diff(commit_hash, repo) -> Optional[List[str]]:
             return [diff.b_path]  # newly created
         elif diff.b_blob is None:
             return [diff.a_path]  # deleted
-        path = diff.a_path
+        path = diff.b_path  # in case of rename, stick to newer path, better chance at getting the right thing
         # if not repo_tree.has_node(path):
         #     return []  # ignore changed files that are not part of the interesting project structure
         if not path.endswith("." + repo.type_extension()):
