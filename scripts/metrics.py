@@ -19,7 +19,7 @@ class MetricsGeneration:
     def __init__(self, repo):
         self.repo = repo
 
-    def calculate_evolutionary_connections(self) -> CouplingGraph:
+    def calculate_evolutionary_connections(self) -> ExplicitCouplingGraph:
         """
 ,------.,--.   ,--.,-----. ,--.   ,--. ,--.,--------.,--. ,-----. ,--.  ,--.  ,---.  ,------.,--.   ,--. 
 |  .---' \  `.'  /'  .-.  '|  |   |  | |  |'--.  .--'|  |'  .-.  '|  ,'.|  | /  O  \ |  .--. '\  `.'  /  
@@ -54,14 +54,15 @@ class MetricsGeneration:
             force_non_parallel=False
         )
 
-        coupling_graph.cutoff_edges(0.005)
+        coupling_graph.cutoff_edges(0.0001)
         coupling_graph.remove_small_components(3)
         return coupling_graph
 
-    def post_evolutionary(self, coupling_graph: CouplingGraph):
+    def post_evolutionary(self, coupling_graph: ExplicitCouplingGraph):
+        # coupling_graph.propagate_down(2, 0.5)
         pass
 
-    def calculate_structural_connections(self) -> CouplingGraph:
+    def calculate_structural_connections(self) -> ExplicitCouplingGraph:
         """
  ,---. ,--------.,------. ,--. ,--. ,-----.,--------.,--. ,--.,------.   ,---.  ,--.
 '   .-''--.  .--'|  .--. '|  | |  |'  .--./'--.  .--'|  | |  ||  .--. ' /  O  \ |  |
@@ -86,7 +87,7 @@ class MetricsGeneration:
         coupling_graph.dilate(1, 0.8)
         pass
 
-    def calculate_linguistic_connections(self) -> CouplingGraph:
+    def calculate_linguistic_connections(self) -> SimilarityCouplingGraph:
         """
 ,--.   ,--.,--.  ,--. ,----.   ,--. ,--.,--. ,---. ,--------.,--. ,-----.                                
 |  |   |  ||  ,'.|  |'  .-./   |  | |  ||  |'   .-''--.  .--'|  |'  .--./                                
@@ -106,7 +107,7 @@ class MetricsGeneration:
     def post_linguistic(self, coupling_graph: SimilarityCouplingGraph):
         pass
 
-    def calculate_module_distance_connections(self) -> CouplingGraph:
+    def calculate_module_distance_connections(self) -> ModuleDistanceCouplingGraph:
         return ModuleDistanceCouplingGraph()
 
     def post_module_distance(self, coupling_graph: ModuleDistanceCouplingGraph):
@@ -135,15 +136,12 @@ class MetricManager:
         if MetricManager._data_present(repo.name, name):
             print("Using precalculated " + name + " values")
             graph = CouplingGraph.load(repo.name, name, METRIC_GRAPH_CLASSES[name])
-            if not ignore_post_processing:
-                getattr(MetricsGeneration(repo), "post_" + name)(graph)
-            MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
-            return graph
-        print("No precalculated " + name + " values found, starting calculations...")
-        graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
-        graph.print_statistics()
-        print("Calculated " + name + " values, saving them now...")
-        graph.save(repo.name)
+        else:
+            print("No precalculated " + name + " values found, starting calculations...")
+            graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
+            graph.print_statistics()
+            print("Calculated " + name + " values, saving them now...")
+            graph.save(repo.name)
         if not ignore_post_processing:
             getattr(MetricsGeneration(repo), "post_" + name)(graph)
         MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
