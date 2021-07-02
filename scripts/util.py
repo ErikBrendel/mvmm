@@ -206,7 +206,7 @@ def debounce(s):
 
 
 
-def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="350px"):
+def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="1350px"):
     """names and getters: [('dim1', getter), ('dim2', getter)], names must be unique"""
     import ipywidgets as widgets
     from IPython.display import display
@@ -261,7 +261,7 @@ def interactive_multi_sort(data, dimension_names_and_getters, callback_func, out
     def slider_func(**kwargs):
         if update_sliders(**kwargs):
             return
-        print(", ".join(name + ": " + "{:1.4f}".format(val) for name, val in slider_values.items()))
+        # print(", ".join(name + ": " + "{:1.4f}".format(val) for name, val in slider_values.items()))
         data.sort(key=sort_key)
         callback_func(data)
 
@@ -270,7 +270,7 @@ def interactive_multi_sort(data, dimension_names_and_getters, callback_func, out
         slider_values[name] = initial_slider_value
         sliders[name] = widgets.FloatLogSlider(base=10, min=-3, max=0, step=0.01, value=initial_slider_value,
                                                continuous_update=True,
-                                               layout={'width': '500px'})
+                                               layout={'width': '900px'})
         # sliders[name].observe(slider_func, 'value')
     # out = widgets.interactive_output(slider_func, sliders)
     # ui = widgets.VBox(sliders.values())

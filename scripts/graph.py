@@ -196,6 +196,13 @@ class SimilarityCouplingGraph(CouplingGraph):
     def add_node(self, node: str, coordinates: List[float], support: float):
         self._exec_void("similarityAddNode", [node] + [str(c) for c in coordinates] + [str(support)])
 
+    def similarity_get_node(self, node_name: str) -> Optional[Tuple[float, List[float]]]:
+        """get support and coords of node"""
+        result = self._exec_strings("similarityGetNode", [node_name])
+        if len(result) == 0:
+            return None
+        return float(result[0]), [float(c) for c in result[1:]]
+
 
 class ModuleDistanceCouplingGraph(CouplingGraph):
     def __init__(self, id: Optional[int] = None):
@@ -220,7 +227,7 @@ class CachedCouplingGraph(CouplingGraph):
 
 
 class CombinedCouplingGraph(CouplingGraph):
-    def __init__(self, graphs_or_id: Union[int, List[CouplingGraph]], weights: Optional[List[float]] = None):
+    def __init__(self, graphs_or_id: Union[int, List[CouplingGraph]], weights: Optional[Sequence[float]] = None):
         if isinstance(graphs_or_id, int):
             CouplingGraph.__init__(self, graphs_or_id)
         else:
