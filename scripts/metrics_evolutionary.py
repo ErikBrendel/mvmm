@@ -288,7 +288,6 @@ class FutureMapping:
             if key in self.renamings:
                 if self.renamings[key] != value:
                     print("FM merge collision! What does this mean? Please debug and have a look")
-                    pdb.set_trace()
                 else:
                     pass  # we both agree on the value, nothing to merge here
             else:
@@ -362,7 +361,6 @@ def evo_calc_new(repo: LocalRepo):
     todo_list: List[Tuple[str, FutureMapping]] = [(head_commit_sha, FutureMapping())]  # those that could be done next
     commit_futures: Dict[str, FutureMapping] = {}  # for each commit sha, which future comes after it?
 
-    print("iterating git graph")
     bar = log_progress(total=len(commit_children) + 1, desc="Iterating git Graph")
     while len(todo_list) > 0:
         bar.update()

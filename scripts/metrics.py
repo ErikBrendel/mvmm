@@ -16,7 +16,7 @@ METRIC_GRAPH_CLASSES = {
 
 class MetricsGeneration:
     # ascii art: http://patorjk.com/software/taag/#p=display&f=Soft&t=STRUCTURAL%0A.%0ALINGUISTIC%0A.%0AEVOLUTIONARY%0A.%0ADYNAMIC
-    def __init__(self, repo):
+    def __init__(self, repo: LocalRepo):
         self.repo = repo
 
     def calculate_evolutionary_connections(self) -> ExplicitCouplingGraph:
@@ -30,6 +30,7 @@ class MetricsGeneration:
 
         coupling_graph = ExplicitCouplingGraph("evolutionary")
 
+        self.repo.get_tree()
         new_couple_by_same_commits(self.repo, coupling_graph)
         coupling_graph.cutoff_edges(0.0001)
         coupling_graph.remove_small_components(3)
