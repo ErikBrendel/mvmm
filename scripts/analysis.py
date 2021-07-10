@@ -102,13 +102,12 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     calculated_results: List[BestResultsSet]
     if parallel:
         calculated_results = find_disagreement_results_parallel(repo, views, required_patterns, all_nodes)
+        # TODO do this in parallel as well once all the part results came in!
+        for r in log_progress(calculated_results, desc="Trimming merged result sets"):
+            r.trim()
+        print("Done")
     else:
         calculated_results = find_disagreement_results_serial_cpp(analysis_graphs, required_patterns, all_nodes)
-
-    # TODO do this in parallel as well once all the part results came in!
-    for r in log_progress(calculated_results, desc="Trimming merged result sets"):
-        r.trim()
-    print("Done")
 
     fill_none_with_other(result_sets, calculated_results)
     for r, p in zip(result_sets, target_patterns):
@@ -304,7 +303,7 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
                     else:
                         duplication_skip += 1
 
-                print(results.total_amount, "raw results,", len(multi_sorted_results), "final results, skipped", duplication_skip, "duplicates")
+                # print(results.total_amount, "raw results,", len(multi_sorted_results), "final results, skipped", duplication_skip, "duplicates")
 
                 # for d in display_data:
                 #    print(d)

@@ -18,26 +18,29 @@ cwd = os.getcwd()
 print(cwd)
 
 repos = [
-    "ErikBrendel/LudumDare",
-    "ErikBrendel/LD35",
+    # "ErikBrendel/LudumDare",
+    # "ErikBrendel/LD35",
     # "eclipse/eclipse.jdt.core",
-    "jenkinsci/jenkins",
-    "jOOQ/jOOQ",
-    "wumpz/jhotdraw",
-    "neuland/jade4j",
-    "apache/log4j",
-    "junit-team/junit4",
+    # "jenkinsci/jenkins",
+    # "jOOQ/jOOQ",
+    # "wumpz/jhotdraw",
+    # "neuland/jade4j",
+    # "apache/log4j",
+    # "junit-team/junit4",
     "jfree/jfreechart",
-    "vanzin/jEdit",
-    "hunterhacker/jdom",
+    "jfree/jfreechart:v1.5.3",
+    "jfree/jfreechart:v1.5.0",
+    "jfree/jfreechart:v1.0.19",
+    # "vanzin/jEdit",
+    # "hunterhacker/jdom",
     # "SonarSource/sonarqube",
-    "brettwooldridge/HikariCP",
-    "adamfisk/LittleProxy",
-    "dynjs/dynjs",
+    # "brettwooldridge/HikariCP",
+    # "adamfisk/LittleProxy",
+    # "dynjs/dynjs",
 ]
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
 
-repos.sort(key=lambda repo: len(LocalRepo(repo).get_all_interesting_files()))
+# repos.sort(key=lambda repo: len(LocalRepo(repo).get_all_interesting_files()))
 
 
 fig, axes = plt.subplots(len(repos), 1, figsize=(3, len(repos) * 2.5), constrained_layout=True)

@@ -9,25 +9,31 @@ from metrics_evolutionary import get_commit_diff
 from legacy_graph import LegacyWeightCombinedGraph, LegacyResultCachedGraph, LegacyCouplingGraph
 from prcoessify import processify
 from plotting import parallel_coordinates
+# from graph import CachedCouplingGraph, CouplingGraph, CombinedCouplingGraph, graph_manager
 from util import log_progress, generate_one_distributions
 from typing import *
 
 repos = [
-    "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
-    "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
-    "neuland/jade4j:v1.2.5",  # current is 1.3.2
+    # "ErikBrendel/LudumDare:e77400a84a77c0cf8cf8aea128b78c5c9c8ad81e",  # earlier
+    # "ErikBrendel/LudumDare:d2701514c871f5efa3ae5c9766c0a887c1f12252",  # later
+    # "neuland/jade4j:v1.2.5",  # current is 1.3.2
     # "neuland/jade4j:v1.1.4",
     # "neuland/jade4j:v1.0.0",
     # "apache/log4j:v1_2_15",  # current is 1.2.17
-    "apache/log4j:v1_2_11",
+    # "apache/log4j:v1_2_11",
     # "apache/log4j:v1_2_6",
     # "apache/log4j:v1_2_1",
     # "apache/log4j:v1_1_1",
-    "brettwooldridge/HikariCP:HikariCP-3.1.0",  # current: 4.0.3
-    "jenkinsci/jenkins:jenkins-2.289",  # current: 2.296
+    # "brettwooldridge/HikariCP:HikariCP-3.1.0",  # current: 4.0.3
+    # "jenkinsci/jenkins:jenkins-2.289",  # current: 2.296
     # "jenkinsci/jenkins:jenkins-2.277",  # current: 2.296
     # "jenkinsci/jenkins:jenkins-2.263",  # current: 2.296
     # "jenkinsci/jenkins:jenkins-2.250",  # current: 2.296
+    # "jfree/jfreechart:5ca5d26bb38bafead25f81e88e0938a5d042c2a4",  # May 15
+    "jfree/jfreechart:9020a32e62800916f1897c3eb17c95bf0371230b",  # Mar 7
+    # "jfree/jfreechart:99d999395e46f8cf8689724853c9ede89be7c7ea",  # Mar 1
+    # "jfree/jfreechart:fc4ddeed916c4cfd6479bf7378c6cdb94f6a19fe",  # Feb 6
+    # "jfree/jfreechart:461625fd1f7242a1223f8e73716e9f2b4e9fd8a5",  # Dez 19, 2020
 ]
 
 metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
@@ -57,6 +63,8 @@ def get_nodes_and_tests(repo: str):
             for i, method_to_predict in enumerate(commit_to_evaluate):
                 other_methods: List[str] = commit_to_evaluate[:i] + commit_to_evaluate[i + 1:]
                 prediction_tests.append((method_to_predict, other_methods))
+        # nodeset_id = graph_manager.create_node_set(all_nodes)
+        # nodes_tests_cache[repo] = (nodeset_id, prediction_tests)
         nodes_tests_cache[repo] = (all_nodes, prediction_tests)
         print("Total method nodes: " + str(len(all_nodes)))
         print("Total future tests: " + str(len(prediction_tests)))
@@ -71,8 +79,9 @@ def get_graphs(repo: str):
 def get_commit_prediction_score_cpp(repo: str, weights: Tuple[float]):
     all_nodes, prediction_tests = get_nodes_and_tests(repo)
     scores = []
+    combined_graph = LegacyWeightCombinedGraph(get_graphs(repo), weights)
     for missing, others in prediction_tests:
-        scores.append(LegacyWeightCombinedGraph(get_graphs(repo), weights).how_well_predicts_missing_node(others, missing, all_nodes))
+        scores.append(combined_graph.how_well_predicts_missing_node(others, missing, all_nodes))
     return sum(scores) / len(scores)
 
 
@@ -80,13 +89,17 @@ for repo in repos:
     r = LocalRepo(repo)
     r.update()
     print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
+    nodes, tests = get_nodes_and_tests(repo)
+    print(len(nodes), "nodes")
+    for a, bs in tests:
+        print(a.split(".java/")[1], [b.split(".java/")[1] for b in bs])
 
     scale = 8
     results = []
     weight_combinations = list(generate_one_distributions(len(metrics), scale))
     for weights in log_progress(weight_combinations, desc="Evaluating view weight combinations"):
         score = get_commit_prediction_score_cpp(repo, tuple(weights))
-        score = score ** 10  # todo make this power slider interactive?
+        score = score ** 1  # todo make this power slider interactive?
         results.append((", ".join(str(w) for w in weights), score))
     results.sort(key=lambda e: e[1])
     for res in results:
@@ -123,7 +136,7 @@ for repo in repos:
     # parallel coordinates plot:
     """  # seem rather bad, research in that direction is halted for now
     parallel_data: List[Tuple[List[float], float]] = [
-        (w, get_commit_prediction_score(repo, tuple(w)))
+        (w, get_commit_prediction_score_cpp(repo, tuple(w)))
         for w in generate_one_distributions(len(metrics), scale)
     ]
     parallel_coordinates(None, metrics, parallel_data, 0.4 / scale)
