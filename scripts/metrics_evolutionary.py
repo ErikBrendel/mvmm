@@ -1,4 +1,4 @@
-from git import Commit, Diff
+from git import Commit, Diff, DiffIndex
 
 from graph import ExplicitCouplingGraph
 from util import *
@@ -156,7 +156,7 @@ def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
 #########################################
 
 
-def find_changed_methods(repo: LocalRepo, commit: Commit) -> List[str]:
+def find_changed_methods(repo: LocalRepo, parent_diffs: DiffIndex[Diff]) -> List[str]:
     """return the list of all method names (name after commit) that have changed in this commit"""
     ignored_ast_node_types = {
         "import_declaration", "comment", "package_declaration", "modifiers", "superclass", "super_interfaces", "identifier", "field_access", "type_identifier", "formal_parameters"
@@ -240,8 +240,7 @@ def find_changed_methods(repo: LocalRepo, commit: Commit) -> List[str]:
         return a_repo_tree.calculate_diff_to(b_repo_tree, a_content, b_content)
 
     result: List[str] = []
-    for parent in commit.parents:
-        diff = commit.diff(parent)
+    for diff in parent_diffs:
         for d in diff:
             result.extend(blob_diff(d))
     return result
@@ -310,14 +309,13 @@ class FutureMapping:
         return result
 
 
-def find_renamings(commit: Commit) -> List[Tuple[str, str]]:
+def find_renamings(parent_diffs: DiffIndex[Diff]) -> List[Tuple[str, str]]:
     """return the list of all renamings that happened in this commit, in the form (name before this commit, name after this commit)"""
     deleted: List[Diff] = []
     created: List[Diff] = []
 
     result: List[Tuple[str, str]] = []
-    for parent in commit.parents:
-        diff = commit.diff(parent)
+    for diff in parent_diffs:
         for d in diff:
             if d.a_path is not None and d.b_path is not None and d.a_path != d.b_path:
                 result.append((d.a_path, d.b_path))
@@ -335,13 +333,14 @@ def find_renamings(commit: Commit) -> List[Tuple[str, str]]:
 
 def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, List[str]]) -> FutureMapping:
     commit = repo.get_commit(commit_sha)
+    parent_diffs = [commit.diff(p) for p in commit.parents]
 
-    changed_methods = find_changed_methods(repo, commit)
+    changed_methods = find_changed_methods(repo, parent_diffs)
     modern_changed_methods = [future_mapping.get_modern_name_for(m) for m in changed_methods]
     result[commit_sha] = [m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)]
 
     new_future = future_mapping.clone()
-    for older_name, newer_name in find_renamings(commit):
+    for older_name, newer_name in find_renamings(parent_diffs):
         new_future.add_renaming(older_name, newer_name)
     return new_future
 
