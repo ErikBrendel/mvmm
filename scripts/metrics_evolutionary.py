@@ -158,9 +158,12 @@ def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
 
 def find_changed_methods(repo: LocalRepo, commit: Commit) -> List[str]:
     """return the list of all method names (name after commit) that have changed in this commit"""
+    ignored_ast_node_types = {
+        "import_declaration", "comment", "package_declaration", "modifiers", "superclass", "super_interfaces", "identifier", "field_access", "type_identifier", "formal_parameters"
+    }  # just for performance
 
     def walk_tree_cursor(cursor, prefix, content_bytes, node_handler):
-        if not cursor.node.is_named:
+        if not cursor.node.is_named or cursor.node.type in ignored_ast_node_types:
             return
 
         def node_text(node):
@@ -178,9 +181,9 @@ def find_changed_methods(repo: LocalRepo, commit: Commit) -> List[str]:
         elif cursor.node.type == "constructor_declaration":
             tree_node_names.append("constructor")
 
-        for tree_node_name in tree_node_names:
-            node_handler(prefix + "/" + tree_node_name, cursor.node)
         if len(tree_node_names) > 0:
+            for tree_node_name in tree_node_names:
+                node_handler(prefix + "/" + tree_node_name, cursor.node)
             prefix = prefix + "/" + tree_node_names[0]
 
         if cursor.goto_first_child():
@@ -256,8 +259,9 @@ class FutureMapping:
         #  happens by iterating this linked list of mappers to the modern end.
         #  might be slower, but more easier to understand and implement correctly
 
+        old_keys = list(self.renamings.keys())
         self.renamings[older_name] = self.get_modern_name_for(newer_name)  # TODO is this reasonable?
-        for key in self.renamings.keys():
+        for key in old_keys:
             if key.startswith(newer_name):
                 older_key = older_name + key[len(newer_name):]
                 modern = self.renamings[key]
@@ -372,7 +376,7 @@ def evo_calc_new(repo: LocalRepo):
             if all(c in commit_futures for c in parent_children_shas):
                 # this parent now has mappings for all its children! Let's handle it!
                 todo_list.append((parent.hexsha, FutureMapping.merge_all([commit_futures[c] for c in parent_children_shas])))
-
+    bar.close()
     return result
 
 
@@ -382,8 +386,8 @@ def new_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
     #   within a time window (max one day?)
     #   or with similar messages (next to each other and named "foo" and "foo part 2")
     #  to be (somewhat) related, and couple methods of those within each other (somewhat)
-    for diffs in changes_per_commit.values():
-        if len(diffs) >= 2:
+    for diffs in log_progress(list(changes_per_commit.values()), desc="creating coupling graph"):
+        if MIN_COMMIT_METHODS <= len(diffs) <= MAX_COMMIT_METHODS:
             score = 2 / len(diffs)
             diffs = [d for d in diffs if repo.get_tree().has_node(d)]
             for f1, f2 in all_pairs(diffs):

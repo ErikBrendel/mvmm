@@ -159,15 +159,12 @@ class ExplicitCouplingGraph(CouplingGraph):
 
     def add(self, a: str, b: str, delta: float):
         self._exec_void("explicitAdd", [a, b, str(delta)])
-        self._exec_string("getGraphName")
 
     def add_support(self, node: str, delta: float):
         self._exec_void("explicitAddSupport", [node, str(delta)])
-        self._exec_string("getGraphName")
 
     def add_and_support(self, a: str, b: str, delta: float):
         self._exec_void("explicitAddAndSupport", [a, b, str(delta)])
-        self._exec_string("getGraphName")
 
     def cutoff_edges(self, minimum_weight: float):
         self._exec_void("explicitCutoffEdges", [str(minimum_weight)])
