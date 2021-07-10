@@ -1,3 +1,6 @@
+from git import Commit, Diff
+
+from graph import ExplicitCouplingGraph
 from util import *
 from local_repo import *
 from timeit import default_timer as timer
@@ -9,7 +12,7 @@ MAX_COMMIT_METHODS = 200
 
 
 # needs to be separate so that multiprocessing lib can find it
-def get_commit_diff(commit_hash, repo) -> Optional[List[str]]:
+def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
     # repo_tree = repo.get_tree()
 
     def walk_tree_cursor(cursor, prefix, content_bytes, node_handler):
@@ -120,3 +123,274 @@ def get_commit_diff(commit_hash, repo) -> Optional[List[str]]:
     if not (MIN_COMMIT_METHODS <= len(diffs) <= MAX_COMMIT_METHODS):
         return None
     return diffs
+
+
+def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCouplingGraph):
+    def processDiffs(diffs):
+        score = 2 / len(diffs)
+        diffs = [d for d in diffs if repo.get_tree().has_node(d)]
+        for f1, f2 in all_pairs(diffs):
+            coupling_graph.add(f1, f2, score)
+        for node in diffs:
+            coupling_graph.add_support(node, 1)
+
+    print("Discovering commits...")
+    all_commits = list(repo.get_all_commits())
+    # shuffle(all_commits)
+    print("Done!")
+    repo.get_tree()
+    print("Commits to analyze: " + str(len(all_commits)))
+
+    map_parallel(
+        all_commits,
+        partial(get_commit_diff, repo=repo),
+        processDiffs,
+        "Analyzing commits",
+        force_non_parallel=False
+    )
+
+
+#########################################
+
+
+#########################################
+
+
+def find_changed_methods(repo: LocalRepo, commit: Commit) -> List[str]:
+    """return the list of all method names (name after commit) that have changed in this commit"""
+
+    def walk_tree_cursor(cursor, prefix, content_bytes, node_handler):
+        if not cursor.node.is_named:
+            return
+
+        def node_text(node):
+            return decode(content_bytes[node.start_byte:node.end_byte])
+
+        # cursor.current_field_name() is the role that this node has in its parent
+        tree_node_names = []  # TODO keep in sync with structural and linguistic view as well as RepoFile class
+        if cursor.node.type == "class_declaration" or cursor.node.type == "interface_declaration" or cursor.node.type == "enum_declaration":
+            tree_node_names.append(node_text(cursor.node.child_by_field_name("name")))
+        elif cursor.node.type == "field_declaration":
+            declarators = [child for child in cursor.node.children if child.type == "variable_declarator"]
+            tree_node_names += [node_text(d.child_by_field_name("name")) for d in declarators]
+        elif cursor.node.type == "method_declaration":
+            tree_node_names.append(node_text(cursor.node.child_by_field_name("name")))
+        elif cursor.node.type == "constructor_declaration":
+            tree_node_names.append("constructor")
+
+        for tree_node_name in tree_node_names:
+            node_handler(prefix + "/" + tree_node_name, cursor.node)
+        if len(tree_node_names) > 0:
+            prefix = prefix + "/" + tree_node_names[0]
+
+        if cursor.goto_first_child():
+            walk_tree_cursor(cursor, prefix, content_bytes, node_handler)
+            while cursor.goto_next_sibling():
+                walk_tree_cursor(cursor, prefix, content_bytes, node_handler)
+            cursor.goto_parent()
+
+    def walk_tree(tree, content_bytes, base_path) -> Optional[RepoTree]:
+        """ node_handler gets the current logic-path and node for each ast node"""
+        try:
+            found_nodes = RepoTree(None, "")
+
+            def handle(logic_path, ts_node):
+                found_nodes.register(logic_path, ts_node)
+
+            walk_tree_cursor(tree.walk(), base_path, content_bytes, handle)
+            return found_nodes
+        except Exception as e:
+            print("Failed to parse file:", base_path, "Error:", e)
+            pdb.set_trace()
+            return None
+
+    error_query = JA_LANGUAGE.query("(ERROR) @err")
+
+    def _has_error(tree) -> bool:
+        errors = error_query.captures(tree.root_node)
+        return len(errors) > 1
+
+    def blob_diff(diff) -> List[str]:
+        if diff.a_blob is None:
+            return [diff.b_path]  # newly created
+        elif diff.b_blob is None:
+            return []  # deleted -> not interested
+        path = diff.b_path
+        if not path.endswith("." + repo.type_extension()):
+            return [path]
+        a_content = diff.a_blob.data_stream.read()
+        if should_skip_file(a_content):
+            return []
+        b_content = diff.b_blob.data_stream.read()
+        if should_skip_file(b_content):
+            return []
+        a_tree = java_parser.parse(a_content)
+        b_tree = java_parser.parse(b_content)
+        if _has_error(a_tree) or _has_error(b_tree):
+            return [path]  # I guess just the file changed, no more details available
+        a_repo_tree = walk_tree(a_tree, a_content, path)
+        if a_repo_tree is None:
+            return [path]
+        b_repo_tree = walk_tree(b_tree, b_content, path)
+        if b_repo_tree is None:
+            return [path]
+        return a_repo_tree.calculate_diff_to(b_repo_tree, a_content, b_content)
+
+    result = []
+    for parent in commit.parents:
+        diff = commit.diff(parent)
+        for d in diff:
+            for file_results in blob_diff(d):
+                result.extend(file_results)
+    return result
+
+
+class FutureMapping:
+    def __init__(self):
+        self.renamings: Dict[str, str] = {}  # mapping historical method paths to modern ones, must not end with a slash
+
+    def add_renaming(self, older_name, newer_name):
+        """apply the given renaming before the current state of this object"""
+        # for each renaming: if the key starts with newer_name, replace this prefix with older_name
+        # TODO maybe instead implement a chained FM approach, where each FM object only does
+        #  the renamings of one commit, and points to the next FM object, and modern name translation
+        #  happens by iterating this linked list of mappers to the modern end.
+        #  might be slower, but more easier to understand and implement correctly
+
+        self.renamings[older_name] = self.get_modern_name_for(newer_name)  # TODO is this reasonable?
+        for key in self.renamings.keys():
+            if key.startswith(newer_name):
+                older_key = older_name + key[len(newer_name):]
+                modern = self.renamings[key]
+                del self.renamings[key]
+                self.renamings[older_key] = modern
+
+    def get_modern_name_for(self, name: str) -> str:
+        """given the full path of a method, what will this method be called in the HEAD of the project?"""
+        # iterate, chop off ends of the path and see if we have renaming information on this sub-path
+        if name in self.renamings:
+            return self.renamings[name]
+        parts = name.split("/")
+        for i in range(len(parts) - 1, 0, -1):
+            first_part = "/".join(parts[:i])
+            if first_part in self.renamings:
+                end_part = "/".join(parts[i:])
+                return self.renamings[first_part] + "/" + end_part
+        return name  # if no renaming for no part of the path has been found, maybe it has not been renamed ever :D
+
+    def clone(self) -> 'FutureMapping':
+        res = FutureMapping()
+        res.renamings = self.renamings.copy()
+        return res
+
+    def merge(self, other: 'FutureMapping'):
+        """merge other into this one"""
+        for key, value in other.renamings.values():
+            if key in self.renamings:
+                if self.renamings[key] != value:
+                    print("FM merge collision! What does this mean? Please debug and have a look")
+                    pdb.set_trace()
+                else:
+                    pass  # we both agree on the value, nothing to merge here
+            else:
+                # other has a new key - lets just copy it and hope that this will work
+                self.renamings[key] = value
+
+    @staticmethod
+    def merge_all(mappings: List['FutureMapping']) -> 'FutureMapping':
+        if len(mappings) == 0:
+            return FutureMapping()
+        if len(mappings) == 1:
+            return mappings[0].clone()
+        result = mappings[0].clone()
+        for other in mappings[1:]:
+            result.merge(other)
+        return result
+
+
+def find_renamings(commit: Commit) -> List[Tuple[str, str]]:
+    """return the list of all renamings that happened in this commit, in the form (name before this commit, name after this commit)"""
+    deleted: List[Diff] = []
+    created: List[Diff] = []
+
+    result: List[Tuple[str, str]] = []
+    for parent in commit.parents:
+        diff = commit.diff(parent)
+        for d in diff:
+            if d.a_path is not None and d.b_path is not None and d.a_path != d.b_path:
+                result.append((d.a_path, d.b_path))
+            elif d.a_path is None:
+                created.append(d)
+            elif d.b_path is None:
+                deleted.append(d)
+    # TODO try to match up things from the created and deleted entries
+    #  extra task: also look within the modified-diffs (if within a modified file only one method is added / removed)
+    #  to match those up as well, not only per-file renamings
+    if len(created) > 0 and len(deleted) > 0:
+        pdb.set_trace()
+    return result
+
+
+def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, List[str]]) -> FutureMapping:
+    commit = repo.get_commit(commit_sha)
+
+    changed_methods = find_changed_methods(repo, commit)
+    modern_changed_methods = [future_mapping.get_modern_name_for(m) for m in changed_methods]
+    result[commit_sha] = [m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)]
+
+    new_future = future_mapping.clone()
+    for older_name, newer_name in find_renamings(commit):
+        new_future.add_renaming(older_name, newer_name)
+    return new_future
+
+
+def evo_calc_new(repo: LocalRepo):
+    """end result: for each commit, which methods have changed in it?"""
+    result: Dict[str, List[str]] = {}
+
+    """first, for all the commits with multiple children, find out which / how many they have"""
+    print("discovering commit children information")
+    commit_children: Dict[str, List[str]] = {}
+    for commit_sha in repo.get_all_commits():
+        for parent_sha in [p.hexsha for p in repo.get_commit(commit_sha).parents]:
+            commit_children.get(parent_sha, []).append(commit_sha)
+    for parent_sha in list(commit_children.keys()):
+        if len(commit_children[parent_sha]) <= 1:
+            del commit_children[parent_sha]
+
+    """iterate back through time, only handling commits once and when all their future has been handled"""
+    head_commit_sha = repo.get_head_commit().hexsha
+
+    todo_list: List[Tuple[str, FutureMapping]] = [(head_commit_sha, FutureMapping())]  # those that could be done next
+    commit_futures: Dict[str, FutureMapping] = {}  # for each commit sha, which future comes after it?
+
+    print("iterating git graph")
+    while len(todo_list) > 0:
+        current_sha, prev_mapping = todo_list.pop()
+        new_mapping = evo_new_analyze_commit(repo, current_sha, prev_mapping, result)
+        commit_futures[current_sha] = new_mapping
+        for parent in repo.get_commit(current_sha).parents:
+            parent_children_shas = commit_children.get(parent.hexsha, [])
+            if all(c in commit_futures for c in parent_children_shas):
+                # this parent now has mappings for all its children! Let's handle it!
+                todo_list.append((parent.hexsha, FutureMapping.merge_all([commit_futures[c] for c in parent_children_shas])))
+
+    return result
+
+
+def new_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCouplingGraph):
+    changes_per_commit = evo_calc_new(repo)
+    for diffs in changes_per_commit.values():
+        score = 2 / len(diffs)
+        diffs = [d for d in diffs if repo.get_tree().has_node(d)]
+        for f1, f2 in all_pairs(diffs):
+            coupling_graph.add(f1, f2, score)
+        for node in diffs:
+            coupling_graph.add_support(node, 1)
+
+
+
+
+
+
+

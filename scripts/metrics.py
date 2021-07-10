@@ -27,35 +27,13 @@ class MetricsGeneration:
 |  `---.   \   /  '  '-'  '|  '--.'  '-'  '   |  |   |  |'  '-'  '|  | `   ||  | |  ||  |\  \    |  |    
 `------'    `-'    `-----' `-----' `-----'    `--'   `--' `-----' `--'  `--'`--' `--'`--' '--'   `--'    
         """
-        # MAX_COMMIT_FILES = 50  # Ignore too large commits. (constant moved)
 
         coupling_graph = ExplicitCouplingGraph("evolutionary")
 
-        def processDiffs(diffs):
-            score = 2 / len(diffs)
-            diffs = [d for d in diffs if self.repo.get_tree().has_node(d)]
-            for f1, f2 in all_pairs(diffs):
-                coupling_graph.add(f1, f2, score)
-            for node in diffs:
-                coupling_graph.add_support(node, 1)
-
-        print("Discovering commits...")
-        all_commits = list(self.repo.get_all_commits())
-        # shuffle(all_commits)
-        print("Done!")
-        self.repo.get_tree()
-        print("Commits to analyze: " + str(len(all_commits)))
-
-        map_parallel(
-            all_commits,
-            partial(get_commit_diff, repo=self.repo),
-            processDiffs,
-            "Analyzing commits",
-            force_non_parallel=False
-        )
-
+        old_couple_by_same_commits(self.repo, coupling_graph)
         coupling_graph.cutoff_edges(0.0001)
         coupling_graph.remove_small_components(3)
+
         return coupling_graph
 
     def post_evolutionary(self, coupling_graph: ExplicitCouplingGraph):

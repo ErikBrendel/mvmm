@@ -1,4 +1,4 @@
-from git import Git, Repo, RemoteProgress
+from git import Git, Repo, RemoteProgress, Commit
 import os
 import subprocess
 import pdb
@@ -144,9 +144,11 @@ class LocalRepo:
         current_commit_date = self.get_commit(self.committish).committed_date
         return [ch for ch in commit_hash_list if self.get_commit(ch).committed_date > current_commit_date]
 
-
-    def get_commit(self, sha: str):
+    def get_commit(self, sha: str) -> Commit:
         return self.repo.commit(sha)
+
+    def get_head_commit(self) -> Commit:
+        return self.repo.commit()
 
     def get_tree(self):
         if self.tree is None:
