@@ -236,12 +236,11 @@ def find_changed_methods(repo: LocalRepo, commit: Commit) -> List[str]:
             return [path]
         return a_repo_tree.calculate_diff_to(b_repo_tree, a_content, b_content)
 
-    result = []
+    result: List[str] = []
     for parent in commit.parents:
         diff = commit.diff(parent)
         for d in diff:
-            for file_results in blob_diff(d):
-                result.extend(file_results)
+            result.extend(blob_diff(d))
     return result
 
 
@@ -285,7 +284,7 @@ class FutureMapping:
 
     def merge(self, other: 'FutureMapping'):
         """merge other into this one"""
-        for key, value in other.renamings.values():
+        for key, value in other.renamings.items():
             if key in self.renamings:
                 if self.renamings[key] != value:
                     print("FM merge collision! What does this mean? Please debug and have a look")
@@ -348,15 +347,14 @@ def evo_calc_new(repo: LocalRepo):
     """end result: for each commit, which methods have changed in it?"""
     result: Dict[str, List[str]] = {}
 
-    """first, for all the commits with multiple children, find out which / how many they have"""
+    """first, for all the commits with children, find out which / how many they have"""
     print("discovering commit children information")
     commit_children: Dict[str, List[str]] = {}
     for commit_sha in repo.get_all_commits():
         for parent_sha in [p.hexsha for p in repo.get_commit(commit_sha).parents]:
-            commit_children.get(parent_sha, []).append(commit_sha)
-    for parent_sha in list(commit_children.keys()):
-        if len(commit_children[parent_sha]) <= 1:
-            del commit_children[parent_sha]
+            if parent_sha not in commit_children:
+                commit_children[parent_sha] = []
+            commit_children[parent_sha].append(commit_sha)
 
     """iterate back through time, only handling commits once and when all their future has been handled"""
     head_commit_sha = repo.get_head_commit().hexsha
@@ -365,7 +363,9 @@ def evo_calc_new(repo: LocalRepo):
     commit_futures: Dict[str, FutureMapping] = {}  # for each commit sha, which future comes after it?
 
     print("iterating git graph")
+    bar = log_progress(total=len(commit_children) + 1, desc="Iterating git Graph")
     while len(todo_list) > 0:
+        bar.update()
         current_sha, prev_mapping = todo_list.pop()
         new_mapping = evo_new_analyze_commit(repo, current_sha, prev_mapping, result)
         commit_futures[current_sha] = new_mapping
@@ -380,13 +380,18 @@ def evo_calc_new(repo: LocalRepo):
 
 def new_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCouplingGraph):
     changes_per_commit = evo_calc_new(repo)
+    # TODO consider commits
+    #   within a time window (max one day?)
+    #   or with similar messages (next to each other and named "foo" and "foo part 2")
+    #  to be (somewhat) related, and couple methods of those within each other (somewhat)
     for diffs in changes_per_commit.values():
-        score = 2 / len(diffs)
-        diffs = [d for d in diffs if repo.get_tree().has_node(d)]
-        for f1, f2 in all_pairs(diffs):
-            coupling_graph.add(f1, f2, score)
-        for node in diffs:
-            coupling_graph.add_support(node, 1)
+        if len(diffs) >= 2:
+            score = 2 / len(diffs)
+            diffs = [d for d in diffs if repo.get_tree().has_node(d)]
+            for f1, f2 in all_pairs(diffs):
+                coupling_graph.add(f1, f2, score)
+            for node in diffs:
+                coupling_graph.add_support(node, 1)
 
 
 

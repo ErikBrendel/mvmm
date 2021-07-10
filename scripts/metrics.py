@@ -30,7 +30,7 @@ class MetricsGeneration:
 
         coupling_graph = ExplicitCouplingGraph("evolutionary")
 
-        old_couple_by_same_commits(self.repo, coupling_graph)
+        new_couple_by_same_commits(self.repo, coupling_graph)
         coupling_graph.cutoff_edges(0.0001)
         coupling_graph.remove_small_components(3)
 
