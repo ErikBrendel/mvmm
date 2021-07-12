@@ -156,7 +156,7 @@ def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
 #########################################
 
 
-def find_changed_methods(repo: LocalRepo, parent_diffs: DiffIndex[Diff]) -> List[str]:
+def find_changed_methods(repo: LocalRepo, parent_diffs: List[DiffIndex[Diff]]) -> List[str]:
     """return the list of all method names (name after commit) that have changed in this commit"""
     ignored_ast_node_types = {
         "import_declaration", "comment", "package_declaration", "modifiers", "superclass", "super_interfaces", "identifier", "field_access", "type_identifier", "formal_parameters"
@@ -213,7 +213,7 @@ def find_changed_methods(repo: LocalRepo, parent_diffs: DiffIndex[Diff]) -> List
         errors = error_query.captures(tree.root_node)
         return len(errors) > 1
 
-    def blob_diff(diff) -> List[str]:
+    def blob_diff(diff: Diff) -> List[str]:
         if diff.a_blob is None:
             return [diff.b_path]  # newly created
         elif diff.b_blob is None:
@@ -309,7 +309,7 @@ class FutureMapping:
         return result
 
 
-def find_renamings(parent_diffs: DiffIndex[Diff]) -> List[Tuple[str, str]]:
+def find_renamings(parent_diffs: List[DiffIndex[Diff]]) -> List[Tuple[str, str]]:
     """return the list of all renamings that happened in this commit, in the form (name before this commit, name after this commit)"""
     deleted: List[Diff] = []
     created: List[Diff] = []
@@ -386,17 +386,10 @@ def new_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
     #   or with similar messages (next to each other and named "foo" and "foo part 2")
     #  to be (somewhat) related, and couple methods of those within each other (somewhat)
     for diffs in log_progress(list(changes_per_commit.values()), desc="creating coupling graph"):
-        if MIN_COMMIT_METHODS <= len(diffs) <= MAX_COMMIT_METHODS:
+        usable_diffs = [d for d in diffs if repo.get_tree().has_node(d)]
+        if MIN_COMMIT_METHODS <= len(usable_diffs) <= MAX_COMMIT_METHODS:
             score = 2 / len(diffs)
-            diffs = [d for d in diffs if repo.get_tree().has_node(d)]
-            for f1, f2 in all_pairs(diffs):
+            for f1, f2 in all_pairs(usable_diffs):
                 coupling_graph.add(f1, f2, score)
-            for node in diffs:
+            for node in usable_diffs:
                 coupling_graph.add_support(node, 1)
-
-
-
-
-
-
-
