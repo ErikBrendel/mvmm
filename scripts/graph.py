@@ -1,10 +1,11 @@
 import subprocess
 import sys
+import os
 from typing import *
 
 from util import log_progress
 
-CPP_GRAPH_CLI_PATH = "/home/ebrendel/util/mvmm-graphs/coupling_graphs"
+CPP_GRAPH_CLI_PATH = os.getenv("COUPLING_GRAPH_EXECUTABLE", "/home/ebrendel/util/mvmm-graphs/coupling_graphs")
 METRICS_SAVE_PATH = "../metrics/"
 
 
