@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="ebrendel@127.0.0.1:6000 key" createEmptyFolders="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="ebrendel@localhost:6000 key" createEmptyFolders="true">
     <serverData>
-      <paths name="ebrendel@127.0.0.1:6000 key">
+      <paths name="ebrendel@localhost:6000 key">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/ebrendel/mvmm/scripts" local="$PROJECT_DIR$/scripts" web="/" />
+            <mapping deploy="/home/ebrendel/mvmm/scripts" local="$PROJECT_DIR$/scripts" />
           </mappings>
           <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/scripts/images" />
             <excludedPath path="/home/ebrendel/mvmm/scripts/.ipynb_checkpoints" />
             <excludedPath path="/home/ebrendel/mvmm/scripts/__pycache__" />
           </excludedPaths>

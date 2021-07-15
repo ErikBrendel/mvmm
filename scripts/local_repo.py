@@ -16,14 +16,20 @@ ADD_LINE_NUMBER_TO_LINK = True
 
 # https://gitpython.readthedocs.io/en/stable/reference.html
 class LocalRepo:
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
         self.committish = None
-        name_path_part = name
-        if ":" in name:
-            name_path_part, self.committish = name.split(":")
-        self.repo_name = "/".join(name_path_part.split("/")[:2])
-        self.sub_dir = None if len(self.repo_name) == len(name_path_part) else name_path_part[len(self.repo_name) + 1:]
+        if self.is_identified_by_path():
+            if not name.endswith("/"):
+                name += "/"
+            self.repo_name = self.name
+            self.sub_dir = None
+        else:
+            name_path_part = name
+            if ":" in name:
+                name_path_part, self.committish = name.split(":")
+            self.repo_name = "/".join(name_path_part.split("/")[:2])
+            self.sub_dir = None if len(self.repo_name) == len(name_path_part) else name_path_part[len(self.repo_name) + 1:]
         self.tree = None
         if not self.is_cloned():
             print("cloning " + self.repo_name + ", this may take a while...")
@@ -31,6 +37,9 @@ class LocalRepo:
         self.repo = Repo(self.path())
         self.url_cache = {}
         self.path_to_file_cache = None
+
+    def is_identified_by_path(self):
+        return self.name.startswith("/")
 
     def display_name(self):
         if self.committish is None or len(self.committish) < 30:
@@ -54,10 +63,16 @@ class LocalRepo:
         return os.path.isdir(self.path())
 
     def path(self):
-        return REPO_CLONE_PATH + self.repo_name
+        if self.is_identified_by_path():
+            return self.name
+        else:
+            return REPO_CLONE_PATH + self.repo_name
 
     def url(self):
-        return REPO_URL_START + self.repo_name + REPO_URL_END
+        if self.is_identified_by_path():
+            return self.name
+        else:
+            return REPO_URL_START + self.repo_name + REPO_URL_END
 
     def url_for(self, path):
         if path in self.url_cache:
@@ -67,8 +82,11 @@ class LocalRepo:
         file_path = path
         if ending in file_path:
             file_path = file_path[0:file_path.index(ending) + len(ending)]
-        file_url = REPO_URL_START + self.repo_name + "/blob/master/" + file_path
-        if ADD_LINE_NUMBER_TO_LINK:
+        if self.is_identified_by_path():
+            file_url = self.name
+        else:
+            file_url = REPO_URL_START + self.repo_name + "/blob/master/" + file_path
+        if ADD_LINE_NUMBER_TO_LINK and not self.is_identified_by_path():
             file = self.get_file(file_path)
             if file is None:
                 print("Cannot find file anymore:", file_path)
@@ -250,7 +268,6 @@ class RepoFile:
 
 
 class RepoTree:
-
     @staticmethod
     def init_from_repo(repo) -> 'RepoTree':
         found_nodes = RepoTree(None, "")
@@ -274,7 +291,7 @@ class RepoTree:
             pdb.set_trace()
         self.ts_node = ts_node
         self.additional_ts_nodes = []
-        self.children: dict[str, 'RepoTree'] = {}
+        self.children: Dict[str, 'RepoTree'] = {}
 
     # to allow for pickling (for multiprocessing), see https://stackoverflow.com/a/2345985/4354423
     def __getstate__(self):

@@ -21,7 +21,7 @@ LDA_RANDOM_SEED = 42
 DOCUMENT_SIMILARITY_EXP = 8  # higher = lower equality values, lower = equality values are all closer to 1
 DOCUMENT_SIMILARITY_CUTOFF = 0.05  # in range [0 .. 1]: everything below this is dropped
 
-CLI_PATH = "/home/ebrendel/util/btm/btm"
+CLI_PATH = os.getenv("BTM_EXECUTABLE", "/home/ebrendel/util/btm/btm")
 
 
 def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  # List of (RepoTree-Node,wordList) - tuples
