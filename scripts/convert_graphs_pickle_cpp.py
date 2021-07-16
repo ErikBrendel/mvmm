@@ -30,7 +30,7 @@ for repo, name in log_progress(repo_names, desc="Converting"):
         for node in og.get_node_set():
             g.add_node(node, og.coords[node], og.support[node])
         g.save(repo)
-    elif name == "structural" or name == "evolutionary":
+    elif name == "references" or name == "evolutionary":
         g = CppExplicitCouplingGraph(name)
         og: ExplicitCouplingGraph = old_graph
         for node in og.get_node_set():
@@ -71,9 +71,9 @@ for repo, name in log_progress(repo_names, desc="Checking"):
 
 for repo in ["ErikBrendel/LudumDare", "ErikBrendel/LD35", "vanzin/jEdit", "wumpz/jhotdraw"]:
     r = LocalRepo(repo)
-    new_graph: CppExplicitCouplingGraph = CppGraph.load(repo, "structural", CppExplicitCouplingGraph)
-    MetricsGeneration(r).post_structural(new_graph)
-    old_graph = MetricManager.get(r, "structural")
+    new_graph: CppExplicitCouplingGraph = CppGraph.load(repo, "references", CppExplicitCouplingGraph)
+    MetricsGeneration(r).post_references(new_graph)
+    old_graph = MetricManager.get(r, "references")
     old_node_set = old_graph.get_node_set()
     new_node_set = set(new_graph.get_node_set())
     if old_node_set != new_node_set:

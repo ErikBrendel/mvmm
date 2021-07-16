@@ -56,11 +56,11 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
 
     node_words: List[Tuple[RepoTree, List[str]]] = []  # List of (RepoTree-Node,wordList) - tuples
     for file in log_progress(files, desc="Extracting language corpus"):
-        node = file.get_repo_tree_node()  # TODO unify with structural view code
+        node = file.get_repo_tree_node()  # TODO unify with references view code
         if node is None:
             continue  # TODO why / when does this happen?
 
-        # TODO keep in sync with evolutionary and structural view as well as RepoFile class
+        # TODO keep in sync with evolutionary and references view as well as RepoFile class
         classes = node.get_descendants_of_type("class") + node.get_descendants_of_type("interface") + node.get_descendants_of_type("enum")
         for class_node in classes:
             fields = class_node.get_children_of_type("field")

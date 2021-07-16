@@ -23,7 +23,7 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
             return decode(content_bytes[node.start_byte:node.end_byte])
 
         # cursor.current_field_name() is the role that this node has in its parent
-        tree_node_names = []  # TODO keep in sync with structural and linguistic view as well as RepoFile class
+        tree_node_names = []  # TODO keep in sync with references and linguistic view as well as RepoFile class
         if cursor.node.type == "class_declaration" or cursor.node.type == "interface_declaration" or cursor.node.type == "enum_declaration":
             tree_node_names.append(node_text(cursor.node.child_by_field_name("name")))
         elif cursor.node.type == "field_declaration":
@@ -170,7 +170,7 @@ def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Lis
             return decode(content_bytes[node.start_byte:node.end_byte])
 
         # cursor.current_field_name() is the role that this node has in its parent
-        tree_node_names = []  # TODO keep in sync with structural and linguistic view as well as RepoFile class
+        tree_node_names = []  # TODO keep in sync with references and linguistic view as well as RepoFile class
         if cursor.node.type == "class_declaration" or cursor.node.type == "interface_declaration" or cursor.node.type == "enum_declaration":
             tree_node_names.append(node_text(cursor.node.child_by_field_name("name")))
         elif cursor.node.type == "field_declaration":

@@ -2,30 +2,30 @@ from util import *
 from graph import *
 from local_repo import *
 from metrics_evolutionary import *
-from metrics_structural import *
+from metrics_references import *
 from metrics_linguistic import *
 
 
 METRIC_GRAPH_CLASSES = {
     "evolutionary": ExplicitCouplingGraph,
-    "structural": ExplicitCouplingGraph,
+    "references": ExplicitCouplingGraph,
     "linguistic": SimilarityCouplingGraph,
     "module_distance": ModuleDistanceCouplingGraph,
 }
 
 
 class MetricsGeneration:
-    # ascii art: http://patorjk.com/software/taag/#p=display&f=Soft&t=STRUCTURAL%0A.%0ALINGUISTIC%0A.%0AEVOLUTIONARY%0A.%0ADYNAMIC
+    # ascii art: http://patorjk.com/software/taag/#p=display&f=Soft&t=REFERENCES%0A.%0ALINGUISTIC%0A.%0AEVOLUTIONARY%0A.%0ADYNAMIC
     def __init__(self, repo: LocalRepo):
         self.repo = repo
 
     def calculate_evolutionary_connections(self) -> ExplicitCouplingGraph:
         """
-,------.,--.   ,--.,-----. ,--.   ,--. ,--.,--------.,--. ,-----. ,--.  ,--.  ,---.  ,------.,--.   ,--. 
-|  .---' \  `.'  /'  .-.  '|  |   |  | |  |'--.  .--'|  |'  .-.  '|  ,'.|  | /  O  \ |  .--. '\  `.'  /  
-|  `--,   \     / |  | |  ||  |   |  | |  |   |  |   |  ||  | |  ||  |' '  ||  .-.  ||  '--'.' '.    /   
-|  `---.   \   /  '  '-'  '|  '--.'  '-'  '   |  |   |  |'  '-'  '|  | `   ||  | |  ||  |\  \    |  |    
-`------'    `-'    `-----' `-----' `-----'    `--'   `--' `-----' `--'  `--'`--' `--'`--' '--'   `--'    
+,------.,--.   ,--.,-----. ,--.   ,--. ,--.,--------.,--. ,-----. ,--.  ,--.  ,---.  ,------.,--.   ,--.
+|  .---' \  `.'  /'  .-.  '|  |   |  | |  |'--.  .--'|  |'  .-.  '|  ,'.|  | /  O  \ |  .--. '\  `.'  /
+|  `--,   \     / |  | |  ||  |   |  | |  |   |  |   |  ||  | |  ||  |' '  ||  .-.  ||  '--'.' '.    /
+|  `---.   \   /  '  '-'  '|  '--.'  '-'  '   |  |   |  |'  '-'  '|  | `   ||  | |  ||  |\  \    |  |
+`------'    `-'    `-----' `-----' `-----'    `--'   `--' `-----' `--'  `--'`--' `--'`--' '--'   `--'
         """
 
         coupling_graph = ExplicitCouplingGraph("evolutionary")
@@ -41,18 +41,18 @@ class MetricsGeneration:
         # coupling_graph.propagate_down(2, 0.5)
         pass
 
-    def calculate_structural_connections(self) -> ExplicitCouplingGraph:
+    def calculate_references_connections(self) -> ExplicitCouplingGraph:
         """
- ,---. ,--------.,------. ,--. ,--. ,-----.,--------.,--. ,--.,------.   ,---.  ,--.
-'   .-''--.  .--'|  .--. '|  | |  |'  .--./'--.  .--'|  | |  ||  .--. ' /  O  \ |  |
-`.  `-.   |  |   |  '--'.'|  | |  ||  |       |  |   |  | |  ||  '--'.'|  .-.  ||  |
-.-'    |  |  |   |  |\  \ '  '-'  ''  '--'\   |  |   '  '-'  '|  |\  \ |  | |  ||  '--.
-`-----'   `--'   `--' '--' `-----'  `-----'   `--'    `-----' `--' '--'`--' `--'`-----'
+,------. ,------.,------.,------.,------. ,------.,--.  ,--. ,-----.,------. ,---.
+|  .--. '|  .---'|  .---'|  .---'|  .--. '|  .---'|  ,'.|  |'  .--./|  .---''   .-'
+|  '--'.'|  `--, |  `--, |  `--, |  '--'.'|  `--, |  |' '  ||  |    |  `--, `.  `-.
+|  |\  \ |  `---.|  |`   |  `---.|  |\  \ |  `---.|  | `   |'  '--'\|  `---..-'    |
+`--' '--'`------'`--'    `------'`--' '--'`------'`--'  `--' `-----'`------'`-----'
         """
 
-        coupling_graph = ExplicitCouplingGraph("structural")
+        coupling_graph = ExplicitCouplingGraph("references")
 
-        context = StructuralContext(self.repo)
+        context = ReferencesContext(self.repo)
         context.couple_files_by_import(coupling_graph)
         context.couple_by_inheritance(coupling_graph)
         context.couple_members_by_content(coupling_graph)
@@ -61,18 +61,18 @@ class MetricsGeneration:
 
         return coupling_graph
 
-    def post_structural(self, coupling_graph: ExplicitCouplingGraph):
+    def post_references(self, coupling_graph: ExplicitCouplingGraph):
         coupling_graph.propagate_down(2, 0.5)
         coupling_graph.dilate(1, 0.8)
         pass
 
     def calculate_linguistic_connections(self) -> SimilarityCouplingGraph:
         """
-,--.   ,--.,--.  ,--. ,----.   ,--. ,--.,--. ,---. ,--------.,--. ,-----.                                
-|  |   |  ||  ,'.|  |'  .-./   |  | |  ||  |'   .-''--.  .--'|  |'  .--./                                
-|  |   |  ||  |' '  ||  | .---.|  | |  ||  |`.  `-.   |  |   |  ||  |                                    
-|  '--.|  ||  | `   |'  '--'  |'  '-'  '|  |.-'    |  |  |   |  |'  '--'\                                
-`-----'`--'`--'  `--' `------'  `-----' `--'`-----'   `--'   `--' `-----'              
+,--.   ,--.,--.  ,--. ,----.   ,--. ,--.,--. ,---. ,--------.,--. ,-----.
+|  |   |  ||  ,'.|  |'  .-./   |  | |  ||  |'   .-''--.  .--'|  |'  .--./
+|  |   |  ||  |' '  ||  | .---.|  | |  ||  |`.  `-.   |  |   |  ||  |
+|  '--.|  ||  | `   |'  '--'  |'  '-'  '|  |.-'    |  |  |   |  |'  '--'\
+`-----'`--'`--'  `--' `------'  `-----' `--'`-----'   `--'   `--' `-----'
         """
 
         coupling_graph = SimilarityCouplingGraph("linguistic")

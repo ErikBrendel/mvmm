@@ -40,7 +40,7 @@ for repo in repos:
     all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
     print("|".join(all_nodes))
 
-    for view in ["evolutionary"]:  # ["structural", "evolutionary", "linguistic"]
+    for view in ["evolutionary"]:  # ["references", "evolutionary", "linguistic"]
         # MetricManager.clear(r, view)
 
         coupling_graph = MetricManager.get(r, view)
@@ -66,8 +66,8 @@ for repo in repos:
         return tree_node.get_type() == "method" and tree_node.get_line_span() >= 5
 
 
-    results = analyze_disagreements(r, ["structural", "evolutionary", "linguistic", "module_distance"], [
-        # [0, 1, 1, 1, "Non-struct?"],
+    results = analyze_disagreements(r, ["references", "evolutionary", "linguistic", "module_distance"], [
+        # [0, 1, 1, 1, "Non-ref?"],
         # [1, 1, 1, 0, "Too far apart"],
         # [0, 0, 1, 0, "Independent Feature duplication"],
         # [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
@@ -82,9 +82,9 @@ for repo in repos:
         [0, 1, 0, 0, 'Only "evolutionary": Modules are related to each other on an unknown and hidden level'],
         [0, 1, 0, 1, 'Your code is successfully modularized by "things that change together", but your language and structure do not reflect this modularity'],
         [0, 1, 1, 0, 'Parallel-Maintained feature duplication'],
-        [0, 1, 1, 1, 'Everything except structural: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the structural metric is bad?'],
-        [1, 0, 0, 0, 'Only "structural": Using "library code" somewhere else'],
-        [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and structurally coupled, but semantically disjoint'],
+        [0, 1, 1, 1, 'Everything except references: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the references metric is bad?'],
+        [1, 0, 0, 0, 'Only "references": Using "library code" somewhere else'],
+        [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and coupled by references, but semantically disjoint'],
         [1, 0, 1, 0, 'Using and/or extending a library'],
         [1, 0, 1, 1, 'Everything except evolutionary: One module developed in independent parts OR using a weird committing policy in the company OR one big chunk of code copied into the repo'],
         [1, 1, 0, 0, 'Separate modules developed together because they need each other.'],

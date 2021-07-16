@@ -39,7 +39,7 @@ repos = [
     # "adamfisk/LittleProxy",
     # "dynjs/dynjs",
 ]
-metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
+metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
 #repos.sort(key=lambda repo: len(LocalRepo(repo).get_all_interesting_files()))
 

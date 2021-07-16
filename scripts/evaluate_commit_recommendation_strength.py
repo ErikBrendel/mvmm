@@ -36,7 +36,7 @@ repos = [
     # "jfree/jfreechart:461625fd1f7242a1223f8e73716e9f2b4e9fd8a5",  # Dez 19, 2020
 ]
 
-metrics = ["structural", "evolutionary", "linguistic", "module_distance"]
+metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
 
 @processify

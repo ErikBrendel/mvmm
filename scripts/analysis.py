@@ -40,8 +40,8 @@ USE_NODE_UNION = False  # or intersection instead?
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType, node_filter_func=None, parallel=True, ignore_previous_results=False) -> Optional[List[BestResultsSet]]:
     """
-    when views are [struct, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
-    strongly coupled evolutionary, loosely coupled structurally, and the language does not matter
+    when views are [ref, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
+    strongly coupled evolutionary, loosely coupled by references, and the language does not matter
     """
     if len(views) < 1:
         return

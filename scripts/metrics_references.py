@@ -276,7 +276,7 @@ import_query = JA_LANGUAGE.query("(import_declaration (scoped_identifier) @decl)
 class_query = JA_LANGUAGE.query("[(class_declaration name: (identifier) @decl) (interface_declaration name: (identifier) @decl) (enum_declaration name: (identifier) @decl)]")
 
 
-class StructuralContext:
+class ReferencesContext:
 
     def __init__(self, repo: LocalRepo):
         self.repo = repo
@@ -483,7 +483,7 @@ def couple_member_by_content(
         member: RepoTree,
         couple_member_to: Callable[[str, float], None],
         get_text: Callable[[object], str],
-        context: StructuralContext,
+        context: ReferencesContext,
 ) -> None:
     """can be used on methods and fields"""
     # print("\n\n=======\nNow handling:\n", get_text(member.ts_node))

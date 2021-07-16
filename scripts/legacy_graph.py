@@ -612,7 +612,7 @@ if __name__ == "__main__":
     print(g1.name)
     g1.print_statistics()
 
-    g2 = LegacyExplicitCouplingGraph("structural")
+    g2 = LegacyExplicitCouplingGraph("references")
     g2.add_and_support("test1", "test2", 2)
     g2.add_and_support("test3", "test2", 1)
     print(g2.name)
