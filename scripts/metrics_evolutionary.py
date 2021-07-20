@@ -349,7 +349,7 @@ def evo_calc_new(repo: LocalRepo):
     """end result: for each commit, which methods have changed in it?"""
     result: Dict[str, List[str]] = {}
 
-    """first, for all the commits with children, find out which / how many they have"""
+    """first, for all the commits, find out which / how many children they have"""
     print("discovering commit children information")
     commit_children: Dict[str, List[str]] = {}
     for commit_sha in repo.get_all_commits():

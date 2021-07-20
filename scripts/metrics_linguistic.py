@@ -45,10 +45,10 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
         # https://agailloty.rbind.io/en/project/nlp_clean-text/
         content_string = ''.join(c for c in content_string if c in printable_characters)
         words = regex.split(splitter, content_string, flags=regex.VERSION1)  # regex V1 allows splitting on empty matches
-        words = [word for word in words if not word in stop_words]
+        words = [word for word in words if word not in stop_words]
         words = [_normalize_word(word) for word in words]
-        words = [word for word in words if len(word) >= MIN_WORD_LENGTH and len(word) <= MAX_WORD_LENGTH]
-        words = [word for word in words if not word in stop_words]
+        words = [word for word in words if MIN_WORD_LENGTH <= len(word) <= MAX_WORD_LENGTH]
+        words = [word for word in words if word not in stop_words]
         return words
 
     # see https://docs.python.org/2/library/collections.html#collections.Counter
