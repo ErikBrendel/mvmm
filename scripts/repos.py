@@ -46,13 +46,17 @@ repos_small = [
 ]
 
 repos_multiview = [
-    "apache/ant",
+    # "apache/ant",  # evo view hangs and crashes
     "apache/hadoop",
     "hunterhacker/jdom",
-    "eclipse/eclipse.jdt.core",
+    "eclipse/aspectj.eclipse.jdt.core",
     "vanzin/jEdit",  # private mirror
     "jfree/jfreechart",
     "wumpz/jhotdraw",  # private mirror
+    "wrandelshofer/jhotdraw/JHotDraw",
+    "wrandelshofer/jhotdraw/jhotdraw6",
+    "wrandelshofer/jhotdraw/jhotdraw7",
+    "wrandelshofer/jhotdraw/jhotdraw8",
     "junit-team/junit4",
     # "junit-team/junit5",
     "apache/log4j",

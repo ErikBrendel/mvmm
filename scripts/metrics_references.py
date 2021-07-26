@@ -43,6 +43,7 @@ class Env(ABC):
         self.path = path
 
     def get_env_for_name(self, compound_name) -> Optional['Env']:
+        compound_name = "".join([part.strip() for part in regex.split(r"((?<=\W)\s+(?=\w)|(?<=\w)\s+(?=\W)|(?<=\W)\s+(?=\W))", compound_name)])  # remove any whitespace within the name and around structure characters
         if compound_name in ignored_types:
             return None
         if compound_name.endswith("]") and "[" in compound_name:
@@ -53,7 +54,7 @@ class Env(ABC):
         elif compound_name.endswith(">") and "<" in compound_name:
             [base, parameter] = compound_name[:-1].split("<", 1)
             parameter_types = regex.split(r",(?![^<]*>)", parameter)  # TODO this regex is not quite right: We want to match all commas that are not nested within <> brackets
-            return GenericEnv(self.context, base, [pt.strip() for pt in parameter_types], self)
+            return GenericEnv(self.context, base.strip(), [pt.strip() for pt in parameter_types], self)
         elif "." in compound_name:
             [first_step, rest] = compound_name.split(".", 1)
             step_result = self.get_env_for_single_name(first_step)

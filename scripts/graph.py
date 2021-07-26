@@ -66,7 +66,12 @@ class GraphManager:
         return self.execute_strings(["getNodeSet", str(node_set_id)])
 
     def _read_line(self):
-        return self.process.stdout.readline().decode("utf-8").rstrip()
+        line = self.process.stdout.readline().decode("utf-8").rstrip()
+        if len(line) == 0:
+            self.process.poll()
+            if self.process.returncode is not None:
+                raise Exception("Coupling Graph Subprocess terminated with " + str(self.process.returncode) + "!")
+        return line
 
     def _show_progress(self, progress, total, description):
         if description != self.progress_name and self.current_progress_bar is not None:
@@ -81,6 +86,9 @@ class GraphManager:
         if progress == total:
             self.current_progress_bar.close()
             self.current_progress_bar = None
+
+    def flush(self):
+        self.execute_string(["echo", "foo"])
 
 
 graph_manager = GraphManager()

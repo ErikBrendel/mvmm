@@ -21,7 +21,7 @@ print(cwd)
 repos = [
     # "ErikBrendel/LudumDare",
     # "ErikBrendel/LD35",
-    # "eclipse/eclipse.jdt.core",
+    # "eclipse/aspectj.eclipse.jdt.core",
     # "jenkinsci/jenkins",
     # "jOOQ/jOOQ",
     # "wumpz/jhotdraw",

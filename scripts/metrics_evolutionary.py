@@ -335,7 +335,9 @@ def find_renamings(parent_diffs: List[List[Diff]]) -> List[Tuple[str, str]]:
 
 def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, List[str]]) -> FutureMapping:
     commit = repo.get_commit(commit_sha)
-    parent_diffs = [commit.diff(p) for p in commit.parents]
+    parent_diffs = [p.diff(commit) for p in commit.parents]
+    if len(commit.parents) == 0:
+        parent_diffs = [commit.diff()]  # just diff it to the empty repo to get the diff content
 
     changed_methods = find_changed_methods(repo, parent_diffs)
     modern_changed_methods = [future_mapping.get_modern_name_for(m) for m in changed_methods]
