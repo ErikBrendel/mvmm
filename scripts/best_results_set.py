@@ -103,8 +103,8 @@ class BestResultsSet:
             return pickle.load(f)
 
     @staticmethod
-    def get_name(repo_name: str, views: List[str], target_pattern: PatternType) -> str:
-        return "../analysis_results/" + repo_name + "/" + "_".join(view + str(val) for view, val in zip(views, target_pattern)) + ".pickle"
+    def get_name(repo_name: str, views: List[str], node_filter_mode: str, target_pattern: PatternType) -> str:
+        return "../analysis_results/" + repo_name + "/" + node_filter_mode + "_" + "_".join(view + str(val) for view, val in zip(views, target_pattern)) + ".pickle"
 
     @staticmethod
     def _get_dir_name(name: str) -> str:

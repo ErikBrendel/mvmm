@@ -86,7 +86,7 @@ class LocalRepo:
             file_url = self.name
         else:
             file_url = REPO_URL_START + self.repo_name + "/blob/master/" + file_path
-        if ADD_LINE_NUMBER_TO_LINK and not self.is_identified_by_path():
+        if ADD_LINE_NUMBER_TO_LINK and not self.is_identified_by_path() and ending in file_path:
             file = self.get_file(file_path)
             if file is None:
                 print("Cannot find file anymore:", file_path)
@@ -347,7 +347,7 @@ class RepoTree:
         return self.find_node(path) is not None
 
     def find_node(self, path) -> Optional['RepoTree']:
-        if (len(path) == 0):
+        if len(path) == 0:
             return self
         else:
             return self.find_node_list(path.split("/"))

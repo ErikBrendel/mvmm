@@ -16,10 +16,10 @@ repos = [
     # "wumpz/jhotdraw",
     # "ErikBrendel/LudumDare",
     # "ErikBrendel/LD35",
-    # "eclipse/eclipse.jdt.core",  # from duerschmidt
-    # "jenkinsci/jenkins",
+    "jenkinsci/jenkins",
+    "eclipse/aspectj.eclipse.jdt.core",  # from duerschmidt
     # "neuland/jade4j",
-    "jfree/jfreechart",
+    # "jfree/jfreechart",
     # "brettwooldridge/HikariCP",
     # "adamfisk/LittleProxy",
     # "dynjs/dynjs",
@@ -35,12 +35,9 @@ for repo in repos:
     r = LocalRepo(repo)
     print(pyfiglet.figlet_format(r.name))
     r.update()
-    def node_filter(tree_node):
-        return tree_node is not None and tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
-    all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
-    print("|".join(all_nodes))
+    # print("|".join(sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if get_node_filter_func(r, "classes")(tree_node.get_path())])))
 
-    for view in ["evolutionary"]:  # ["references", "evolutionary", "linguistic"]
+    for view in []:  # ["references", "evolutionary", "linguistic"]
         # MetricManager.clear(r, view)
 
         coupling_graph = MetricManager.get(r, view)
@@ -55,43 +52,35 @@ for repo in repos:
         # coupling_graph.visualize(use_spring=False, with_labels=False)
         # coupling_graph.visualize(use_spring=True, with_labels=False)
         print("\n")
-    # continue
 
     # analysis
-    repo_tree = r.get_tree()
+    for node_filter_mode in ALL_NODE_FILTER_MODES:
+        results = analyze_disagreements(r, ["references", "evolutionary", "linguistic", "module_distance"], [
+            # [0, 1, 1, 1, "Non-ref?"],
+            # [1, 1, 1, 0, "Too far apart"],
+            # [0, 0, 1, 0, "Independent Feature duplication"],
+            # [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
+            [1, None, 0, 1, "Weakly modularized code"],
+            # [0, 0, 0, 1, "Close but totally unrelated"],
 
-
-    def node_filter(node_path):
-        tree_node = repo_tree.find_node(node_path)
-        return tree_node.get_type() == "method" and tree_node.get_line_span() >= 5
-
-
-    results = analyze_disagreements(r, ["references", "evolutionary", "linguistic", "module_distance"], [
-        # [0, 1, 1, 1, "Non-ref?"],
-        # [1, 1, 1, 0, "Too far apart"],
-        # [0, 0, 1, 0, "Independent Feature duplication"],
-        # [0, 1, 1, 0, "Parallel-Maintained Feature duplication"],
-        # [1, None, 0, 1, "Weakly modularized code"],
-        # [0, 0, 0, 1, "Close but totally unrelated"],
-
-        # full 16 for testing:
-        [0, 0, 0, 0, 'Not coupled at all'],
-        [0, 0, 0, 1, 'Only "project structure": Close but completely unrelated to each other'],
-        [0, 0, 1, 0, 'Only "linguistic": Independent feature duplication'],
-        [0, 0, 1, 1, 'Close independent feature duplication?'],
-        [0, 1, 0, 0, 'Only "evolutionary": Modules are related to each other on an unknown and hidden level'],
-        [0, 1, 0, 1, 'Your code is successfully modularized by "things that change together", but your language and structure do not reflect this modularity'],
-        [0, 1, 1, 0, 'Parallel-Maintained feature duplication'],
-        [0, 1, 1, 1, 'Everything except references: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the references metric is bad?'],
-        [1, 0, 0, 0, 'Only "references": Using "library code" somewhere else'],
-        [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and coupled by references, but semantically disjoint'],
-        [1, 0, 1, 0, 'Using and/or extending a library'],
-        [1, 0, 1, 1, 'Everything except evolutionary: One module developed in independent parts OR using a weird committing policy in the company OR one big chunk of code copied into the repo'],
-        [1, 1, 0, 0, 'Separate modules developed together because they need each other.'],
-        [1, 1, 0, 1, 'Weakly modularized code: dependent on each other, but semantically disjoint'],
-        [1, 1, 1, 0, 'Too far apart: These modules seem to belong closer together than they currently are in the project structure'],
-        [1, 1, 1, 1, 'Evenly coupled across all metrics'],
-    ], node_filter, parallel=False, ignore_previous_results=False)
-    print([len(r.data) for r in results])
+            # full 16 for testing:
+            [0, 0, 0, 0, 'Not coupled at all'],
+            [0, 0, 0, 1, 'Only "project structure": Close but completely unrelated to each other'],
+            [0, 0, 1, 0, 'Only "linguistic": Independent feature duplication'],
+            [0, 0, 1, 1, 'Close independent feature duplication?'],
+            [0, 1, 0, 0, 'Only "evolutionary": Modules are related to each other on an unknown and hidden level'],
+            [0, 1, 0, 1, 'Your code is successfully modularized by "things that change together", but your language and structure do not reflect this modularity'],
+            [0, 1, 1, 0, 'Parallel-Maintained feature duplication'],
+            [0, 1, 1, 1, 'Everything except references: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the references metric is bad?'],
+            [1, 0, 0, 0, 'Only "references": Using "library code" somewhere else'],
+            [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and coupled by references, but semantically disjoint'],
+            [1, 0, 1, 0, 'Using and/or extending a library'],
+            [1, 0, 1, 1, 'Everything except evolutionary: One module developed in independent parts OR using a weird committing policy in the company OR one big chunk of code copied into the repo'],
+            [1, 1, 0, 0, 'Separate modules developed together because they need each other.'],
+            [1, 1, 0, 1, 'Weakly modularized code: dependent on each other, but semantically disjoint'],
+            [1, 1, 1, 0, 'Too far apart: These modules seem to belong closer together than they currently are in the project structure'],
+            [1, 1, 1, 1, 'Evenly coupled across all metrics'],
+        ], node_filter_mode, parallel=False, ignore_previous_results=False)
+        print([len(r.data) for r in results])
 
 print("\nProgram is over!")

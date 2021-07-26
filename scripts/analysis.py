@@ -11,6 +11,37 @@ from local_repo import *
 from metrics import *
 
 
+def get_node_filter_func(repo: LocalRepo, mode: NodeFilterMode):
+    repo_tree = repo.get_tree()
+    file_extension = "." + repo.type_extension()
+
+    def node_filter_methods(node_path):
+        tree_node = repo_tree.find_node(node_path)
+        return tree_node.get_type() in ["method", "constructor"] and tree_node.get_line_span() >= 4
+
+    def node_filter_classes(node_path):
+        tree_node = repo_tree.find_node(node_path)
+        return tree_node.get_type() in ["class", "interface", "enum"] and tree_node.get_line_span() >= 2
+
+    def node_filter_files(node_path):
+        tree_node = repo_tree.find_node(node_path)
+        return tree_node.get_type() is None and tree_node.name.endswith(file_extension)
+
+    def node_filter_packages(node_path):
+        tree_node = repo_tree.find_node(node_path)
+        return \
+            tree_node.get_type() is None and \
+            not tree_node.name.endswith(file_extension) and \
+            any(child.name.endswith(file_extension) for child in tree_node.children.values())
+
+    return {
+        "methods": node_filter_methods,
+        "classes": node_filter_classes,
+        "files": node_filter_files,
+        "packages": node_filter_packages
+    }[mode]
+
+
 MIN_SUPPORT = 0  # how much relative support a result needs to not be discarded
 
 
@@ -38,7 +69,8 @@ SHOW_RESULTS_SIZE = 50
 USE_NODE_UNION = False  # or intersection instead?
 
 
-def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType, node_filter_func=None, parallel=True, ignore_previous_results=False) -> Optional[List[BestResultsSet]]:
+def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType,
+                          node_filter_mode: NodeFilterMode, parallel=True, ignore_previous_results=False) -> Optional[List[BestResultsSet]]:
     """
     when views are [ref, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled by references, and the language does not matter
@@ -52,7 +84,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     result_sets: List[Optional[BestResultsSet]] = [None for p in target_patterns]
     if not ignore_previous_results:
         for i, pattern in enumerate(target_patterns):
-            result = BestResultsSet.load(BestResultsSet.get_name(repo.name, views, pattern))
+            result = BestResultsSet.load(BestResultsSet.get_name(repo.name, views, node_filter_mode, pattern))
             if result is not None:
                 result_sets[i] = result
 
@@ -60,32 +92,9 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
         return result_sets
 
     analysis_graphs = list([MetricManager.get(repo, g) for g in views])
-    analysis_graph_nodes = [g.get_node_set() for g in analysis_graphs]
-    intersection_nodes = list(set.intersection(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
-    intersection_nodes = [n for n in intersection_nodes if repo.get_tree().has_node(n)]
 
-    union_nodes = list(set.union(*[nodes for nodes in analysis_graph_nodes if nodes is not None]))
-    union_nodes = set([n for n in union_nodes if repo.get_tree().has_node(n)])
-    # TODO use get_graph_node_set_combination instead
-    print("Intersection Nodes: " + str(len(intersection_nodes)) + ", Union Nodes: " + str(len(union_nodes)))
-    for view, graph in zip(views, analysis_graphs):
-        graph_nodes = graph.get_node_set()
-        if graph_nodes is None:
-            continue
-        graph_nodes = set([n for n in graph_nodes if repo.get_tree().has_node(n)])
-        in_view_not_intersection = list(graph_nodes.difference(set(intersection_nodes)))
-        in_union_not_view = list(union_nodes.difference(graph_nodes))
-        print("  View '" + view + "': " + str(len(graph_nodes)) + " Nodes in total")
-        if len(in_view_not_intersection) > 0:
-            print("    In view but not intersection: " + str(len(in_view_not_intersection)))
-            for path in in_view_not_intersection[:5]:
-                print("      " + repo.url_for(path) + " " + path.split("/")[-1])
-        if len(in_union_not_view) > 0:
-            print("    In union but not view: " + str(len(in_union_not_view)))
-            for path in in_union_not_view[:5]:
-                print("      " + repo.url_for(path) + " " + path.split("/")[-1])
+    all_nodes = [tree_node.get_path() for tree_node in repo.get_tree().traverse_gen() if get_node_filter_func(repo, node_filter_mode)(tree_node.get_path())]
 
-    all_nodes = union_nodes if USE_NODE_UNION else intersection_nodes
     print("Total node count:", len(all_nodes))
     print("Methods:", sum(repo.get_tree().find_node(path).get_type() == "method" for path in all_nodes))
     print("constructors:", sum(repo.get_tree().find_node(path).get_type() == "constructor" for path in all_nodes))
@@ -94,6 +103,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     print("interfaces:", sum(repo.get_tree().find_node(path).get_type() == "interface" for path in all_nodes))
     print("enums:", sum(repo.get_tree().find_node(path).get_type() == "enum" for path in all_nodes))
     print("without type:", sum(repo.get_tree().find_node(path).get_type() is None for path in all_nodes))
+    node_filter_func = get_node_filter_func(repo, node_filter_mode)
     if node_filter_func is not None:
         all_nodes = [node for node in all_nodes if node_filter_func(node)]
     print("all filtered nodes:", len(all_nodes))
@@ -111,7 +121,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
 
     fill_none_with_other(result_sets, calculated_results)
     for r, p in zip(result_sets, target_patterns):
-        r.export(BestResultsSet.get_name(repo.name, views, p))
+        r.export(BestResultsSet.get_name(repo.name, views, node_filter_mode, p))
     return result_sets
 
 
@@ -265,10 +275,14 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
     for i, (pattern, results) in enumerate(zip(target_patterns, pattern_results)):
         print("\nPattern " + str(i) + " (" + str(pattern) + "):")
 
-        def nice_path(path):
+        def nice_path(path: str):
             ending = "." + repo.type_extension()
             if ending in path:
-                return path[path.index(ending) + len(ending) + 1:]
+                rest = path[path.index(ending) + len(ending) + 1:]
+                if len(rest) > 0:
+                    return rest
+                else:
+                    return path.split("/")[-1]
             return path
 
         def get_raw_i(i):

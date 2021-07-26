@@ -206,7 +206,7 @@ def debounce(s):
 
 
 
-def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="1350px"):
+def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="350px"):
     """names and getters: [('dim1', getter), ('dim2', getter)], names must be unique"""
     import ipywidgets as widgets
     from IPython.display import display

@@ -47,6 +47,8 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
 
     def walk_tree(tree, content_bytes, base_path) -> Optional[RepoTree]:
         """ node_handler gets the current logic-path and node for each ast node"""
+        if should_skip_file(content_bytes):
+            return None
         try:
             found_nodes = RepoTree(None, "")
 
@@ -57,7 +59,6 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
             return found_nodes
         except Exception as e:
             print("Failed to parse file:", base_path, "Error:", e)
-            pdb.set_trace()
             return None
 
     error_query = JA_LANGUAGE.query("(ERROR) @err")
@@ -194,6 +195,8 @@ def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Lis
 
     def walk_tree(tree, content_bytes, base_path) -> Optional[RepoTree]:
         """ node_handler gets the current logic-path and node for each ast node"""
+        if should_skip_file(content_bytes):
+            return None
         try:
             found_nodes = RepoTree(None, "")
 
@@ -204,7 +207,6 @@ def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Lis
             return found_nodes
         except Exception as e:
             print("Failed to parse file:", base_path, "Error:", e)
-            pdb.set_trace()
             return None
 
     error_query = JA_LANGUAGE.query("(ERROR) @err")

@@ -7,6 +7,7 @@ from util import log_progress
 
 CPP_GRAPH_CLI_PATH = os.getenv("COUPLING_GRAPH_EXECUTABLE", "/home/ebrendel/util/mvmm-graphs/coupling_graphs")
 METRICS_SAVE_PATH = "../metrics/"
+LOG_COMMANDS = False
 
 
 class GraphManager:
@@ -25,6 +26,8 @@ class GraphManager:
             if "\n" in part:
                 raise Exception("Found line break in command! '" + part.replace("\n", "\\n") + "'")
         cmd = "|".join(commands) + "\n"
+        if LOG_COMMANDS:
+            print("[CG] " + cmd[:-1])
         self.process.stdin.write(cmd.encode("utf-8"))
         self.process.stdin.flush()
 
