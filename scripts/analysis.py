@@ -317,7 +317,7 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
                     else:
                         duplication_skip += 1
 
-                # print(results.total_amount, "raw results,", len(multi_sorted_results), "final results, skipped", duplication_skip, "duplicates")
+                print(results.total_amount, "raw results,", len(multi_sorted_results), "final results, skipped", duplication_skip, "duplicates")
 
                 # for d in display_data:
                 #    print(d)

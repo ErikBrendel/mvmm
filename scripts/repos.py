@@ -6,7 +6,7 @@
 # repos_db = ["/".join(url[0].split("/")[-2:]) for url in result]
 
 repos_big = [
-    "eclipse/che",
+    # "eclipse/che",  # no java!
     "apache/flink",
     "apache/camel",
     "elastic/elasticsearch",
@@ -29,7 +29,7 @@ repos_big = [
 ]
 
 repos_medium = [
-    "eclipse/che",
+    # "eclipse/che",
     "apache/flink",
     "apache/camel",
     "elastic/elasticsearch",
@@ -41,17 +41,17 @@ repos_medium = [
 
 repos_small = [
     "jenkinsci/jenkins",
-    "eclipse/che",
+    # "eclipse/che",
     "elastic/elasticsearch",
 ]
 
 repos_multiview = [
+    "jfree/jfreechart",
     # "apache/ant",  # evo view hangs and crashes
-    "apache/hadoop",
+    # "apache/hadoop",  # too big?
     "hunterhacker/jdom",
     "eclipse/aspectj.eclipse.jdt.core",
     "vanzin/jEdit",  # private mirror
-    "jfree/jfreechart",
     "wumpz/jhotdraw",  # private mirror
     "wrandelshofer/jhotdraw/JHotDraw",
     "wrandelshofer/jhotdraw/jhotdraw6",
@@ -63,5 +63,65 @@ repos_multiview = [
     "Waikato/weka-3.8",
 ]
 
+repos_manual = [
+    # "wrandelshofer/jhotdraw/JHotDraw",
+    # "wrandelshofer/jhotdraw/jhotdraw6",
+    # "wrandelshofer/jhotdraw/jhotdraw7",
+    # "wrandelshofer/jhotdraw/jhotdraw8",
+    # "wumpz/jhotdraw",
+    "ErikBrendel/LudumDare",
+    "ErikBrendel/LD35",
+    # "jenkinsci/jenkins",
+    # "eclipse/aspectj.eclipse.jdt.core",  # from duerschmidt
+    # "neuland/jade4j",
+    "jfree/jfreechart",
+    # "brettwooldridge/HikariCP",
+    # "adamfisk/LittleProxy",
+    # "dynjs/dynjs",
+    # "SonarSource/sonarqube",
+    # "eclipse/che",
+    # "elastic/elasticsearch",
+    # "apache/camel",
+    # "jOOQ/jOOQ",
+    # "netty/netty",
+    # "ErikBrendel/ProgressiveImageEditor",
+]
+
+#repos_all = list(set(repos_multiview + repos_small + repos_medium + repos_big + repos_manual))
+repos_all = [
+    'chrisbanes/PhotoView',
+    'ErikBrendel/LD35',
+    'ErikBrendel/LudumDare',
+    'owntracks/android',
+    'owncloud/android',
+    'square/retrofit',
+    'apache/log4j',
+    'hunterhacker/jdom',
+    'PhilJay/MPAndroidChart',
+    'junit-team/junit4',
+    'wrandelshofer/jhotdraw/JHotDraw',
+    'wrandelshofer/jhotdraw/jhotdraw6',
+    'nextcloud/android',
+    'wumpz/jhotdraw',
+    'kdn251/interviews',
+    'wrandelshofer/jhotdraw/jhotdraw7',
+    'skylot/jadx',
+    'vanzin/jEdit',
+    'jfree/jfreechart',
+    'ReactiveX/RxJava',
+    'wrandelshofer/jhotdraw/jhotdraw8',
+    'jenkinsci/jenkins',
+    'netty/netty',
+    'google/guava',
+    'libgdx/libgdx',
+    'eclipse/aspectj.eclipse.jdt.core',
+    'Waikato/weka-3.8',
+    'spring-projects/spring-boot',
+    'spring-projects/spring-framework',
+    'apache/flink',
+    'apache/camel',
+    'elastic/elasticsearch'
+]
+
 # select which one to use here
-repos = repos_multiview
+repos = repos_all
