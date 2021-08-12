@@ -10,26 +10,53 @@ from cachier import cachier
 
 # "cloc --git master --include-ext=java --json"
 
-@cachier()
-def get_cloc_data(repo: str):
-    r = LocalRepo(repo)
-
+def mapper(file, repo_path):
+    if len(file[1]) == 0:
+        return 0, 0
     process_options = ["cloc",
-                       '--git', r.get_head_commit().hexsha,
-                       '--include-ext=' + r.type_extension(),
+                       '--stdin-name=' + file[0],
                        '--json',
+                       '-'
                        ]
-    process = subprocess.Popen(process_options, stdout=subprocess.PIPE, cwd=r.path())
+    process = subprocess.Popen(process_options, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=repo_path)
+    process.stdin.write(file[1].encode("utf-8"))
+    process.stdin.close()
     out_lines = process.stdout.readlines()
     out = "".join([decode(o) for o in out_lines])
-    return json.loads(out)["Java"]
+    try:
+        json_loaded = json.loads(out)["Java"]
+        return json_loaded["comment"], json_loaded["code"]
+    except Exception as e:
+        print(e, out)
+        raise e
 
+@cachier()
+def get_cloc_data_parallel(repo: str):
+    r = LocalRepo(repo)
+    files = [(f.get_name(), f.get_content_without_copyright()) for f in r.get_all_interesting_files()]
+    comment = 0
+    code = 0
 
-print("repo,nFiles,interesting_files,code,comment")
+    def result_handler(res):
+        nonlocal comment, code
+        comment += res[0]
+        code += res[1]
+
+    map_parallel(files, partial(mapper, repo_path=r.path()), result_handler, "cloc-ing")
+    return {
+        "nFiles": len(files),
+        "comment": comment,
+        "code": code,
+    }
+def fmt(num):
+    #return str(num)
+    #return "{:.1f}".format(num / 1000.0)
+    return "{:,}".format(num)
+
 for repo in repos:
     try:
-        data = get_cloc_data(repo)
-        print("    " + repo + " & $" + str(data["nFiles"]) + "$ & $" + str(data["code"]) + "$ & $" + str(data["comment"]) + "$ \\\\")
+        data = get_cloc_data_parallel(repo)
+        print("    " + repo + " & $" + fmt(data["nFiles"]) + "$ & $" + fmt(data["code"]) + "$ & $" + fmt(data["comment"]) + "$ \\\\")
     except Exception as e:
         print("Error in " + repo, e)
 

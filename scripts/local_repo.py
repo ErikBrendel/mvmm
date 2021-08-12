@@ -207,6 +207,12 @@ class RepoFile:
     def get_path(self) -> str:
         return self.file_obj.path
 
+    def get_name(self) -> str:
+        path_parts = self.get_path().split("/")
+        if len(path_parts) == 0:
+            return "unknown." + self.repo.type_extension()
+        return path_parts[-1]
+
     def get_content(self):
         if self.content is None:
             self.content = self.repo.get_file_object_content(self.file_obj)
@@ -214,11 +220,12 @@ class RepoFile:
 
     def get_content_without_copyright(self):
         tree = self.get_tree()
-        first_root_child = tree.root_node.children[0]
-        if first_root_child.type == "comment":
-            return decode(self.get_content()[first_root_child.end_byte:])
-        else:
-            return decode(self.get_content())
+        root_children = tree.root_node.children
+        if len(root_children) > 0:
+            first_root_child = root_children[0]
+            if first_root_child.type == "comment":
+                return decode(self.get_content()[first_root_child.end_byte:])
+        return decode(self.get_content())
 
     def get_repo_tree_node(self):
         return self.repo.get_tree().find_node(self.get_path())
