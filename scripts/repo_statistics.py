@@ -6,11 +6,12 @@ from local_repo import *
 from repos import *
 from metrics import *
 from analysis import *
+from cachier import cachier
 
 # "cloc --git master --include-ext=java --json"
 
-print("repo,nFiles,interesting_files,code,comment")
-for repo in repos:
+@cachier()
+def get_cloc_data(repo: str):
     r = LocalRepo(repo)
 
     process_options = ["cloc",
@@ -21,10 +22,15 @@ for repo in repos:
     process = subprocess.Popen(process_options, stdout=subprocess.PIPE, cwd=r.path())
     out_lines = process.stdout.readlines()
     out = "".join([decode(o) for o in out_lines])
+    return json.loads(out)["Java"]
+
+
+print("repo,nFiles,interesting_files,code,comment")
+for repo in repos:
     try:
-        data = json.loads(out)["Java"]
-        print(repo + "," + str(data["nFiles"]) + "," + str(data["code"]) + "," + str(data["comment"]))
-    except:
-        print("Error in " + repo + ": " + out)
+        data = get_cloc_data(repo)
+        print("    " + repo + " & $" + str(data["nFiles"]) + "$ & $" + str(data["code"]) + "$ & $" + str(data["comment"]) + "$ \\\\")
+    except Exception as e:
+        print("Error in " + repo, e)
 
 print("Done")

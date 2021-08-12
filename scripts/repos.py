@@ -102,7 +102,7 @@ repos_all = [
     'wrandelshofer/jhotdraw/JHotDraw',
     'wrandelshofer/jhotdraw/jhotdraw6',
     'nextcloud/android',
-    'wumpz/jhotdraw',
+    # 'wumpz/jhotdraw',  # ignored - duplicate
     'kdn251/interviews',
     'wrandelshofer/jhotdraw/jhotdraw7',
     'skylot/jadx',
