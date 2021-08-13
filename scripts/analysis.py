@@ -283,7 +283,9 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
                     return rest
                 else:
                     return path.split("/")[-1]
-            return path
+            if path.startswith("src/main/java/"):
+                path = path[len("src/main/java/"):]
+            return path.replace("/", ".")
 
         def get_raw_i(i):
             def getter(d):

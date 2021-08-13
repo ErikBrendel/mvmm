@@ -206,7 +206,7 @@ def debounce(s):
 
 
 
-def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="350px"):
+def interactive_multi_sort(data, dimension_names_and_getters, callback_func, output_height="350px", square_errors=True):
     """names and getters: [('dim1', getter), ('dim2', getter)], names must be unique"""
     import ipywidgets as widgets
     from IPython.display import display
@@ -252,7 +252,10 @@ def interactive_multi_sort(data, dimension_names_and_getters, callback_func, out
         # assumes normalized (summing to 1) values in "slider_values"
         total = 0
         for name, getter_func, *_ in dimension_names_and_getters:
-            total += slider_values[name] * getter_func(datum)
+            error = getter_func(datum)
+            if square_errors:
+                error *= error
+            total += slider_values[name] * error
         return total
 
     # Todo: https://ipywidgets.readthedocs.io/en/latest/examples/Using%20Interact.html?highlight=event#Arguments-that-are-dependent-on-each-other
