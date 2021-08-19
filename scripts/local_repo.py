@@ -14,6 +14,24 @@ REPO_CLONE_PATH = "../repos/"
 ADD_LINE_NUMBER_TO_LINK = True
 
 
+def nice_path(repo: 'LocalRepo', path: str):
+    ending = "." + repo.type_extension()
+    if ending in path:
+        rest = path[path.index(ending) + len(ending) + 1:]
+        if len(rest) > 0:
+            return rest
+        else:
+            return path.split("/")[-1]
+    if path.startswith("src/main/java/"):
+        path = path[len("src/main/java/"):]
+    return path.replace("/", ".")
+
+
+def path_html(repo: 'LocalRepo', path: str) -> str:
+    # language=HTML
+    return f"""<a target="_blank" href="{repo.url_for(path)}" title="{path}">{nice_path(repo, path)}</a>"""
+
+
 # https://gitpython.readthedocs.io/en/stable/reference.html
 class LocalRepo:
     def __init__(self, name: str):
@@ -426,6 +444,9 @@ class RepoTree:
 
     def get_comment_and_own_text(self, file: RepoFile) -> str:
         return (self.get_preceding_comment_text(file) or "") + "\n" + self.get_text(file)
+
+    def get_comment_and_own_text_formatted(self, file: RepoFile) -> str:
+        return unindent_code_snippet(self.get_preceding_comment_text(file) or "") + "\n" + unindent_code_snippet(self.get_text(file))
 
     def get_line_span(self) -> int:
         if self.ts_node is None:

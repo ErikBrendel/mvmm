@@ -295,18 +295,6 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
     for i, (pattern, results) in enumerate(zip(target_patterns, pattern_results)):
         print("\nPattern " + str(i) + " (" + str(pattern) + "):")
 
-        def nice_path(path: str):
-            ending = "." + repo.type_extension()
-            if ending in path:
-                rest = path[path.index(ending) + len(ending) + 1:]
-                if len(rest) > 0:
-                    return rest
-                else:
-                    return path.split("/")[-1]
-            if path.startswith("src/main/java/"):
-                path = path[len("src/main/java/"):]
-            return path.replace("/", ".")
-
         def get_raw_i(i):
             def getter(d):
                 return d[1][2][i]
@@ -345,7 +333,7 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
                 #    print(d)
                 display_data = [
                     ["{:1.4f}".format(raw_getter(datum)) for name, getter, raw_getter in dim] +
-                    ['<a target="_blank" href="' + repo.url_for(path) + '" title="' + path + '">' + nice_path(path) + '</a>' for path in datum[1][0:2]]
+                    [path_html(repo, path) for path in datum[1][0:2]]
                     for datum in non_duplicated_data]
                 header = [name for name, *_ in dim] + ["method 1", "method 2"]
                 show_html_table([header] + display_data, len(dim) + 2)

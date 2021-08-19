@@ -29,7 +29,7 @@ def make_method_data(r: LocalRepo, method_path: str) -> METHOD_TYPE:
     method_node = r.get_tree().find_node(method_path)
     file_path = method_node.get_containing_file_node().get_path()
     file = next(f for f in r.get_all_files() if f.get_path() == file_path)
-    content = method_node.get_comment_and_own_text(file)
+    content = method_node.get_comment_and_own_text_formatted(file).strip()
     return method_path, content
 
 

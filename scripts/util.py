@@ -85,6 +85,20 @@ def common_prefix_length(a, b):
     return min(len(a), len(b))
 
 
+def unindent_code_snippet(code: str) -> str:
+    """given multiple lines of code, where all but the first are indented, remove that indent uniformly so that the code is moved to the left"""
+    if "\n" not in code:
+        return code
+    content = code.split("\n")
+    overall_indent = 0
+    # increase indent while all lines (except unindented first) actually have indent at that place or are empty
+    while all(len(line) <= overall_indent or line[overall_indent].isspace() for line in content[1:]):
+        overall_indent += 1
+    content = [content[0]] + [line[overall_indent:] for line in content[1:]]
+    return "\n".join(content)
+
+
+
 class DirectoryExclusionTracker:
     def __init__(self, exclusion_keywords):
         self.exclusion_keywords = exclusion_keywords

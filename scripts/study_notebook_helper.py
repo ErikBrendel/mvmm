@@ -1,3 +1,13 @@
+from local_repo import *
+
+OWN_STYLE = """
+<style type="text/css">
+a {
+    color: blue;
+}
+</style>
+"""
+
 # Extracted from here: https://github.com/PrismJS/prism-themes
 # https://raw.githubusercontent.com/PrismJS/prism-themes/master/themes/prism-darcula.css
 # cannot be used as css link directly, due to "X-Content-Type-Options: nosniff"
