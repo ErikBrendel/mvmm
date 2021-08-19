@@ -9,31 +9,34 @@ from custom_types import *
 from util import *
 
 
+BRS_DATA_TYPE = Tuple[Sequence[float], any]  # pair of ([coordinates per dimension], user-data)
+
+
 class BestResultsSet:
     def __init__(self, dimension_count, result_keep_size):
         self.dimension_count = dimension_count
         self.result_keep_size = result_keep_size
-        self.data = []  # pair of ([coordinates per dimension], user-data)
+        self.data: List[BRS_DATA_TYPE] = []
         self.total_amount = 0
 
-    def add(self, new_data):
+    def add(self, new_data: BRS_DATA_TYPE):
         self.data.append(new_data)
         self.total_amount += 1
 
-    def add_all(self, new_data):
+    def add_all(self, new_data: List[BRS_DATA_TYPE]):
         self.data += new_data
         self.total_amount += len(new_data)
 
-    def get_best(self, dim_weights):
-        def sort_key(datum):
+    def get_best(self, dim_weights: List[float]):
+        def sort_key(datum: BRS_DATA_TYPE):
             return sum(datum[0][d] * weight for d, weight in enumerate(dim_weights))
 
         self.data.sort(key=sort_key)
         return self.data[:self.result_keep_size]
 
-    def get_best_unsorted(self, dim_weights, size_factor=1):
+    def get_best_unsorted(self, dim_weights: List[float], size_factor=1):
         # from https://stackoverflow.com/a/23734295/4354423
-        def sort_key(datum):
+        def sort_key(datum: BRS_DATA_TYPE):
             return sum(datum[0][i] * weight for i, weight in enumerate(dim_weights))
 
         res_size = self.result_keep_size * size_factor
@@ -90,7 +93,7 @@ class BestResultsSet:
         except QhullError as qhe:
             print("QHull crashed! No trimming will be performed: " + str(qhe).split("\n")[0])
 
-    def export(self, name):
+    def export(self, name: str):
         os.makedirs(self._get_dir_name(name), exist_ok=True)
         with open(name, "wb") as f:
             pickle.dump(self, f)

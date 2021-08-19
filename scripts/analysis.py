@@ -10,6 +10,26 @@ from custom_types import *
 from local_repo import *
 from metrics import *
 
+ALL_VIEWS = ["references", "evolutionary", "linguistic", "module_distance"]
+ALL_PATTERNS: PatternsType = [
+    [0, 0, 0, 0, 'Not coupled at all'],
+    [0, 0, 0, 1, 'Only "project structure": Close but completely unrelated to each other'],
+    [0, 0, 1, 0, 'Only "linguistic": Independent feature duplication'],
+    [0, 0, 1, 1, 'Close independent feature duplication?'],
+    [0, 1, 0, 0, 'Only "evolutionary": Modules are related to each other on an unknown and hidden level'],
+    [0, 1, 0, 1, 'Your code is successfully modularized by "things that change together", but your language and structure do not reflect this modularity'],
+    [0, 1, 1, 0, 'Parallel-Maintained feature duplication'],
+    [0, 1, 1, 1, 'Everything except references: These nodules belong together, but it is not obvious from the code. Maybe meta-programming? Maybe the references metric is bad?'],
+    [1, 0, 0, 0, 'Only "references": Using "library code" somewhere else'],
+    [1, 0, 0, 1, 'Weakly modularized code:  close in the project structure and coupled by references, but semantically disjoint'],
+    [1, 0, 1, 0, 'Using and/or extending a library'],
+    [1, 0, 1, 1, 'Everything except evolutionary: One module developed in independent parts OR using a weird committing policy in the company OR one big chunk of code copied into the repo'],
+    [1, 1, 0, 0, 'Separate modules developed together because they need each other.'],
+    [1, 1, 0, 1, 'Weakly modularized code: dependent on each other, but semantically disjoint'],
+    [1, 1, 1, 0, 'Too far apart: These modules seem to belong closer together than they currently are in the project structure'],
+    [1, 1, 1, 1, 'Evenly coupled across all metrics'],
+]
+
 
 def get_node_filter_func(repo: LocalRepo, mode: NodeFilterMode):
     repo_tree = repo.get_tree()
@@ -70,16 +90,16 @@ USE_NODE_UNION = False  # or intersection instead?
 
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType,
-                          node_filter_mode: NodeFilterMode, parallel=True, ignore_previous_results=False) -> Optional[List[BestResultsSet]]:
+                          node_filter_mode: NodeFilterMode, parallel=True, ignore_previous_results=False) -> List[BestResultsSet]:
     """
     when views are [ref, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled by references, and the language does not matter
     """
     if len(views) < 1:
-        return
+        return []
     if not all([len(p) >= len(views) for p in target_patterns]):
         print("Patterns need at least one element per graph!")
-        return
+        raise Exception("Patterns need at least one element per graph!")
 
     result_sets: List[Optional[BestResultsSet]] = [None for p in target_patterns]
     if not ignore_previous_results:

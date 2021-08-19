@@ -168,7 +168,7 @@ class LocalRepo:
     def get_head_commit(self) -> Commit:
         return self.repo.commit()
 
-    def get_tree(self):
+    def get_tree(self) -> 'RepoTree':
         if self.tree is None:
             self.tree = RepoTree.init_from_repo(self)
         return self.tree
@@ -353,7 +353,7 @@ class RepoTree:
     def has_node(self, path) -> bool:
         return self.find_node(path) is not None
 
-    def find_node(self, path) -> Optional['RepoTree']:
+    def find_node(self, path) -> 'RepoTree':
         if len(path) == 0:
             return self
         else:
@@ -382,6 +382,14 @@ class RepoTree:
         children_descendants = [child.get_descendants_of_type(type_str) for child in self.children.values()]
         return self.get_children_of_type(type_str) + [descendant for sublist in children_descendants for descendant in sublist]
 
+    def get_containing_file_node(self) -> Optional['RepoTree']:
+        """find me or my first parent that is a file"""
+        if self.ts_node is None and "." in self.name:
+            return self
+        if self.parent is not None:
+            return self.parent.get_containing_file_node()
+        return None
+
     def find_outer_node_named(self, name):
         if self.name == name:
             return self
@@ -389,17 +397,17 @@ class RepoTree:
             return self.parent.find_outer_node_named(name)
         return None
 
-    def get_text(self, file) -> Optional[str]:
+    def get_text(self, file: RepoFile) -> Optional[str]:
         if self.ts_node is None:
             return None
         return file.node_text(self.ts_node)
 
-    def get_preceding_comment_text(self, file) -> Optional[str]:
+    def get_preceding_comment_text(self, file: RepoFile) -> Optional[str]:
         if self.parent is None or self.parent.ts_node is None:
             return None
         # search down from parent ts_node until we find one that has my own ts_node as child
         parent_ts_node = self.parent.ts_node  # might be too high, since ts_nodes are more finde-grained than this tree
-        while not self.ts_node in parent_ts_node.children:
+        while self.ts_node not in parent_ts_node.children:
             found_next = False
             for child in parent_ts_node.children:
                 if child.start_byte <= self.ts_node.start_byte and child.end_byte >= self.ts_node.end_byte:
@@ -416,7 +424,7 @@ class RepoTree:
             return None
         return file.node_text(previous_sibling)
 
-    def get_comment_and_own_text(self, file) -> str:
+    def get_comment_and_own_text(self, file: RepoFile) -> str:
         return (self.get_preceding_comment_text(file) or "") + "\n" + self.get_text(file)
 
     def get_line_span(self) -> int:

@@ -286,9 +286,12 @@ def interactive_multi_sort(data, dimension_names_and_getters, callback_func, out
 
 
 def print_html(content):
+    # using the IPython.display.HTML thingy (instead of ipywidgets.HTML) to enable JS execution
+    # https://github.com/jupyter-widgets/ipywidgets/issues/3079#issuecomment-856390435
     import ipywidgets as widgets
-    from IPython.display import display
-    display(widgets.HTML(value=content))
+    import IPython.display as display
+    # display.display(widgets.HTML(value=content))
+    display.display(display.HTML(content))
 
 
 def show_html_table(data, width=None):
