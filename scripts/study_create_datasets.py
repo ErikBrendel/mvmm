@@ -73,7 +73,7 @@ def main():
                 comm = find_commits(repo, m0[0], m1[0])
                 study_entries.append((p, m0, m1, comm))
         study: STUDY_TYPE = (repo, study_entries)
-        with open(STUDY_RESULTS_PATH + repo.replace("/", "_") + '.pickle', 'wb') as out:
+        with open(STUDY_RESULTS_PATH + "dataset-" + repo.replace("/", "_") + '.pickle', 'wb') as out:
             pickle.dump(study, out)
 
 
