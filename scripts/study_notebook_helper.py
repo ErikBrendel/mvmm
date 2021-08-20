@@ -9,6 +9,20 @@ a {
 </style>
 """
 
+# language=HTML
+HORIZONTAL_RADIO_BUTTONS = """
+<style>
+    .widget-radio-box {
+        flex-direction: row !important;     
+        margin-bottom: 0 !important;
+    }
+    .widget-radio-box label{
+        margin:5px !important;
+        width: 120px !important;
+    }
+</style>
+"""
+
 import requests
 import requests_cache
 requests_cache.install_cache()
