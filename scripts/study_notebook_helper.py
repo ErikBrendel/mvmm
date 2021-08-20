@@ -18,7 +18,7 @@ HORIZONTAL_RADIO_BUTTONS = """
     }
     .widget-radio-box label{
         margin:5px !important;
-        width: 120px !important;
+        /*width: 120px !important;*/
     }
 </style>
 """
