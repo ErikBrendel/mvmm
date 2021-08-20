@@ -68,7 +68,7 @@ def generate_one_distributions(dim: int, precision=10) -> Generator[List[float],
     yield from fill_first(dim, 1)
 
 
-def decode(byte_data):
+def decode(byte_data: bytes) -> str:
     try:
         return byte_data.decode("utf-8")
     except:

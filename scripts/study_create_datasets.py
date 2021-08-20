@@ -11,6 +11,24 @@ def get_evo_changes(repo: str) -> Dict[str, List[str]]:
     return evo_calc_new(LocalRepo(repo))
 
 
+def get_commit_metrics(commit: Commit) -> COMMIT_CHANGES_TYPE:
+    parent_diffs = get_commit_diffs(commit, create_patch=True)
+    changed_files = set()
+    additions = 0
+    deletions = 0
+    for diffs in parent_diffs:
+        for diff in diffs:
+            changed_files.add(diff.a_path)
+            changed_files.add(diff.b_path)
+            patch_lines = decode(diff.diff).split("\n")
+            for line in patch_lines:
+                if line.startswith("+"):
+                    additions += 1
+                elif line.startswith("-"):
+                    deletions += 1
+    return len(changed_files), additions, deletions
+
+
 # @cachier()
 def find_commits(repo: str, m0: str, m1: str) -> COMMITS_TYPE:
     r = LocalRepo(repo)
@@ -21,7 +39,7 @@ def find_commits(repo: str, m0: str, m1: str) -> COMMITS_TYPE:
         if m0_match or m1_match:
             commit = r.get_commit(hexsha)
             message = commit.message.split("\n")[0]
-            result.append((message, commit.author.name, commit.committed_date, hexsha, m0_match, m1_match))
+            result.append((message, commit.author.name, commit.committed_date, hexsha, get_commit_metrics(commit), m0_match, m1_match))
     return result
 
 
@@ -39,7 +57,7 @@ def main():
         r = LocalRepo(repo)
         results = analyze_disagreements(r, ALL_VIEWS, ALL_PATTERNS, "methods")
         study_entries: List[STUDY_ENTRY_TYPE] = []
-        for p, res in zip(ALL_PATTERNS, results):
+        for p, res in log_progress(list(zip(ALL_PATTERNS, results)), desc="getting data"):
             best = res.get_best(SORT_WEIGHTS)
             unique_best = []
             unique_best_used_paths = set()
