@@ -4,6 +4,7 @@ repos = [
     "junit-team/junit4",
 ]
 SORT_WEIGHTS = [0.175] * 4 + [0.3]  # a bit higher support - only want the results where we are sure!
+ENTRIES_PER_PATTERN = 2
 
 
 @cachier()
@@ -58,7 +59,8 @@ def main():
         results = analyze_disagreements(r, ALL_VIEWS, ALL_PATTERNS, "methods")
         study_entries: List[STUDY_ENTRY_TYPE] = []
         for p, res in log_progress(list(zip(ALL_PATTERNS, results)), desc="getting data"):
-            best = res.get_best(SORT_WEIGHTS)
+            res.get_best(SORT_WEIGHTS)
+            best = res.data
             unique_best = []
             unique_best_used_paths = set()
             for b in best:
@@ -66,7 +68,11 @@ def main():
                     unique_best.append(b)
                     unique_best_used_paths.add(b[1][0])
                     unique_best_used_paths.add(b[1][1])
-            for elem in unique_best[:2]:
+                    if len(unique_best) >= ENTRIES_PER_PATTERN:
+                        break
+                else:
+                    print("Skipping duplicate entry! ", b)
+            for elem in unique_best[:ENTRIES_PER_PATTERN]:
                 m0: METHOD_TYPE = make_method_data(r, elem[1][0])
                 m1: METHOD_TYPE = make_method_data(r, elem[1][1])
                 # TODO swap(m0, m1) if random bool?

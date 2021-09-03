@@ -62,31 +62,7 @@ def get_node_filter_func(repo: LocalRepo, mode: NodeFilterMode):
     }[mode]
 
 
-MIN_SUPPORT = 0  # how much relative support a result needs to not be discarded
-
-
-def analyze_pair(pair, analysis_graphs, target_patterns: PatternsType) -> Optional[PairAnalysisResultsType]:
-    # pdb.set_trace()
-    _a, _b = pair
-    if _a.startswith(_b) or _b.startswith(_a):  # ignore nodes that are in a parent-child relation
-        return None
-    # for each view: how much support do we have for this node pair (minimum of both node support values)
-    support_values = [min(supp_a, supp_b) for supp_a, supp_b in zip(*[
-        [g.get_normalized_support(node) for g in analysis_graphs] for node in [_a, _b]
-    ])]
-    results: List[List[AnalysisResultType]] = [[] for p in target_patterns]
-    for a, b in [(_a, _b), (_b, _a)]:
-        normalized_coupling_values = tuple(g.get_normalized_coupling(a, b) for g in analysis_graphs)
-        for p, pattern in enumerate(target_patterns):
-            pattern_match_score_data = tuple(abs(p - v) for p, v in zip(pattern, normalized_coupling_values) if p is not None)
-            support = min(support for i, support in enumerate(support_values) if pattern[i] is not None)
-            if support >= MIN_SUPPORT:
-                results[p].append(((*pattern_match_score_data, -support), (a, b, (*normalized_coupling_values, support))))
-    return results
-
-
 SHOW_RESULTS_SIZE = 50
-USE_NODE_UNION = False  # or intersection instead?
 
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType,
@@ -129,52 +105,12 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     print("all filtered nodes:", len(all_nodes))
 
     required_patterns = [p for p, r in zip(target_patterns, result_sets) if r is None]
-    calculated_results: List[BestResultsSet]
-    if parallel:
-        calculated_results = find_disagreement_results_parallel(repo, views, required_patterns, all_nodes)
-        # TODO do this in parallel as well once all the part results came in!
-        for r in log_progress(calculated_results, desc="Trimming merged result sets"):
-            r.trim()
-        print("Done")
-    else:
-        calculated_results = find_disagreement_results_serial_cpp(analysis_graphs, required_patterns, all_nodes)
+    calculated_results: List[BestResultsSet] = find_disagreement_results_serial_cpp(analysis_graphs, required_patterns, all_nodes)
 
     fill_none_with_other(result_sets, calculated_results)
     for r, p in zip(result_sets, target_patterns):
         r.export(BestResultsSet.get_name(repo.name, views, node_filter_mode, p))
     return result_sets
-
-
-def find_disagreement_results_serial(analysis_graphs: List[CouplingGraph], target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
-    all_node_pairs = list(all_pairs(all_nodes))
-
-    # all_node_pairs = all_node_pairs[:1000]
-
-    print("Going single-threaded...")
-    pattern_results = [
-        BestResultsSet(sum(type(x) == int for x in p) + 1, SHOW_RESULTS_SIZE)  # one dim for each graph that is used in the pattern + 1 for support
-        for p in target_patterns]
-
-    def handle_results(pattern_results_part: PairAnalysisResultsType):
-        for i, part in enumerate(pattern_results_part):
-            pattern_results[i].add_all(part)
-            # tuple[
-            #   tuple[
-            #     float, ...
-            #   ],
-            #   tuple[
-            #     str, str, tuple[float, ...]
-            #   ]
-            # ]
-
-    map_parallel(
-        all_node_pairs,
-        partial(analyze_pair, analysis_graphs=analysis_graphs, target_patterns=target_patterns),
-        handle_results,
-        "Analyzing edges",
-        force_non_parallel=True
-    )
-    return pattern_results
 
 
 def find_disagreement_results_serial_cpp(analysis_graphs: List[CouplingGraph], target_patterns: PatternsType, all_nodes: List[str]) -> List[BestResultsSet]:
