@@ -27,7 +27,7 @@ class BestResultsSet:
         self.data += new_data
         self.total_amount += len(new_data)
 
-    def get_best(self, dim_weights: List[float]):
+    def get_best(self, dim_weights: List[float]) -> List[BRS_DATA_TYPE]:
         def sort_key(datum: BRS_DATA_TYPE):
             return sum(datum[0][d] * weight for d, weight in enumerate(dim_weights))
 
