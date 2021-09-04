@@ -1,10 +1,10 @@
 from study_common import *
 
 repos = [
-    # "jfree/jfreechart",
     "junit-team/junit4",
+    "jfree/jfreechart",
 ]
-ENTRIES_PER_PATTERN = 2
+ENTRIES_PER_PATTERN = 4
 
 
 def make_sort_weights(pattern: PatternType):
