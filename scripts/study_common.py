@@ -18,12 +18,12 @@ STUDY_ENTRY_TYPE = Tuple[int, METHOD_TYPE, METHOD_TYPE, COMMITS_TYPE]  # first i
 STUDY_TYPE = Tuple[str, List[STUDY_ENTRY_TYPE]]  # repo name and list of entries
 
 _ = None
-TAXONOMY: List[Tuple[PatternType, str]] = [
-    ([1, 0, 1, _], "Direct Code Clones - Methods that are doing similar things"),
-    ([1, 1, _, 0], "Cross-Cutting Concerns - strongly related code is scattered across different modules"),
-    ([0, _, 1, 0], "Independent Code Duplication - The same code exists in independent modules"),
-    ([0, _, 1, 1], "Parallel Structures - within a single module, similar code structures have been developed"),
-    ([0, _, 0, 1], "Mixed Concerns - within a single module, multiple unrelated topics are handled"),
-    ([0, 1, 0, 0], "Hidden Relation - unrelated methods being modified together"),
-    ([1, 1, 0, 1], "Inconsistent Language - close and related code that looks unrelated at first, based on the different vocabulary used"),
+TAXONOMY: List[Tuple[PatternType, str, str]] = [
+    ([1, 0, 1, _], "Direct Code Clones", "Methods that are doing similar things"),
+    ([1, 1, _, 0], "Cross-Cutting Concerns", "strongly related code is scattered across different modules"),
+    ([0, _, 1, 0], "Independent Code Duplication", "The same code exists in independent modules"),
+    ([0, _, 1, 1], "Parallel Structures", "within a single module, similar code structures have been developed"),
+    ([0, _, 0, 1], "Mixed Concerns / Low Cohesion", "within a single module, multiple unrelated topics are handled"),
+    ([0, 1, 0, 0], "Hidden Relation", "unrelated methods being modified together"),
+    ([1, 1, 0, 1], "Inconsistent Language", "close and related code that looks unrelated at first, based on the different vocabulary used"),
 ]

@@ -8,7 +8,7 @@ ENTRIES_PER_PATTERN = 4
 
 
 def make_sort_weights(pattern: PatternType):
-    SUPPORT_WEIGHT = 2  # support is more important than the views - only want the results where we are sure!
+    SUPPORT_WEIGHT = 1.3  # support is more important than the views - only want the results where we are sure!
     not_none_count = len(list(x for x in pattern if x is not None))
     part = 1 / (not_none_count + SUPPORT_WEIGHT)
     return [part] * not_none_count + [part * SUPPORT_WEIGHT]
@@ -68,7 +68,7 @@ def main():
     for repo in repos:
         print(pyfiglet.figlet_format(repo))
         r = LocalRepo(repo)
-        results = analyze_disagreements(r, ALL_VIEWS, [p for p, name in TAXONOMY], "methods")
+        results = analyze_disagreements(r, ALL_VIEWS, [p for p, *_ in TAXONOMY], "methods")
 
         # if a pair of methods appears in multiple taxonomy queries, only assign it to the one where it matched the most
         # algo:
