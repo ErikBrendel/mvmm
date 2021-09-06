@@ -155,7 +155,7 @@ class LocalRepo:
             return [RepoFile(self, o) for o in self.get_file_objects() if o.path.startswith(self.sub_dir)]
 
     def get_all_interesting_files(self) -> List['RepoFile']:
-        test_skipper = DirectoryExclusionTracker(['test', 'tests', 'samples', 'example', 'examples'])
+        test_skipper = DirectoryExclusionTracker(['test', 'tests', 'samples', 'example', 'examples', 'androidTest'])
         all_files = self.get_all_files()
         result = [file for file in all_files if not (file.should_get_skipped() or test_skipper.should_get_skipped(file.get_path()))]
         print("Analyzing", len(result), "of", len(all_files), "files, the rest was skipped as tests or samples")

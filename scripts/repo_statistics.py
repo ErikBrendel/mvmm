@@ -8,6 +8,12 @@ from metrics import *
 from analysis import *
 from cachier import cachier
 
+
+@cachier()
+def get_repo_commit_count(repo: str) -> int:
+    return len(LocalRepo(repo).get_all_commits())
+
+
 # "cloc --git master --include-ext=java --json"
 
 def mapper(file, repo_path):
@@ -56,7 +62,8 @@ def fmt(num):
 for repo in repos:
     try:
         data = get_cloc_data_parallel(repo)
-        print("    " + repo + " & $" + fmt(data["nFiles"]) + "$ & $" + fmt(data["code"]) + "$ & $" + fmt(data["comment"]) + "$ \\\\")
+        commits = get_repo_commit_count(repo)
+        print("    " + repo + " & $" + fmt(data["nFiles"]) + "$ & $" + fmt(data["code"]) + "$ & $" + fmt(data["comment"]) + "$ & $" + fmt(commits) + "$ \\\\")
     except Exception as e:
         print("Error in " + repo, e)
 

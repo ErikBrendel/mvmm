@@ -78,7 +78,7 @@ def decode(byte_data: bytes) -> str:
             raise Exception("Cannot decode!")
 
 
-def common_prefix_length(a, b):
+def get_common_prefix_length(a, b):
     for i, (ca, cb) in enumerate(zip(a, b)):
         if ca != cb:
             return i

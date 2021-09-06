@@ -1,8 +1,13 @@
 from study_common import *
 
 repos = [
-    "junit-team/junit4",
-    "jfree/jfreechart",
+    #"junit-team/junit4",
+    #"jfree/jfreechart",
+    "nextcloud/android",
+    #"skylot/jadx",
+    #"vanzin/jEdit",
+    #"jenkinsci/jenkins",
+    #"libgdx/libgdx",
 ]
 ENTRIES_PER_PATTERN = 4
 

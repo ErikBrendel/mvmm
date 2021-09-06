@@ -15,6 +15,38 @@ def format_code(content: str, other_path: str) -> str:
     return re.sub(fr"""\b({"|".join(other_path_parts)})\b""", replacement, content_no_html)
 
 
+def make_path_overview_html(r: LocalRepo, m0: str, m1: str) -> str:
+    m0_parts = m0.split("/")
+    m1_parts = m1.split("/")
+    common_prefix_length = get_common_prefix_length(m0_parts, m1_parts)
+    common_prefix = make_path_html(r, "", m0_parts[:common_prefix_length])
+    prefix_path = "/".join(m0_parts[:common_prefix_length]) + "/"
+    m0_rest = make_path_html(r, prefix_path, m0_parts[common_prefix_length:])
+    m1_rest = make_path_html(r, prefix_path, m1_parts[common_prefix_length:])
+    # language=HTML
+    result = f"""
+        <table style="border-collapse: collapse; font-family: monospace; border: 1px solid black;">
+            <tr>
+                <td rowspan="2" style="line-height: 100%; background-color: white;">{common_prefix}</td>
+                <td style="text-align: left; border: 1px solid black; background-color: white;">{m0_rest}</td>
+            </tr>
+            <tr><td style="text-align: left; border: 1px solid black; background-color: white;">{m1_rest}</td></tr>
+        </table>
+    """
+    return result
+
+
+def make_path_html(r: LocalRepo, path_prefix: str, path_parts: List[str]) -> str:
+    return " / ".join(
+        f"""<a target="_blank"
+               href="{r.url_for(path_prefix + "/".join(path_parts[:i+1]))}"
+               title="{path_prefix + "/".join(path_parts[:i+1])}">
+        {part}
+        </a>"""
+        for i, part in enumerate(path_parts)
+    )
+
+
 # language=HTML
 OWN_STYLE = """
 <style>
