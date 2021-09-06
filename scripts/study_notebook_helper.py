@@ -38,11 +38,11 @@ def make_path_overview_html(r: LocalRepo, m0: str, m1: str) -> str:
 
 def make_path_html(r: LocalRepo, path_prefix: str, path_parts: List[str]) -> str:
     return " / ".join(
-        f"""<a target="_blank"
+        f"""{"<b>" if part.endswith("." + r.type_extension()) else ""}<a target="_blank"
                href="{r.url_for(path_prefix + "/".join(path_parts[:i+1]))}"
                title="{path_prefix + "/".join(path_parts[:i+1])}">
         {part}
-        </a>"""
+        </a>{"</b>" if part.endswith("." + r.type_extension()) else ""}"""
         for i, part in enumerate(path_parts)
     )
 
