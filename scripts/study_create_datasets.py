@@ -1,13 +1,14 @@
 from study_common import *
+import os.path
 
 repos = [
-    #"junit-team/junit4",
-    #"jfree/jfreechart",
+    "junit-team/junit4",
+    "jfree/jfreechart",
     "nextcloud/android",
-    #"skylot/jadx",
-    #"vanzin/jEdit",
-    #"jenkinsci/jenkins",
-    #"libgdx/libgdx",
+    "skylot/jadx",
+    "vanzin/jEdit",
+    "jenkinsci/jenkins",
+    "libgdx/libgdx",
 ]
 ENTRIES_PER_PATTERN = 4
 
@@ -71,6 +72,10 @@ def get_score(pattern: PatternType, result: BRS_DATA_TYPE):
 
 def main():
     for repo in repos:
+        study_dataset_result_path = STUDY_RESULTS_PATH + "dataset-" + repo.replace("/", "_") + '.pickle'
+        if os.path.isfile(study_dataset_result_path):
+            print("Skipping existing " + repo)
+            continue
         print(pyfiglet.figlet_format(repo))
         r = LocalRepo(repo)
         results = analyze_disagreements(r, ALL_VIEWS, [p for p, *_ in TAXONOMY], "methods")
@@ -121,7 +126,7 @@ def main():
         study_entries: List[STUDY_ENTRY_TYPE] = [entry for res in taxonomy_picked_results for entry in res]
 
         study: STUDY_TYPE = (repo, study_entries)
-        with open(STUDY_RESULTS_PATH + "dataset-" + repo.replace("/", "_") + '.pickle', 'wb') as out:
+        with open(study_dataset_result_path, 'wb') as out:
             pickle.dump(study, out)
 
 

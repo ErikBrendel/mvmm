@@ -93,6 +93,8 @@ class LocalRepo:
             return REPO_URL_START + self.repo_name + REPO_URL_END
 
     def url_for(self, path):
+        if path.startswith("/"):
+            path = path[1:]
         if path in self.url_cache:
             return self.url_cache[path]
 
