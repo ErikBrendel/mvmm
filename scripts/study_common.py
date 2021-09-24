@@ -6,8 +6,6 @@ from cachier import cachier
 
 from custom_types import *
 from local_repo import *
-from metrics import *
-from analysis import *
 from best_results_set import BRS_DATA_TYPE
 
 STUDY_RESULTS_PATH = "../study/"
