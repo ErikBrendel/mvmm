@@ -92,3 +92,14 @@ for repo in repos:
 
 graph_manager.flush()
 print("\nProgram is over!")
+
+"""
+TODO:
+
+
+Kopplungs Werte nicht nach min/max/median normalisieren, sondern nach dem Histogramm: der Wert zwischen 0 und 1 sollte proportional zum rang in der sortierten Liste sein. 0 und 1 bleiben weiterhin die extremfälle (beachte hier wenn viele kanten den gleichen Wert haben!), aber alles dazwischen ist gleichmäßiger verteilt. Das sollte gut die powerlaw Verteilung auflösen und alle Ausreißer ähnlich nah an 0.99 bringen 
+
+Normalisieren sollte auch nur innerhalb einer Ebene an Modulen passieren: nicht Methoden und Klassen gleichzeitig normalisieren, sondern erst den node Filter anwenden und dann nur diese Menge Normalisieren
+
+
+"""

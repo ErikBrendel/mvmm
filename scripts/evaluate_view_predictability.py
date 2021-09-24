@@ -19,25 +19,27 @@ cwd = os.getcwd()
 print(cwd)
 
 repos = [
+    "jfree/jfreechart",
+    "vanzin/jEdit",
+    "junit-team/junit4",
+
+    # "jfree/jfreechart:v1.5.3",
+    # "jfree/jfreechart:v1.5.0",
+    # "jfree/jfreechart:v1.0.19",
     # "ErikBrendel/LudumDare",
     # "ErikBrendel/LD35",
-    # "eclipse/aspectj.eclipse.jdt.core",
-    # "jenkinsci/jenkins",
+
     # "jOOQ/jOOQ",
     # "wumpz/jhotdraw",
     # "neuland/jade4j",
     # "apache/log4j",
-    "jfree/jfreechart",
-    # "jfree/jfreechart:v1.5.3",
-    "junit-team/junit4",
-    # "jfree/jfreechart:v1.5.0",
-    # "jfree/jfreechart:v1.0.19",
-    # "vanzin/jEdit",
     # "hunterhacker/jdom",
-    # "SonarSource/sonarqube",
+    # "jenkinsci/jenkins",
     # "brettwooldridge/HikariCP",
     # "adamfisk/LittleProxy",
     # "dynjs/dynjs",
+    # "SonarSource/sonarqube",
+    # "eclipse/aspectj.eclipse.jdt.core",
 ]
 metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
@@ -88,7 +90,7 @@ def check_predictability_params_fast_method_nodes(repo: str, metric: str, other_
 
     target_data_list: List[tuple[float, float]] = [(other_combination(entry), entry[mi]) for entry in metric_values]
     return score_sorting_similarity(target_data_list)
-# check_predictability_params_fast.clear_cache()
+# check_predictability_params_fast_method_nodes.clear_cache()
 print("Cached values at: " + check_predictability_params_fast_method_nodes.cache_dpath())
 
 for ri, repo in enumerate(repos):
@@ -97,7 +99,7 @@ for ri, repo in enumerate(repos):
     for mi, predicted_metric in enumerate(metrics):
         other_metrics = tuple(metrics[:mi] + metrics[mi + 1:])
 
-        scale = 4
+        scale = 6
         total_sample_count = (scale + 1) * (scale + 2) / 2
         bar = log_progress("Calculating color values for plot", total=total_sample_count)
 
