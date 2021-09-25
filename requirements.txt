@@ -20,7 +20,7 @@ scipy
 ipython
 cloudpickle
 dill
-pprofile
+# pprofile  # relies on outdated use_2to3 setuptools command, thus removed
 mtprof
 
 cachier
