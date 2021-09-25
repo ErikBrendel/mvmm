@@ -53,6 +53,9 @@ OWN_STYLE = """
 a {
     color: blue;
 }
+table {
+    border-collapse: collapse;
+}
 </style>
 """
 
