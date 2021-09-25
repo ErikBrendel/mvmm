@@ -442,6 +442,37 @@ def change_text_style(text: str, style: str = "bold") -> str:
     )
 
 
+def show_file_download_link(file_path):
+    try:
+        from google.colab import files
+        from IPython.display import display
+        import ipywidgets as widgets
+
+        def do_download(btn):
+            files.download(file_path)
+
+        button = widgets.Button(
+            description='Download',
+            button_style='success',
+            icon='download'
+        )
+        button.on_click(do_download)
+        display(button)
+    except:
+        try:
+            import base64
+
+            def create_download_link(file_content_binary: bytes, title: str, filename: str):
+                b64 = base64.b64encode(file_content_binary)
+                payload = b64.decode()
+                print_html(f'<a download="{filename}" href="data:application/octet-stream;base64,{payload}" target="_blank">{title}</a>')
+
+            with open(file_path, "rb") as f:
+                create_download_link(f.read(), "Download", file_path.split("/")[-1])
+        except:
+            print_html("Please manually download the file at " + file_path)
+
+
 if __name__ == "__main__":
     print(len(list(generate_one_distributions(5, 5))))
     for x in generate_one_distributions(5, 5):
