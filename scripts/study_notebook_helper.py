@@ -2,17 +2,26 @@ from local_repo import *
 import re
 
 
-def format_code(content: str, other_path: str) -> str:
-    other_path_parts = other_path.split("/")
-    if not any(part.endswith(".java") for part in other_path_parts):
-        other_path_parts = [other_path_parts[-1]]
+def get_path_end_parts(path: str) -> set(str):
+    path_parts = path.split("/")
+    if not any(part.endswith(".java") for part in path_parts):
+        path_parts = [path_parts[-1]]
     else:
-        while any(part.endswith(".java") for part in other_path_parts):
-            other_path_parts = other_path_parts[1:]
+        while any(part.endswith(".java") for part in path_parts):
+            path_parts = path_parts[1:]
+    return set(path_parts)
+
+
+def format_code(content: str, own_path: str, other_path: str) -> str:
+    own_parts = get_path_end_parts(own_path)
+    other_parts = get_path_end_parts(other_path)
+    for p in own_parts:
+        if p in other_parts:
+            other_parts.remove(p)
     content_no_html = content.replace("<", "&lt;").replace(">", "&gt;")
     # language=HTML
     replacement = r'<mark style="background-color: #b28549">\1</mark>'
-    return re.sub(fr"""\b({"|".join(other_path_parts)})\b""", replacement, content_no_html)
+    return re.sub(fr"""\b({"|".join(other_parts)})\b""", replacement, content_no_html)
 
 
 def make_path_overview_html(r: LocalRepo, m0: str, m1: str) -> str:
