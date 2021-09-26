@@ -2,7 +2,7 @@ from local_repo import *
 import re
 
 
-def get_path_end_parts(path: str) -> set(str):
+def get_path_end_parts(path: str) -> Set[str]:
     path_parts = path.split("/")
     if not any(part.endswith(".java") for part in path_parts):
         path_parts = [path_parts[-1]]
