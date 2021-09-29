@@ -1,6 +1,7 @@
 import os
 import random
 from typing import *
+from workarounds import *
 
 if os.environ.get("JUPYTER"):
     from tqdm.notebook import tqdm as log_progress
@@ -287,7 +288,9 @@ def interactive_multi_sort(data: List[Any], dimension_names_and_getters, callbac
         slider_values[name] = initial_slider_value
         sliders[name] = widgets.FloatLogSlider(base=10, min=-3, max=0, step=0.01, value=initial_slider_value,
                                                continuous_update=True,
-                                               layout={'width': '900px'})
+                                               layout={'width': '800px'})
+        sliders[name].description = metric_display_rename(name)
+        sliders[name].style.description_width = "150px"
         # sliders[name].observe(slider_func, 'value')
     # out = widgets.interactive_output(slider_func, sliders)
     # ui = widgets.VBox(sliders.values())

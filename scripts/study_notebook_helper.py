@@ -69,6 +69,26 @@ table {
 """
 
 # language=HTML
+ADD_LINKS_TO_RENDERED_IMAGES = """
+<script>
+function addLinksToImages() {
+    const imageContainers = document.getElementsByClassName("jp-RenderedImage");
+    for (const container of imageContainers) {
+        if (container.childNodes.length > 1) continue; // already handled
+        const link = document.createElement("a");
+        link.href = container.childNodes[0].src;
+        link.target = "_blank";
+        link.text = "Open image in new tab";
+        container.appendChild(link);
+    }
+    setTimeout(() => addLinksToImages(), 1000);
+}
+addLinksToImages();
+
+</script>
+"""
+
+# language=HTML
 HORIZONTAL_RADIO_BUTTONS = """
 <style>
     .widget-radio-box {

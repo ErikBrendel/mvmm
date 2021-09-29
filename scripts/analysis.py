@@ -9,6 +9,7 @@ from best_results_set import BestResultsSet
 from custom_types import *
 from local_repo import *
 from metrics import *
+from workarounds import *
 
 ALL_VIEWS = ["references", "evolutionary", "linguistic", "module_distance"]
 ALL_PATTERNS: PatternsType = [
@@ -271,7 +272,7 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
                     ["{:1.4f}".format(raw_getter(datum)) for name, getter, raw_getter in dim] +
                     [path_html(repo, path) for path in datum[1][0:2]]
                     for datum in non_duplicated_data]
-                header = [name for name, *_ in dim] + ["method 1", "method 2"]
+                header = [metric_display_rename(name) for name, *_ in dim] + ["method 1", "method 2"]
                 show_html_table([header] + display_data, len(dim) + 2)
 
             return show_data
