@@ -2,6 +2,7 @@ import math
 import random
 import time
 from typing import *
+from workarounds import *
 
 import matplotlib.pyplot as plt
 import pyfiglet
@@ -18,6 +19,8 @@ import os
 cwd = os.getcwd()
 print(cwd)
 
+plt.rcParams['figure.dpi'] = 150
+
 repos = [
     "jfree/jfreechart",
     "vanzin/jEdit",
@@ -29,17 +32,17 @@ repos = [
     # "ErikBrendel/LudumDare",
     # "ErikBrendel/LD35",
 
-    # "jOOQ/jOOQ",
-    # "wumpz/jhotdraw",
+    "jOOQ/jOOQ",
+    "wumpz/jhotdraw",
     # "neuland/jade4j",
-    # "apache/log4j",
+    "apache/log4j",
     # "hunterhacker/jdom",
-    # "jenkinsci/jenkins",
-    # "brettwooldridge/HikariCP",
+    "jenkinsci/jenkins",
+    "brettwooldridge/HikariCP",
     # "adamfisk/LittleProxy",
     # "dynjs/dynjs",
-    # "SonarSource/sonarqube",
-    # "eclipse/aspectj.eclipse.jdt.core",
+    "SonarSource/sonarqube",
+    "eclipse/aspectj.eclipse.jdt.core",
 ]
 metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
@@ -47,7 +50,7 @@ metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
 
 fig, axes = plt.subplots(len(repos), 4, figsize=(15, len(repos) * 2.5), constrained_layout=True)
-fig.suptitle('How well can a combination of three views predict the fourth?', fontsize=15)
+# fig.suptitle('How well can a combination of three views predict the fourth?', fontsize=15)
 
 repo_obj_cache: dict[str, LocalRepo] = dict()
 repo_metric_cache: dict[str, LegacyCouplingGraph] = dict()
@@ -116,9 +119,9 @@ for ri, repo in enumerate(repos):
         # tax.gridlines(color="blue", multiple=scale / 4)
 
         fontsize = 9
-        tax.right_corner_label(other_metrics[0], fontsize=fontsize, position=(0.9, 0.04, 0.1))
-        tax.top_corner_label(other_metrics[1], fontsize=fontsize, offset=0.12)
-        tax.left_corner_label(other_metrics[2], fontsize=fontsize, position=(0.08, 0.04, 0))
+        tax.right_corner_label(metric_display_rename(other_metrics[0]), fontsize=fontsize, position=(0.9, 0.04, 0.1))
+        tax.top_corner_label(metric_display_rename(other_metrics[1]), fontsize=fontsize, offset=0.12)
+        tax.left_corner_label(metric_display_rename(other_metrics[2]), fontsize=fontsize, position=(0.08, 0.04, 0))
 
         # tax.set_title(repo + ": Predicting " + predicted_metric)
         tax.boundary(linewidth=1.0)
@@ -128,7 +131,7 @@ for ri, repo in enumerate(repos):
                               verticalalignment='center', transform=axes[ri, mi].transAxes,
                               rotation="vertical", fontsize=12)
         if ri == 0:
-            axes[ri, mi].text(0.5, 1.1, "Predicting " + predicted_metric, horizontalalignment='center',
+            axes[ri, mi].text(0.5, 1.1, "Predicting " + metric_display_rename(predicted_metric), horizontalalignment='center',
                               verticalalignment='center', transform=axes[ri, mi].transAxes,
                               fontsize=12)
 
