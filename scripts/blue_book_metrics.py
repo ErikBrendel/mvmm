@@ -229,6 +229,8 @@ class BBContext:
     def _WOC(self, clazz) -> float:
         """weight of class"""
         public_interface = [m for m in (self._get_methods_of(clazz) + self._get_attributes_of(clazz)) if self._is_public(m)]
+        if len(public_interface) == 0:
+            return 0  # very light-weight class indeed :D
         functional_public_interface = [m for m in public_interface if not self._is_attribute_or_accessor_method(m)]
         return len(functional_public_interface) / float(len(public_interface))
 
@@ -251,15 +253,15 @@ class BBContext:
 
     def _CYCLO(self, method) -> float:
         """mccabe cyclo complexity"""
-        pass
+        return 1
 
     def _MAXNESTING(self, method) -> int:
         """maximum nesting level"""
-        pass
+        return 1
 
     def _NOAV(self, method) -> int:
         """number of accessed variables"""
-        pass
+        return 1
 
     def _CINT(self, method) -> int:
         """coupling intensity - amount of unique methods that are called"""
@@ -267,9 +269,12 @@ class BBContext:
 
     def _CDISP(self, method) -> float:
         """amount (relative) of unique classes that this method uses (= of which this methods calls a method)"""
+        cint = self._CINT(method)
+        if cint == 0:
+            return 0  # absolutely no dispersion to see here :D
         accessed_methods = [m for m in self._get_accessed_by(method) if self._get_type_of(m) == "method"]
         accessed_classes = set(self._get_containing_class_of(m) for m in accessed_methods)
-        return len(accessed_classes) / float(self._CINT(method))
+        return len(accessed_classes) / float(cint)
 
     def _CM(self, method) -> int:
         """changing methods - number of caller methods"""
@@ -287,8 +292,10 @@ class BBContext:
         """returns one of [method, class, attribute, other]"""
         node = self.repo.get_tree().find_node(path)
         raw_type = node.get_type()
-        if raw_type == "class" or raw_type == "method":
-            return raw_type
+        if raw_type in ["class", "enum", "interface"]:
+            return "class"
+        if raw_type in ["method", "constructor"]:
+            return "method"
         if raw_type == "field":
             return "attribute"
         return "other"
@@ -335,11 +342,19 @@ class BBContext:
             return True
         if text.startswith("private"):
             return False
-        raise Exception("No visibility on " + str(member))
+        lines = [line.strip() for line in text.split("\n")]
+        if any(line.startswith("public") for line in lines):
+            return True
+        if any(line.startswith("private") for line in lines):
+            return False
+        return True
 
 
 for repo in ["jfree/jfreechart:v1.5.1"]:
     r = LocalRepo(repo)
     ctx = BBContext(r)
-    print(sorted(list(set(ctx.find_all_disharmonies()))))
+    all_disharmonies = set(ctx.find_all_disharmonies())
+    everything = set(ctx.all_methods() + ctx.all_classes())
+    print(f"#Disharmonies: {len(all_disharmonies)} of {len(everything)}, relative: {'{:2.1f}'.format(len(all_disharmonies) / float(len(everything)) * 100)}%")
+    print(sorted(list(all_disharmonies)))
 
