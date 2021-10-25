@@ -63,6 +63,13 @@ def get_node_filter_func(repo: LocalRepo, mode: NodeFilterMode):
     }[mode]
 
 
+def get_filtered_nodes(repo: LocalRepo, mode: NodeFilterMode) -> List[str]:
+    node_filter_func = get_node_filter_func(repo, mode)
+    return [tree_node.get_path()
+            for tree_node in repo.get_tree().traverse_gen()
+            if node_filter_func(tree_node.get_path())]
+
+
 SHOW_RESULTS_SIZE = 50
 
 
@@ -90,7 +97,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
 
     analysis_graphs = list([MetricManager.get(repo, g) for g in views])
 
-    all_nodes = [tree_node.get_path() for tree_node in repo.get_tree().traverse_gen() if get_node_filter_func(repo, node_filter_mode)(tree_node.get_path())]
+    all_nodes = get_filtered_nodes(repo)
 
     print("Total node count:", len(all_nodes))
     print("Methods:", sum(repo.get_tree().find_node(path).get_type() == "method" for path in all_nodes))
