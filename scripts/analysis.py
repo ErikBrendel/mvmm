@@ -270,10 +270,11 @@ def interactive_analyze_disagreements(repo, views, target_patterns: PatternsType
                 #    print(d)
                 display_data = [
                     ["{:1.4f}".format(raw_getter(datum)) for name, getter, raw_getter in dim] +
-                    [path_html(repo, path) for path in datum[1][0:2]]
+                    [path_html(repo, path) for path in datum[1][0:2]] +
+                    ["{:1.4f}".format(sum(x * x for x in datum[0]))]
                     for datum in non_duplicated_data]
-                header = [metric_display_rename(name) for name, *_ in dim] + ["method 1", "method 2"]
-                show_html_table([header] + display_data, len(dim) + 2)
+                header = [metric_display_rename(name) for name, *_ in dim] + ["method 1", "method 2", "match_score"]
+                show_html_table([header] + display_data)
 
             return show_data
 

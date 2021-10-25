@@ -20,24 +20,23 @@ repos = [
 
 
 def match_score(result: BRS_DATA_TYPE):
-    errors = result[1][2]
+    errors = result[0]
     return sum(x * x for x in errors)
 
 
 def get_found_violations(r: LocalRepo):
     all_results: List[BestResultsSet] = analyze_disagreements(r, ALL_VIEWS, [p + [n + " - " + d] for p, n, d in TAXONOMY], "methods")
-    merged_results = []
-    for taxonomy_entry, results in zip(TAXONOMY, all_results):
-        for result in results.get_best(make_sort_weights(taxonomy_entry[0])):
-            merged_results.append([result, match_score(result)])
-    merged_results.sort(key=lambda elem: elem[1])
     violations_dict = dict()
-    for result, score in merged_results:
-        if score <= 0.5:
-            a, b, *_ = result[1]
-            if a not in violations_dict:
-                violations_dict[a] = set()
-            violations_dict[a].add(b)
+    for ti, [taxonomy_entry, results] in enumerate(zip(TAXONOMY, all_results)):
+        print("######## " + str(ti))
+        for result in results.get_best(make_sort_weights(taxonomy_entry[0])):
+            score = match_score(result)
+            print(score)
+            if score <= 0.5:
+                a, b, *_ = result[1]
+                if a not in violations_dict:
+                    violations_dict[a] = set()
+                violations_dict[a].add(b)
     return violations_dict
 
 
