@@ -412,9 +412,14 @@ class ReferencesContext:
                             coupling_graph.add_and_support(sub_type_path + "/" + sub_child, super_type_env.path + "/" + sub_child, STRENGTH_MEMBER_OVERRIDE)
 
     def couple_members_by_content(self, coupling_graph: ExplicitCouplingGraph):
+        def handler(a, b, strength):
+            coupling_graph.add_and_support(a, b, strength)
+        self.iterate_all_references(handler, "Connecting methods and fields by content")
+
+    def iterate_all_references(self, handler, progress_bar_title):
         # TODO make sure that the methods are also coupled to their parameter types and their return type
         # TODO make also sure that fields are coupled to their type (and maybe their init code content?)
-        for file in log_progress(self.files, desc="Connecting methods and fields by content"):
+        for file in log_progress(self.files, desc=progress_bar_title):
             node = file.get_repo_tree_node()
             if node is None:
                 # pdb.set_trace()
@@ -428,7 +433,7 @@ class ReferencesContext:
                     def couple_member_to(path, strength):
                         if path is None:
                             pdb.set_trace(header="Cannot couple with nothing!")
-                        coupling_graph.add_and_support(path, member_path, strength)
+                        handler(member_path, path, strength)
 
                     def get_text(node):
                         if node is None:

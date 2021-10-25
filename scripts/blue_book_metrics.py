@@ -57,9 +57,23 @@ SHORT_MEMORY_CAPACITY = 8  # 7-8
 
 class BBContext:
     repo: LocalRepo
+    uses_graph: Dict[str, Set[str]]
+    is_used_by_graph: Dict[str, Set[str]]
 
     def __init__(self, repo):
         self.repo = repo
+        self.uses_graph = dict()
+        self.is_used_by_graph = dict()
+
+        def handle_reference(a, b, _strength):
+            if a not in self.uses_graph:
+                self.uses_graph[a] = set()
+            self.uses_graph[a].add(b)
+            if b not in self.is_used_by_graph:
+                self.is_used_by_graph[b] = set()
+            self.is_used_by_graph[b].add(a)
+
+        ReferencesContext(self.repo).iterate_all_references(handle_reference, "Extracting code references")
 
     def all_classes(self):
         return get_filtered_nodes(self.repo, "classes")
@@ -167,39 +181,73 @@ class BBContext:
 
     def _ATFD(self, clazz_or_method) -> int:
         """access to foreign data (directly reading attributes of other classes)"""
-        pass
+        path_type = self._get_type_of(clazz_or_method)
+        if path_type == "method":
+            return len([a for a in self._get_accessed_by(clazz_or_method) if self._is_attribute_or_accessor_method(a)])
+        elif path_type == "class":
+            return sum(self._ATFD(m) for m in self._get_methods_of(clazz_or_method))
+        raise Exception("cannot compute ATFD for " + str(clazz_or_method))
 
     def _WMC(self, clazz) -> int:
         """weighted method count (sum of cyclo of all methods)"""
-        pass
+        return sum(self._CYCLO(m) for m in self._get_methods_of(clazz))
 
     def _TCC(self, clazz) -> float:
-        """come cohesion stuff?"""
-        pass
+        """relative amount of pairs of methods of this class that access a common attribute within this class"""
+        count = 0
+        total = 0
+        for a, b in all_pairs(self._get_methods_of(clazz)):
+            intersection_access = set(self._get_accessed_by(a)).intersection(set(self._get_accessed_by(b)))
+            if any(a.startswith(clazz + "/") and self._is_attribute_or_accessor_method(a) for a in intersection_access):
+                count += 1
+            total += 1
+        return count / float(total)
 
     def _LAA(self, method) -> float:
         """Locality of attribute access"""
-        pass
+        accessed_attributes = [a for a in self._get_accessed_by(method) if self._is_attribute_or_accessor_method(a)]
+        if len(accessed_attributes) == 0:
+            return 1
 
-    def _FDP(self, method) -> float:
+        containing_class = self._get_containing_class_of(method)
+        # TODO there are two varying definitions for the nominator of this calculation:
+        #  All class attributes: https://www.simpleorientedarchitecture.com/how-to-identify-feature-envy-using-ndepend/
+        #  All accessed class attributes: https://docs.embold.io/locality-of-attribute-accesses/
+        #  first one is also used in blue book, but second seems more reasonable to me
+        class_attributes = len([a for a in accessed_attributes if a.startswith(containing_class + "/")])
+        # class_attributes = len(self._get_attributes_of(self._get_containing_class_of(method)))
+
+        return class_attributes / float(len(accessed_attributes))
+
+    def _FDP(self, method) -> int:
         """foreign data providers"""
-        pass
+        accessed_attributes = [a for a in self._get_accessed_by(method) if self._is_attribute_or_accessor_method(a)]
+        attribute_classes = set(self._get_containing_class_of(a) for a in accessed_attributes)
+        attribute_classes.discard(self._get_containing_class_of(method))
+        return len(attribute_classes)
 
     def _WOC(self, clazz) -> float:
         """weight of class"""
-        pass
+        public_interface = [m for m in (self._get_methods_of(clazz) + self._get_attributes_of(clazz)) if self._is_public(m)]
+        functional_public_interface = [m for m in public_interface if not self._is_attribute_or_accessor_method(m)]
+        return len(functional_public_interface) / float(len(public_interface))
 
     def _NOAP(self, clazz) -> int:
         """number of public attributes"""
-        pass
+        return len([a for a in self._get_attributes_of(clazz) if self._is_public(a)])
 
     def _NOAM(self, clazz) -> int:
         """number of accessor methods"""
-        pass
+        return len([m for m in self._get_methods_of(clazz) if self._is_attribute_or_accessor_method(m)])
 
     def _LOC(self, clazz_or_method) -> int:
         """lines of code"""
-        pass
+        path_type = self._get_type_of(clazz_or_method)
+        if path_type == "method":
+            return self._get_line_count_of(clazz_or_method)
+        elif path_type == "class":
+            return sum(self._LOC(m) for m in self._get_methods_of(clazz_or_method))
+        raise Exception("cannot compute LOC for " + str(clazz_or_method))
 
     def _CYCLO(self, method) -> float:
         """mccabe cyclo complexity"""
@@ -214,24 +262,84 @@ class BBContext:
         pass
 
     def _CINT(self, method) -> int:
-        """amount of unique methods that are called that are from other classes"""
-        pass
+        """coupling intensity - amount of unique methods that are called"""
+        return len([m for m in self._get_accessed_by(method) if self._get_type_of(m) == "method"])
 
     def _CDISP(self, method) -> float:
-        """amount (relative?!?) of unique other classes  that this method uses (= of which this methods calls a method)"""
-        pass
+        """amount (relative) of unique classes that this method uses (= of which this methods calls a method)"""
+        accessed_methods = [m for m in self._get_accessed_by(method) if self._get_type_of(m) == "method"]
+        accessed_classes = set(self._get_containing_class_of(m) for m in accessed_methods)
+        return len(accessed_classes) / float(self._CINT(method))
 
     def _CM(self, method) -> int:
         """changing methods - number of caller methods"""
-        pass
+        return len(self._get_callers_of(method))
 
     def _CC(self, method) -> int:
         """changing classes - number of caller classes"""
-        pass
+        return len(set([self._get_containing_class_of(m) for m in self._get_callers_of(method)]))
+
+    #
+    # even lower level methods for working with paths
+    #
+
+    def _get_type_of(self, path: str) -> str:
+        """returns one of [method, class, attribute, other]"""
+        node = self.repo.get_tree().find_node(path)
+        raw_type = node.get_type()
+        if raw_type == "class" or raw_type == "method":
+            return raw_type
+        if raw_type == "field":
+            return "attribute"
+        return "other"
+
+    def _get_containing_class_of(self, path: str) -> str:
+        """get self or the first parent that is of type class, raising on reaching root"""
+        parts = path.split("/")
+        while len(parts) > 0:
+            potential_result = "/".join(parts)
+            if self._get_type_of(potential_result) == "class":
+                return potential_result
+            parts = parts[:-1]
+        raise Exception("Cannot find containing class of other!")
+
+    def _get_methods_of(self, clazz: str) -> List[str]:
+        return [m.get_path() for m in self.repo.get_tree().find_node(clazz).get_children_of_type("method")]
+
+    def _get_attributes_of(self, clazz: str) -> List[str]:
+        return [m.get_path() for m in self.repo.get_tree().find_node(clazz).get_children_of_type("field")]
+
+    def _get_callers_of(self, path: str) -> Set[str]:
+        """get list of methods that call the given method"""
+        return set([m for m in self.is_used_by_graph.get(path, []) if self._get_type_of(m) == "method"])
+
+    def _get_accessed_by(self, path: str) -> Set[str]:
+        """get list of methods and attributes that are accessed from the given method"""
+        return set([ma for ma in self.uses_graph.get(path, []) if ma in ["method", "attribute"]])
+
+    def _get_source_code_of(self, path: str) -> str:
+        """get source string (indent reduced) of given method or class"""
+        node = self.repo.get_tree().find_node(path)
+        return unindent_code_snippet(node.get_text(self.repo.get_file(node.get_containing_file_node().get_path())))
+
+    def _get_line_count_of(self, path: str) -> int:
+        return len(self._get_source_code_of(path).split("/"))
+
+    def _is_attribute_or_accessor_method(self, path: str) -> bool:
+        path_type = self._get_type_of(path)
+        return path_type == "attribute" or (path_type == "method" and self._get_line_count_of(path) <= 3)
+
+    def _is_public(self, member):
+        text = self._get_source_code_of(member).lstrip()
+        if text.startswith("public"):
+            return True
+        if text.startswith("private"):
+            return False
+        raise Exception("No visibility on " + str(member))
 
 
 for repo in ["jfree/jfreechart:v1.5.1"]:
     r = LocalRepo(repo)
     ctx = BBContext(r)
-    ctx.find_all_disharmonies()
+    print(sorted(list(set(ctx.find_all_disharmonies()))))
 
