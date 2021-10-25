@@ -14,13 +14,6 @@ repos = [
 ENTRIES_PER_PATTERN = 4
 
 
-def make_sort_weights(pattern: PatternType):
-    SUPPORT_WEIGHT = 1.3  # support is more important than the views - only want the results where we are sure!
-    not_none_count = len(list(x for x in pattern if x is not None))
-    part = 1 / (not_none_count + SUPPORT_WEIGHT)
-    return [part] * not_none_count + [part * SUPPORT_WEIGHT]
-
-
 @cachier()
 def get_evo_changes(repo: str) -> Dict[str, List[str]]:
     return evo_calc_new(LocalRepo(repo))

@@ -172,7 +172,7 @@ class LocalRepo:
         if self.committish is None:
             return commit_hash_list
         else:
-            current_commit_date = self.get_commit(self.committish).committed_date
+            current_commit_date = self.get_head_commit().committed_date
             return [ch for ch in commit_hash_list if self.get_commit(ch).committed_date <= current_commit_date]
 
     def get_future_commits(self) -> List[str]:
@@ -186,7 +186,10 @@ class LocalRepo:
         return self.repo.commit(sha)
 
     def get_head_commit(self) -> Commit:
-        return self.repo.commit()
+        if self.committish is None:
+            return self.repo.commit()
+        else:
+            return self.get_commit(self.committish)
 
     def get_tree(self) -> 'RepoTree':
         if self.tree is None:
