@@ -97,7 +97,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
 
     analysis_graphs = list([MetricManager.get(repo, g) for g in views])
 
-    all_nodes = get_filtered_nodes(repo)
+    all_nodes = get_filtered_nodes(repo, node_filter_mode)
 
     print("Total node count:", len(all_nodes))
     print("Methods:", sum(repo.get_tree().find_node(path).get_type() == "method" for path in all_nodes))

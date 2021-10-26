@@ -366,7 +366,7 @@ class RepoTree:
             self.children[name] = RepoTree(self, name, ts_node)
         elif self.children[name].ts_node is None:  # known child receives ts_node
             self.children[name].ts_node = ts_node
-        elif ts_node is not None and ts_node != self.children[name].ts_node: # this is a name collision (e.g. java method overloading) or a field and method sharing the same name
+        elif ts_node is not None and ts_node != self.children[name].ts_node:  # this is a name collision (e.g. java method overloading) or a field and method sharing the same name
             self.children[name].additional_ts_nodes.append(ts_node)
         return self.children[name]
 

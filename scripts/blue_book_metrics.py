@@ -50,9 +50,24 @@ SHALLOW = 1
 TWO = 2
 THREE = 3
 FEW = 3  # 2-5
-SEVERAL = 5  # 2-5
+SEVERAL = 4  # 2-5
 MANY = 7  # TODO this is nowhere defined, I just picked a number that felt good to me!!!!
 SHORT_MEMORY_CAPACITY = 8  # 7-8
+
+
+BB_METRICS = [
+    ("god_classes", "classes"),
+    ("feature_envy_methods", "methods"),
+    ("data_classes", "classes"),
+    ("brain_methods", "methods"),
+  # ("brain_classes", "classes"),
+  # ("significant_duplication_method_pairs", "method_pairs"),
+    ("intensive_coupling_methods", "methods"),
+    ("dispersed_coupling_methods", "methods"),
+    ("shotgun_surgeries", "methods"),
+]
+
+_BB_CONTEXT_CACHE: Dict[str, "BBContext"] = dict()
 
 
 class BBContext:
@@ -60,7 +75,13 @@ class BBContext:
     uses_graph: Dict[str, Set[str]]
     is_used_by_graph: Dict[str, Set[str]]
 
-    def __init__(self, repo):
+    @staticmethod
+    def for_repo(repo: LocalRepo):
+        if repo.name not in _BB_CONTEXT_CACHE:
+            _BB_CONTEXT_CACHE[repo.name] = BBContext(repo)
+        return _BB_CONTEXT_CACHE[repo.name]
+
+    def __init__(self, repo: LocalRepo):
         self.repo = repo
         self.uses_graph = dict()
         self.is_used_by_graph = dict()
@@ -76,10 +97,13 @@ class BBContext:
         ReferencesContext(self.repo).iterate_all_references(handle_reference, "Extracting code references")
 
     def all_classes(self):
-        return get_filtered_nodes(self.repo, "classes")
+        return self.all_of_type("classes")
 
     def all_methods(self):
-        return get_filtered_nodes(self.repo, "methods")
+        return self.all_of_type("methods")
+
+    def all_of_type(self, node_type: NodeFilterMode):
+        return get_filtered_nodes(self.repo, node_type)
 
     def find_all_disharmonies(self) -> List[str]:
         return \
@@ -92,6 +116,9 @@ class BBContext:
             self.find_intensive_coupling_methods() +\
             self.find_dispersed_coupling_methods() +\
             self.find_shotgun_surgeries()
+
+    def find_by_name(self, name: str) -> List[str]:
+        return getattr(self, "find_" + name)()
 
     def find_god_classes(self) -> List[str]:
         """page 80"""
@@ -253,15 +280,50 @@ class BBContext:
 
     def _CYCLO(self, method) -> float:
         """mccabe cyclo complexity"""
-        return 1
+        # https://www.theserverside.com/feature/How-to-calculate-McCabe-cyclomatic-complexity-in-Java
+        # https://perso.ensta-paris.fr/~diam/java/online/notes-java/principles_and_practices/complexity/complexity-java-method.html
+        mccabe = 1
+
+        def handler(node):
+            nonlocal mccabe
+            if node.type in ["if_statement", "switch_label", "for_statement", "enhanced_for_statement", "while_statement", "do_statement", "break_statement", "continue_statement"]:
+                mccabe += 1
+        self._iterate_method_ast(method, handler)
+        return mccabe
 
     def _MAXNESTING(self, method) -> int:
         """maximum nesting level"""
-        return 1
+        current_nesting = 0
+        max_nesting = 0
+
+        def iterate_tree(cursor):
+            nonlocal current_nesting
+            nonlocal max_nesting
+            enhances_nesting = cursor.node.type in ["if_statement", "for_statement", "enhanced_for_statement", "while_statement", "do_statement", "switch_statement"]
+            if enhances_nesting:
+                current_nesting += 1
+                max_nesting = max(max_nesting, current_nesting)
+            if cursor.goto_first_child():
+                iterate_tree(cursor)
+                while cursor.goto_next_sibling():
+                    iterate_tree(cursor)
+                cursor.goto_parent()
+            if enhances_nesting:
+                current_nesting -= 1
+        iterate_tree(self._get_method_body_ast_cursor(method))
+        return max_nesting
 
     def _NOAV(self, method) -> int:
-        """number of accessed variables"""
-        return 1
+        """number of accessed variables: parameters, instance variables, local variables"""
+        accessed_variables = len([a for a in self._get_accessed_by(method) if self._get_type_of(a) == "attribute"])
+
+        def handler(node):
+            nonlocal accessed_variables
+            if node.type in ["formal_parameter", "local_variable_declaration"]:
+                accessed_variables += 1
+        self._iterate_method_ast(method, handler)
+
+        return accessed_variables
 
     def _CINT(self, method) -> int:
         """coupling intensity - amount of unique methods that are called"""
@@ -329,6 +391,22 @@ class BBContext:
         node = self.repo.get_tree().find_node(path)
         return unindent_code_snippet(node.get_text(self.repo.get_file(node.get_containing_file_node().get_path())))
 
+    def _get_method_body_ast_cursor(self, method: str):
+        node = self.repo.get_tree().find_node(method)
+        if node.ts_node is None:
+            raise Exception("No ast for method " + str(method))
+        return node.ts_node.walk()
+
+    def _iterate_method_ast(self, method: str, handler: Callable[[Any], None]):
+        def iterate_tree(cursor):
+            handler(cursor.node)
+            if cursor.goto_first_child():
+                iterate_tree(cursor)
+                while cursor.goto_next_sibling():
+                    iterate_tree(cursor)
+                cursor.goto_parent()
+        iterate_tree(self._get_method_body_ast_cursor(method))
+
     def _get_line_count_of(self, path: str) -> int:
         return len(self._get_source_code_of(path).split("/"))
 
@@ -350,11 +428,12 @@ class BBContext:
         return True
 
 
-for repo in ["jfree/jfreechart:v1.5.1"]:
-    r = LocalRepo(repo)
-    ctx = BBContext(r)
-    all_disharmonies = set(ctx.find_all_disharmonies())
-    everything = set(ctx.all_methods() + ctx.all_classes())
-    print(f"#Disharmonies: {len(all_disharmonies)} of {len(everything)}, relative: {'{:2.1f}'.format(len(all_disharmonies) / float(len(everything)) * 100)}%")
-    print(sorted(list(all_disharmonies)))
+if __name__ == "__main__":
+    for repo in ["jfree/jfreechart:v1.5.1"]:
+        r = LocalRepo(repo)
+        ctx = BBContext(r)
+        all_disharmonies = set(ctx.find_all_disharmonies())
+        everything = set(ctx.all_methods() + ctx.all_classes())
+        print(f"#Disharmonies: {len(all_disharmonies)} of {len(everything)}, relative: {'{:2.1f}'.format(len(all_disharmonies) / float(len(everything)) * 100)}%")
+        print(sorted(list(all_disharmonies)))
 
