@@ -7,6 +7,9 @@ from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 
 repos = [
+    'ErikBrendel/LD35',
+    'ErikBrendel/LudumDare',
+    # "junit-team/junit4",
     # "jfree/jfreechart:5ca5d26bb38bafead25f81e88e0938a5d042c2a4",  # May 15
     # "jfree/jfreechart:9020a32e62800916f1897c3eb17c95bf0371230b",  # Mar 7
     # "jfree/jfreechart:99d999395e46f8cf8689724853c9ede89be7c7ea",  # Mar 1
@@ -15,7 +18,7 @@ repos = [
     # "jfree/jfreechart",
     # "jfree/jfreechart:v1.5.3",
     # "jfree/jfreechart:v1.5.2",
-    "jfree/jfreechart:v1.5.1",
+    # "jfree/jfreechart:v1.5.1",
     # "jfree/jfreechart:v1.5.0",
     # "jfree/jfreechart:v1.0.19",
 ]
@@ -24,22 +27,6 @@ repos = [
 def match_score(result: BRS_DATA_TYPE):
     errors = result[0]
     return sum(x * x for x in errors)
-
-
-def get_found_violations(repo: LocalRepo):
-    all_results: List[BestResultsSet] = analyze_disagreements(repo, ALL_VIEWS, [p + [n + " - " + d] for p, n, d in TAXONOMY], "methods")
-    violations_dict = dict()
-    for ti, [taxonomy_entry, results] in enumerate(zip(TAXONOMY, all_results)):
-        print("######## " + str(ti))
-        for result in results.get_best(make_sort_weights(taxonomy_entry[0])):
-            score = match_score(result)
-            print(score)
-            if score <= 0.5:
-                a, b, *_ = result[1]
-                if a not in violations_dict:
-                    violations_dict[a] = set()
-                violations_dict[a].add(b)
-    return violations_dict
 
 
 def find_violations_for_pattern(repo: LocalRepo, pattern: PatternType, filter_mode: NodeFilterMode) -> List[str]:
@@ -68,26 +55,18 @@ def evaluate_metric_alignment(repo: LocalRepo, pattern: PatternType, bb_metric: 
     return intersection_size / float(union_size)
 
 
-plt.rcParams['figure.dpi'] = 300
-
-for repo_name in repos:
-    r = LocalRepo(repo_name)
-    # r.update()
-    print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
-    # merged_violations = get_found_violations(r)
-
+def make_individual_alignment_table(repo: LocalRepo):
     sm = plt.cm.ScalarMappable(cmap=None, norm=plt.Normalize(vmin=0, vmax=1))
+    columns = tuple(f"{''.join(w[0].upper() for w in m.split('_'))}: {len(find_violations_bb(repo, m))}" for m, _f in BB_METRICS)
+    rows = tuple(f"{''.join([str(e) if e is not None else '*' for e in p])}: {len(find_violations_for_pattern(repo, p, 'methods'))} / {len(find_violations_for_pattern(repo, p, 'classes'))}" for p, _n, _d in TAXONOMY)
 
-    columns = tuple(f"{''.join(w[0].upper() for w in m.split('_'))}: {len(find_violations_bb(r, m))}" for m, _f in BB_METRICS)
-    rows = tuple(f"{''.join([str(e) if e is not None else '*' for e in p])}: {len(find_violations_for_pattern(r, p, 'methods'))} / {len(find_violations_for_pattern(r, p, 'classes'))}" for p, _n, _d in TAXONOMY)
-
-    values = [[evaluate_metric_alignment(r, p, m, f) for m, f in BB_METRICS] for p, _n, _d in TAXONOMY]
+    values = [[evaluate_metric_alignment(repo, p, m, f) for m, f in BB_METRICS] for p, _n, _d in TAXONOMY]
     colors = [[sm.to_rgba(cell) for cell in data] for data in values]
-    cellText = [[f"{int(cell * 100)}%" for cell in data] for data in values]
+    cell_text = [[f"{int(cell * 100)}%" for cell in data] for data in values]
 
     plt.axis('tight')
     plt.axis('off')
-    table = plt.table(cellText=cellText, cellColours=colors, colLabels=columns, rowLabels=rows, loc='center', cellLoc="center")
+    table = plt.table(cellText=cell_text, cellColours=colors, colLabels=columns, rowLabels=rows, loc='center', cellLoc="center")
     table.scale(0.7, 1.5)
     for ri, row_values in enumerate(values):
         for ci, cell_value in enumerate(row_values):
@@ -96,3 +75,64 @@ for repo_name in repos:
                 table[ri + 1, ci].get_text().set_color("white")
     plt.colorbar(sm)
     plt.show()
+
+
+def make_aggregated_alignment_table(repo: LocalRepo):
+    # batched preprocessing:
+    all_patterns = [p + [n + " - " + d] for p, n, d in TAXONOMY]
+    analyze_disagreements(repo, ALL_VIEWS, all_patterns, "classes")
+    analyze_disagreements(repo, ALL_VIEWS, all_patterns, "methods")
+
+    bb_context = BBContext.for_repo(repo)
+    bb: Set[str] = set()
+    for disharmony in bb_context.find_all_disharmonies():
+        bb.add(bb_context.get_containing_class_of(disharmony))
+
+    vd: Set[str] = set()
+    for p, n, d in TAXONOMY:
+        vd.update(find_violations_for_pattern(repo, p, "classes"))
+        for m in find_violations_for_pattern(repo, p, "methods"):
+            vd.add(bb_context.get_containing_class_of(m))
+
+    total = set(bb_context.all_classes())
+    not_bb = total.difference(bb)
+    not_vd = total.difference(vd)
+
+    columns = (" BB ", " -BB ", " Total ")
+    rows = (" VD ", " -VD ", " Total ")
+
+    cell_text = [
+        [
+            str(len(vd.intersection(bb))),
+            str(len(vd.intersection(not_bb))),
+            str(len(vd)),
+        ],
+        [
+            str(len(not_vd.intersection(bb))),
+            str(len(not_vd.intersection(not_bb))),
+            str(len(not_vd)),
+        ],
+        [
+            str(len(bb)),
+            str(len(not_bb)),
+            str(len(total)),
+        ]
+    ]
+
+    plt.axis('tight')
+    plt.axis('off')
+    table = plt.table(cellText=cell_text, colLabels=columns, rowLabels=rows, loc='center', cellLoc="center")
+    table.scale(0.5, 3)
+    plt.show()
+
+
+plt.rcParams['figure.dpi'] = 300
+
+for repo_name in repos:
+    r = LocalRepo(repo_name)
+    # r.update()
+    print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
+
+    # make_individual_alignment_table(r)
+    make_aggregated_alignment_table(r)
+

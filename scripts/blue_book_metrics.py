@@ -236,7 +236,7 @@ class BBContext:
         if len(accessed_attributes) == 0:
             return 1
 
-        containing_class = self._get_containing_class_of(method)
+        containing_class = self.get_containing_class_of(method)
         # TODO there are two varying definitions for the nominator of this calculation:
         #  All class attributes: https://www.simpleorientedarchitecture.com/how-to-identify-feature-envy-using-ndepend/
         #  All accessed class attributes: https://docs.embold.io/locality-of-attribute-accesses/
@@ -249,8 +249,8 @@ class BBContext:
     def _FDP(self, method) -> int:
         """foreign data providers"""
         accessed_attributes = [a for a in self._get_accessed_by(method) if self._is_attribute_or_accessor_method(a)]
-        attribute_classes = set(self._get_containing_class_of(a) for a in accessed_attributes)
-        attribute_classes.discard(self._get_containing_class_of(method))
+        attribute_classes = set(self.get_containing_class_of(a) for a in accessed_attributes)
+        attribute_classes.discard(self.get_containing_class_of(method))
         return len(attribute_classes)
 
     def _WOC(self, clazz) -> float:
@@ -335,7 +335,7 @@ class BBContext:
         if cint == 0:
             return 0  # absolutely no dispersion to see here :D
         accessed_methods = [m for m in self._get_accessed_by(method) if self._get_type_of(m) == "method"]
-        accessed_classes = set(self._get_containing_class_of(m) for m in accessed_methods)
+        accessed_classes = set(self.get_containing_class_of(m) for m in accessed_methods)
         return len(accessed_classes) / float(cint)
 
     def _CM(self, method) -> int:
@@ -344,7 +344,7 @@ class BBContext:
 
     def _CC(self, method) -> int:
         """changing classes - number of caller classes"""
-        return len(set([self._get_containing_class_of(m) for m in self._get_callers_of(method)]))
+        return len(set([self.get_containing_class_of(m) for m in self._get_callers_of(method)]))
 
     #
     # even lower level methods for working with paths
@@ -362,7 +362,7 @@ class BBContext:
             return "attribute"
         return "other"
 
-    def _get_containing_class_of(self, path: str) -> str:
+    def get_containing_class_of(self, path: str) -> str:
         """get self or the first parent that is of type class, raising on reaching root"""
         parts = path.split("/")
         while len(parts) > 0:
@@ -431,7 +431,7 @@ class BBContext:
 if __name__ == "__main__":
     for repo in ["jfree/jfreechart:v1.5.1"]:
         r = LocalRepo(repo)
-        ctx = BBContext(r)
+        ctx = BBContext.for_repo(r)
         all_disharmonies = set(ctx.find_all_disharmonies())
         everything = set(ctx.all_methods() + ctx.all_classes())
         print(f"#Disharmonies: {len(all_disharmonies)} of {len(everything)}, relative: {'{:2.1f}'.format(len(all_disharmonies) / float(len(everything)) * 100)}%")

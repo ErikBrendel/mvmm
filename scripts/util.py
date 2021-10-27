@@ -153,7 +153,6 @@ def map_parallel(data_list, mapper, result_handler, desc, force_non_parallel=Fal
         with Pool(processes=PARALLEL_THREADS) as pool:
             bar = log_progress(total=len(data_list), desc=desc)
             results = pool.imap_unordered(mapper, data_list, batch_size)
-            # single-threaded alternative for debugging:
 
             for result in results:
                 if result is not None:
