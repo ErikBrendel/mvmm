@@ -70,7 +70,10 @@ class GraphManager:
         if len(line) == 0:
             self.process.poll()
             if self.process.returncode is not None:
-                raise Exception("Coupling Graph Subprocess terminated with " + str(self.process.returncode) + "!")
+                if self.process.returncode < 0:
+                    raise Exception("Coupling Graph Subprocess was terminated with POSIX signal " + str(-self.process.returncode) + "!")
+                else:
+                    raise Exception("Coupling Graph Subprocess terminated with " + str(self.process.returncode) + "!")
         return line
 
     def _show_progress(self, progress, total, description):
