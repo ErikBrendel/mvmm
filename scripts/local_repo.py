@@ -398,6 +398,16 @@ class RepoTree:
             node_type = node_type[0:-len("_declaration")]
         return node_type
 
+    def get_simple_type(self) -> str:
+        raw_type = self.get_type()
+        if raw_type in ["class", "enum", "interface"]:
+            return "class"
+        if raw_type in ["method", "constructor"]:
+            return "method"
+        if raw_type == "field":
+            return "attribute"
+        return "other"
+
     def get_children_of_type(self, type_str) -> List['RepoTree']:
         return [c for c in self.children.values() if c.get_type() == type_str]
 

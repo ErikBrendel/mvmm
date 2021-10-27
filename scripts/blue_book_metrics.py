@@ -1,5 +1,7 @@
 from typing import *
 
+from cachier import cachier
+
 from analysis import *
 from local_repo import *
 
@@ -70,6 +72,29 @@ BB_METRICS = [
 _BB_CONTEXT_CACHE: Dict[str, "BBContext"] = dict()
 
 
+@cachier()
+def calculate_usages_graphs(repo_name: str) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
+    uses_graph: Dict[str, Set[str]] = dict()
+    is_used_by_graph: Dict[str, Set[str]] = dict()
+    repo = LocalRepo(repo_name)
+    tree = repo.get_tree()
+
+    def handle_reference(a, b, _strength):
+        nonlocal uses_graph
+        nonlocal is_used_by_graph
+        if tree.find_node(a).get_simple_type() in ["class", "method"] and tree.find_node(b).get_simple_type() in ["class", "method"]:
+            if a not in uses_graph:
+                uses_graph[a] = set()
+            uses_graph[a].add(b)
+            if b not in is_used_by_graph:
+                is_used_by_graph[b] = set()
+            is_used_by_graph[b].add(a)
+
+    ReferencesContext(repo).iterate_all_references(handle_reference, "Extracting code references")
+
+    return uses_graph, is_used_by_graph
+
+
 class BBContext:
     repo: LocalRepo
     uses_graph: Dict[str, Set[str]]
@@ -83,18 +108,7 @@ class BBContext:
 
     def __init__(self, repo: LocalRepo):
         self.repo = repo
-        self.uses_graph = dict()
-        self.is_used_by_graph = dict()
-
-        def handle_reference(a, b, _strength):
-            if a not in self.uses_graph:
-                self.uses_graph[a] = set()
-            self.uses_graph[a].add(b)
-            if b not in self.is_used_by_graph:
-                self.is_used_by_graph[b] = set()
-            self.is_used_by_graph[b].add(a)
-
-        ReferencesContext(self.repo).iterate_all_references(handle_reference, "Extracting code references")
+        self.uses_graph, self.is_used_by_graph = calculate_usages_graphs(repo.name)
 
     def all_classes(self):
         return self.all_of_type("classes")
@@ -353,14 +367,7 @@ class BBContext:
     def _get_type_of(self, path: str) -> str:
         """returns one of [method, class, attribute, other]"""
         node = self.repo.get_tree().find_node(path)
-        raw_type = node.get_type()
-        if raw_type in ["class", "enum", "interface"]:
-            return "class"
-        if raw_type in ["method", "constructor"]:
-            return "method"
-        if raw_type == "field":
-            return "attribute"
-        return "other"
+        return node.get_simple_type()
 
     def get_containing_class_of(self, path: str) -> str:
         """get self or the first parent that is of type class, raising on reaching root"""
@@ -384,7 +391,7 @@ class BBContext:
 
     def _get_accessed_by(self, path: str) -> Set[str]:
         """get list of methods and attributes that are accessed from the given method"""
-        return set([ma for ma in self.uses_graph.get(path, []) if ma in ["method", "attribute"]])
+        return set([ma for ma in self.uses_graph.get(path, []) if self._get_type_of(ma) in ["method", "attribute"]])
 
     def _get_source_code_of(self, path: str) -> str:
         """get source string (indent reduced) of given method or class"""

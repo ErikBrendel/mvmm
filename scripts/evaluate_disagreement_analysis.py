@@ -1,3 +1,5 @@
+import pyfiglet
+
 from custom_types import *
 from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS
@@ -23,6 +25,18 @@ repos = [
     # "jfree/jfreechart:v1.5.1",
     # "jfree/jfreechart:v1.5.0",
     # "jfree/jfreechart:v1.0.19",
+
+    "jOOQ/jOOQ",
+    "wumpz/jhotdraw",
+    # "neuland/jade4j",
+    "apache/log4j",
+    # "hunterhacker/jdom",
+    "jenkinsci/jenkins",
+    "brettwooldridge/HikariCP",
+    # "adamfisk/LittleProxy",
+    # "dynjs/dynjs",
+    "SonarSource/sonarqube",
+    "eclipse/aspectj.eclipse.jdt.core",
 ]
 
 
@@ -64,7 +78,7 @@ def make_individual_alignment_table(repo: LocalRepo):
 
     values = [[evaluate_metric_alignment(repo, p, m, f) for m, f in BB_METRICS] for p, _n, _d in TAXONOMY]
     colors = [[sm.to_rgba(cell) for cell in data] for data in values]
-    cell_text = [[f"{int(cell * 100)}%" for cell in data] for data in values]
+    cell_text = [[f"{int(cell * 100)}%" if cell >= 0 else "" for cell in data] for data in values]
 
     plt.axis('tight')
     plt.axis('off')
@@ -82,7 +96,7 @@ def make_individual_alignment_table(repo: LocalRepo):
 
 def make_aggregated_alignment_table(repo: LocalRepo):
     # batched preprocessing:
-    all_patterns = [p + [n + " - " + d] for p, n, d in TAXONOMY]
+    all_patterns = [p for p, n, d in TAXONOMY]
     analyze_disagreements(repo, ALL_VIEWS, all_patterns, "classes")
     analyze_disagreements(repo, ALL_VIEWS, all_patterns, "methods")
 
@@ -134,16 +148,23 @@ plt.rcParams['figure.dpi'] = 300
 
 
 def preprocess(repo_name: str):
-    make_aggregated_alignment_table(LocalRepo(repo_name))
+    repo = LocalRepo(repo_name)
+    all_patterns = [p for p, n, d in TAXONOMY]
+    analyze_disagreements(repo, ALL_VIEWS, all_patterns, "classes")
+    analyze_disagreements(repo, ALL_VIEWS, all_patterns, "methods")
 
 
 # map_parallel(repos, preprocess, lambda foo: foo, "Preprocessing all repos")
+
+for repo_name in repos:
+    print(pyfiglet.figlet_format(repo_name))
+    preprocess(repo_name)
 
 for repo_name in repos:
     r = LocalRepo(repo_name)
     # r.update()
     print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
 
-    # make_individual_alignment_table(r)
+    make_individual_alignment_table(r)
     make_aggregated_alignment_table(r)
 
