@@ -3,19 +3,21 @@ from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS
 from best_results_set import BestResultsSet, BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
+from util import map_parallel
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 
 repos = [
-    'ErikBrendel/LD35',
     'ErikBrendel/LudumDare',
-    # "junit-team/junit4",
+    'ErikBrendel/LD35',
+    "junit-team/junit4",
+    "vanzin/jEdit",
     # "jfree/jfreechart:5ca5d26bb38bafead25f81e88e0938a5d042c2a4",  # May 15
     # "jfree/jfreechart:9020a32e62800916f1897c3eb17c95bf0371230b",  # Mar 7
     # "jfree/jfreechart:99d999395e46f8cf8689724853c9ede89be7c7ea",  # Mar 1
     # "jfree/jfreechart:fc4ddeed916c4cfd6479bf7378c6cdb94f6a19fe",  # Feb 6
     # "jfree/jfreechart:461625fd1f7242a1223f8e73716e9f2b4e9fd8a5",  # Dez 19, 2020
-    # "jfree/jfreechart",
+    "jfree/jfreechart",
     # "jfree/jfreechart:v1.5.3",
     # "jfree/jfreechart:v1.5.2",
     # "jfree/jfreechart:v1.5.1",
@@ -74,6 +76,7 @@ def make_individual_alignment_table(repo: LocalRepo):
                 # the header row is row 0. The header column is column -1
                 table[ri + 1, ci].get_text().set_color("white")
     plt.colorbar(sm)
+    plt.title(repo.name)
     plt.show()
 
 
@@ -123,10 +126,18 @@ def make_aggregated_alignment_table(repo: LocalRepo):
     plt.axis('off')
     table = plt.table(cellText=cell_text, colLabels=columns, rowLabels=rows, loc='center', cellLoc="center")
     table.scale(0.5, 3)
+    plt.title(repo.name)
     plt.show()
 
 
 plt.rcParams['figure.dpi'] = 300
+
+
+def preprocess(repo_name: str):
+    make_aggregated_alignment_table(LocalRepo(repo_name))
+
+
+# map_parallel(repos, preprocess, lambda foo: foo, "Preprocessing all repos")
 
 for repo_name in repos:
     r = LocalRepo(repo_name)

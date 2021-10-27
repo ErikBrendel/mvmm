@@ -70,11 +70,11 @@ def get_filtered_nodes(repo: LocalRepo, mode: NodeFilterMode) -> List[str]:
             if node_filter_func(tree_node.get_path())]
 
 
-SHOW_RESULTS_SIZE = 50
+SHOW_RESULTS_SIZE = 500
 
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType,
-                          node_filter_mode: NodeFilterMode, parallel=True, ignore_previous_results=False) -> List[BestResultsSet]:
+                          node_filter_mode: NodeFilterMode, ignore_previous_results=False) -> List[BestResultsSet]:
     """
     when views are [ref, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled by references, and the language does not matter

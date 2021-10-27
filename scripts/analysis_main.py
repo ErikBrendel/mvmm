@@ -87,7 +87,7 @@ for repo in repos:
             [1, 1, 0, 1, 'Weakly modularized code: dependent on each other, but semantically disjoint'],
             [1, 1, 1, 0, 'Too far apart: These modules seem to belong closer together than they currently are in the project structure'],
             [1, 1, 1, 1, 'Evenly coupled across all metrics'],
-        ], node_filter_mode, parallel=False, ignore_previous_results=False)
+        ], node_filter_mode, ignore_previous_results=False)
         print([len(r.data) for r in results])
 
 graph_manager.flush()

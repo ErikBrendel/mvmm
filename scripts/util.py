@@ -132,7 +132,7 @@ class DirectoryExclusionTracker:
 PARALLEL_MAP_DEBUG_MODE = False
 
 PARALLEL_THREADS = 64
-MIN_PARALLEL_BATCH_SIZE = 64
+MIN_PARALLEL_BATCH_SIZE = 1
 MAX_PARALLEL_BATCH_SIZE = 1024
 MIN_STEP_SIZE = 10  # at most a tenth of data should be done in one batch
 
