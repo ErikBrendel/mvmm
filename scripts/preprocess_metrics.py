@@ -5,18 +5,8 @@ repos = [
     'ErikBrendel/LD35',
     "junit-team/junit4",
     "vanzin/jEdit",
-    # "jfree/jfreechart:5ca5d26bb38bafead25f81e88e0938a5d042c2a4",  # May 15
-    # "jfree/jfreechart:9020a32e62800916f1897c3eb17c95bf0371230b",  # Mar 7
-    # "jfree/jfreechart:99d999395e46f8cf8689724853c9ede89be7c7ea",  # Mar 1
-    # "jfree/jfreechart:fc4ddeed916c4cfd6479bf7378c6cdb94f6a19fe",  # Feb 6
-    # "jfree/jfreechart:461625fd1f7242a1223f8e73716e9f2b4e9fd8a5",  # Dez 19, 2020
     "jfree/jfreechart",
-    # "jfree/jfreechart:v1.5.3",
-    # "jfree/jfreechart:v1.5.2",
-    # "jfree/jfreechart:v1.5.1",
-    # "jfree/jfreechart:v1.5.0",
-    # "jfree/jfreechart:v1.0.19",
-
+    "jfree/jfreechart:v1.5.3",
     "jOOQ/jOOQ",
     "wumpz/jhotdraw",
     "neuland/jade4j",
