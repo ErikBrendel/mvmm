@@ -163,14 +163,16 @@ def preprocess(repo_name: str):
 #for repo_name in repos:
 #    preprocess(repo_name)
 
-for repo_name in repos:
-    r = LocalRepo(repo_name)
-    make_individual_bb_alignment_table(r)
-    make_aggregated_bb_alignment_table(r)
+#for repo_name in repos:
+#    r = LocalRepo(repo_name)
+#    make_individual_bb_alignment_table(r)
+#    make_aggregated_bb_alignment_table(r)
 
 
 for repo_name, old_version in [
     ("jfree/jfreechart:v1.5.3", "v1.5.0"),
+    #("junit-team/junit4", ?) # https://github.com/junit-team/junit4/tags
+    #("apache/log4j", ?) # https://github.com/apache/log4j/tags
 ]:
     r = LocalRepo(repo_name)
     make_aggregated_ref_alignment_table(r, old_version)

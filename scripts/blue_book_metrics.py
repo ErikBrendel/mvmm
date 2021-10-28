@@ -95,6 +95,11 @@ def calculate_usages_graphs(repo_name: str) -> Tuple[Dict[str, Set[str]], Dict[s
     return uses_graph, is_used_by_graph
 
 
+@cachier()
+def find_disharmonies_cached(repo: LocalRepo, name: str) -> List[str]:
+    return BBContext.for_repo(repo).find_by_name_uncached(name)
+
+
 class BBContext:
     repo: LocalRepo
     uses_graph: Dict[str, Set[str]]
@@ -120,18 +125,12 @@ class BBContext:
         return get_filtered_nodes(self.repo, node_type)
 
     def find_all_disharmonies(self) -> List[str]:
-        return \
-            self.find_god_classes() +\
-            self.find_feature_envy_methods() +\
-            self.find_data_classes() +\
-            self.find_brain_methods() +\
-            self.find_brain_classes() +\
-            self.find_significant_duplication_method_pairs() +\
-            self.find_intensive_coupling_methods() +\
-            self.find_dispersed_coupling_methods() +\
-            self.find_shotgun_surgeries()
+        return [result for name, *_ in BB_METRICS for result in self.find_by_name(name)]
 
     def find_by_name(self, name: str) -> List[str]:
+        return find_disharmonies_cached(self.repo, name)
+
+    def find_by_name_uncached(self, name: str) -> List[str]:
         return getattr(self, "find_" + name)()
 
     def find_god_classes(self) -> List[str]:
