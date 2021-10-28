@@ -125,11 +125,9 @@ def get_all_refactoring_names(repo: LocalRepo, old: str, new: str):
     return names
 
 
-def get_nodes_being_refactored_in_the_future(repo: LocalRepo):
-    if repo.committish is None:
-        raise Exception("This can only be done on repo states from the past. Please supply a branch, tag, or commit")
-    old = repo.get_commit(repo.committish).hexsha
-    new = repo.get_head_commit(True).hexsha
+def get_nodes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) -> Set[str]:
+    old = repo.get_commit(old_version).hexsha
+    new = repo.get_head_commit().hexsha
 
     results: Set[str] = set()
     for c in get_raw_refactorings_per_commit(repo, old, new):
@@ -138,8 +136,9 @@ def get_nodes_being_refactored_in_the_future(repo: LocalRepo):
     return results
 
 
-def get_classes_being_refactored_in_the_future(repo: LocalRepo):
-    return set([repo.get_tree().find_node(r).get_containing_class_node().get_path() for r in get_nodes_being_refactored_in_the_future(repo)])
+def get_classes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) -> Set[str]:
+    return set([repo.get_tree().find_node(r).get_containing_class_node().get_path()
+                for r in get_nodes_being_refactored_in_the_future(repo, old_version)])
 
 
 if __name__ == "__main__":
@@ -147,6 +146,6 @@ if __name__ == "__main__":
     # res = get_processed_refactorings_data(LocalRepo("jfree/jfreechart"), "v1.5.3", "master")
     # print(res)
     repo = LocalRepo("jfree/jfreechart:v1.5.3")
-    results = get_classes_being_refactored_in_the_future(repo)
+    results = get_classes_being_refactored_in_the_future(repo, "v1.5.0")
     print(results)
     # print(get_nodes_being_refactored_in_the_future(LocalRepo("jfree/jfreechart:b3d63c7148e5bbff621fd01e22db69189f09bf89")))

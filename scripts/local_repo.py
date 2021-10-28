@@ -185,8 +185,8 @@ class LocalRepo:
     def get_commit(self, sha: str) -> Commit:
         return self.repo.commit(sha)
 
-    def get_head_commit(self, force_present_time=False) -> Commit:
-        if self.committish is None or force_present_time:
+    def get_head_commit(self) -> Commit:
+        if self.committish is None:
             return self.repo.commit()
         else:
             return self.get_commit(self.committish)
