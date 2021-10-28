@@ -185,8 +185,8 @@ class LocalRepo:
     def get_commit(self, sha: str) -> Commit:
         return self.repo.commit(sha)
 
-    def get_head_commit(self) -> Commit:
-        if self.committish is None:
+    def get_head_commit(self, force_present_time=False) -> Commit:
+        if self.committish is None or force_present_time:
             return self.repo.commit()
         else:
             return self.get_commit(self.committish)
@@ -195,6 +195,12 @@ class LocalRepo:
         if self.tree is None:
             self.tree = RepoTree.init_from_repo(self)
         return self.tree
+
+    def __eq__(self, other):
+        return other and self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
     # to allow for pickling, see https://stackoverflow.com/a/2345985/4354423
     def __getstate__(self):
@@ -408,12 +414,13 @@ class RepoTree:
             return "attribute"
         return "other"
 
-    def get_children_of_type(self, type_str) -> List['RepoTree']:
-        return [c for c in self.children.values() if c.get_type() == type_str]
-
-    def get_descendants_of_type(self, type_str) -> List['RepoTree']:
-        children_descendants = [child.get_descendants_of_type(type_str) for child in self.children.values()]
-        return self.get_children_of_type(type_str) + [descendant for sublist in children_descendants for descendant in sublist]
+    def get_containing_class_node(self):
+        """find me or my first parent that is a class"""
+        if self.get_simple_type() == "class":
+            return self
+        if self.parent is not None:
+            return self.parent.get_containing_class_node()
+        return None
 
     def get_containing_file_node(self) -> Optional['RepoTree']:
         """find me or my first parent that is a file"""
@@ -422,6 +429,28 @@ class RepoTree:
         if self.parent is not None:
             return self.parent.get_containing_file_node()
         return None
+
+    def get_children_of_type(self, type_str) -> List['RepoTree']:
+        return [c for c in self.children.values() if c.get_type() == type_str]
+
+    def get_descendants_of_type(self, type_str) -> List['RepoTree']:
+        children_descendants = [child.get_descendants_of_type(type_str) for child in self.children.values()]
+        return self.get_children_of_type(type_str) + [descendant for sublist in children_descendants for descendant in sublist]
+
+    def find_descendant_matching_line_range(self, begin_line: int, end_line: int) -> 'RepoTree':
+        for child in self.children.values():
+            if child.ts_node is not None and (child.ts_node.start_point[0] <= begin_line and end_line <= child.ts_node.end_point[0]):
+                return child.find_descendant_matching_line_range(begin_line, end_line)
+        return self
+
+    def find_descendants_of_name(self, name: str, result_set: Set['RepoTree'] = None) -> Set['RepoTree']:
+        if result_set is None:
+            result_set = set()
+        if self.name == name:
+            result_set.add(self)
+        for child in self.children.values():
+            child.find_descendants_of_name(name, result_set)
+        return result_set
 
     def find_outer_node_named(self, name):
         if self.name == name:

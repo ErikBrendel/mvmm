@@ -3,6 +3,8 @@ import random
 from typing import *
 from workarounds import *
 
+T = TypeVar("T")
+
 if os.environ.get("JUPYTER"):
     from tqdm.notebook import tqdm as log_progress
 else:
@@ -45,6 +47,16 @@ def frange(start, stop, step):
             yield r
             r += step
     yield stop
+
+
+def minmax(it: Iterable[T]) -> Tuple[T, T]:
+    min_val = max_val = None
+    for val in it:
+        if min_val is None or val < min_val:
+            min_val = val
+        if max_val is None or val > max_val:
+            max_val = val
+    return min_val, max_val
 
 
 def generate_one_distributions(dim: int, precision=10) -> Generator[List[float], None, None]:

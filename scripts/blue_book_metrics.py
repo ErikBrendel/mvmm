@@ -371,13 +371,7 @@ class BBContext:
 
     def get_containing_class_of(self, path: str) -> str:
         """get self or the first parent that is of type class, raising on reaching root"""
-        parts = path.split("/")
-        while len(parts) > 0:
-            potential_result = "/".join(parts)
-            if self._get_type_of(potential_result) == "class":
-                return potential_result
-            parts = parts[:-1]
-        raise Exception("Cannot find containing class of other!")
+        return self.repo.get_tree().find_node(path).get_containing_class_node().get_path()
 
     def _get_methods_of(self, clazz: str) -> List[str]:
         return [m.get_path() for m in self.repo.get_tree().find_node(clazz).get_children_of_type("method")]
