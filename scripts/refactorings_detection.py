@@ -9,6 +9,16 @@ from custom_types import *
 from util import decode, minmax
 from local_repo import LocalRepo
 
+# To set up repository mining, do the following:
+# 0. make sure to have java installed (version 14 did not work, 11 is fine)
+# 1. clone the repo from https://github.com/tsantalis/RefactoringMiner.git to your local machine
+# 2. If this issue is not yet resolved: https://github.com/tsantalis/RefactoringMiner/issues/222
+#    - Open the file RefactoringMiner/src/org/refactoringminer/util/GitServiceImpl.java
+#    - edit method openRepository(String) (line 109), and replace '.setGitDir(new File(folder, ".git"))' with '.setGitDir(folder)'
+# 3. install the command line program like explained on the github page:
+#    - execute './gradlew distZip'
+#    - go to 'build/distributions/' and unzip the RefactoringMiner zip
+# Your executable is 'bin/RefactoringMiner' of that zip. Create a symlink if you like, and pass the path to this script here
 REFACTORING_MINER_CLI_PATH = os.getenv("REFACTORING_MINER_CLI_PATH", "/home/ebrendel/util/RefactoringMiner/cli")
 
 # Those are too trivial to count as a refactoring that might fix a modularity violation, so we ignore them
