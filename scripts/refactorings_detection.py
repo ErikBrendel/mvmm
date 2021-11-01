@@ -96,10 +96,10 @@ def get_raw_refactorings_per_commit(repo: LocalRepo, old: str, new: str):
             os.remove(temp_file_path)
 
 
-print("Cached values at: " + get_raw_refactorings_per_commit.cache_dpath())
+# print("Cached values at: " + get_raw_refactorings_per_commit.cache_dpath())
 
 
-def _process_path(repo: LocalRepo, locations: List[Dict[str, Any]]) -> Set[str]:
+def refactoring_process_path(repo: LocalRepo, locations: List[Dict[str, Any]]) -> Set[str]:
     results: Set[str] = set()
     for location in locations:
         if location["codeElementType"] not in {"METHOD_DECLARATION", "FIELD_DECLARATION"}:
@@ -132,7 +132,7 @@ def get_nodes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) 
     results: Set[str] = set()
     for c in get_raw_refactorings_per_commit(repo, old, new):
         for ref in c["refactorings"]:
-            results.update(_process_path(repo, ref["leftSideLocations"]))
+            results.update(refactoring_process_path(repo, ref["leftSideLocations"]))
     return results
 
 

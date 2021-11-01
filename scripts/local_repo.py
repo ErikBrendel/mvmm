@@ -27,9 +27,9 @@ def nice_path(repo: 'LocalRepo', path: str):
     return path.replace("/", ".")
 
 
-def path_html(repo: 'LocalRepo', path: str) -> str:
+def path_html(repo: 'LocalRepo', path: str, version: str = None) -> str:
     # language=HTML
-    return f"""<a target="_blank" href="{repo.url_for(path)}" title="{path}">{nice_path(repo, path)}</a>"""
+    return f"""<a target="_blank" href="{repo.url_for(path, version)}" title="{path}">{nice_path(repo, path)}</a>"""
 
 
 # https://gitpython.readthedocs.io/en/stable/reference.html
@@ -48,7 +48,7 @@ class LocalRepo:
                 name_path_part, self.committish = name.split(":")
             self.repo_name = "/".join(name_path_part.split("/")[:2])
             self.sub_dir = None if len(self.repo_name) == len(name_path_part) else name_path_part[len(self.repo_name) + 1:]
-        self.tree = None
+        self.trees = None
         if not self.is_cloned():
             print("cloning " + self.repo_name + ", this may take a while...")
             self.clone()
@@ -92,11 +92,17 @@ class LocalRepo:
         else:
             return REPO_URL_START + self.repo_name + REPO_URL_END
 
-    def url_for(self, path):
+    def url_for(self, path, version: str = None):
+        if version is None:
+            if self.committish is None:
+                version = "master"
+            else:
+                version = self.committish
         if path.startswith("/"):
             path = path[1:]
-        if path in self.url_cache:
-            return self.url_cache[path]
+        cache_key = path + ":" + version
+        if cache_key in self.url_cache:
+            return self.url_cache[cache_key]
 
         ending = "." + self.type_extension()
         file_path = path
@@ -105,34 +111,36 @@ class LocalRepo:
         if self.is_identified_by_path():
             file_url = self.name
         else:
-            file_url = REPO_URL_START + self.repo_name + "/blob/master/" + file_path
+            file_url = f"{REPO_URL_START}{self.repo_name}/blob/{version}/{file_path}"
         if ADD_LINE_NUMBER_TO_LINK and not self.is_identified_by_path() and ending in file_path:
             file = self.get_file(file_path)
             if file is None:
                 print("Cannot find file anymore:", file_path)
-                self.url_cache[path] = file_url
+                self.url_cache[cache_key] = file_url
                 return file_url
             target_node = self.get_tree().find_node(path)
             if target_node is None or target_node.ts_node is None:
-                self.url_cache[path] = file_url
+                self.url_cache[cache_key] = file_url
                 return file_url
             before_content = decode(file.get_content()[:target_node.ts_node.start_byte])
             result_url = file_url + "#L" + str(len(before_content.split("\n")))
-            self.url_cache[path] = result_url
+            self.url_cache[cache_key] = result_url
             return result_url
         else:
-            self.url_cache[path] = file_url
+            self.url_cache[cache_key] = file_url
             return file_url
 
     def type_extension(self):
         return "java"  # return the file extension that the files of your language have
 
-    def get_file(self, path):
+    def get_file(self, path, version: str = None) -> 'RepoFile':
         if self.path_to_file_cache is None:
             self.path_to_file_cache = {}
-            for repo_file in self.get_all_files():
-                self.path_to_file_cache[repo_file.get_path()] = repo_file
-        return self.path_to_file_cache.get(path)
+        if version not in self.path_to_file_cache:
+            self.path_to_file_cache[version] = {}
+            for repo_file in self.get_all_files(version):
+                self.path_to_file_cache[version][repo_file.get_path()] = repo_file
+        return self.path_to_file_cache[version].get(path)
 
     def get_file_objects(self, commit_hash=None):
         if commit_hash is None and self.committish is not None:
@@ -150,15 +158,15 @@ class LocalRepo:
                     files.append(git_object)
         return files
 
-    def get_all_files(self) -> List['RepoFile']:
+    def get_all_files(self, version: str = None) -> List['RepoFile']:
         if self.sub_dir is None:
-            return [RepoFile(self, o) for o in self.get_file_objects()]
+            return [RepoFile(self, o) for o in self.get_file_objects(version)]
         else:
-            return [RepoFile(self, o) for o in self.get_file_objects() if o.path.startswith(self.sub_dir)]
+            return [RepoFile(self, o) for o in self.get_file_objects(version) if o.path.startswith(self.sub_dir)]
 
-    def get_all_interesting_files(self) -> List['RepoFile']:
+    def get_all_interesting_files(self, version: str = None) -> List['RepoFile']:
         test_skipper = DirectoryExclusionTracker(['test', 'tests', 'samples', 'example', 'examples', 'androidTest'])
-        all_files = self.get_all_files()
+        all_files = self.get_all_files(version)
         result = [file for file in all_files if not (file.should_get_skipped() or test_skipper.should_get_skipped(file.get_path()))]
         print("Analyzing", len(result), "of", len(all_files), "files, the rest was skipped as tests or samples")
         print("Skipped", len(test_skipper.get_skipped_roots()), "test and sample roots:", test_skipper.get_skipped_roots())
@@ -191,10 +199,12 @@ class LocalRepo:
         else:
             return self.get_commit(self.committish)
 
-    def get_tree(self) -> 'RepoTree':
-        if self.tree is None:
-            self.tree = RepoTree.init_from_repo(self)
-        return self.tree
+    def get_tree(self, version: str = None) -> 'RepoTree':
+        if self.trees is None:
+            self.trees = {}
+        if version not in self.trees:
+            self.trees[version] = RepoTree.init_from_repo(self, version)
+        return self.trees[version]
 
     def __eq__(self, other):
         return other and self.name == other.name
@@ -305,9 +315,9 @@ class RepoFile:
 
 class RepoTree:
     @staticmethod
-    def init_from_repo(repo) -> 'RepoTree':
+    def init_from_repo(repo, version: str = None) -> 'RepoTree':
         found_nodes = RepoTree(None, "")
-        files = repo.get_all_interesting_files()
+        files = repo.get_all_interesting_files(version)
         for file in files:
             def handle(logic_path, ts_node):
                 found_nodes.register(logic_path, ts_node)

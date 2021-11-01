@@ -1,4 +1,5 @@
 import os
+import pickle
 import random
 from typing import *
 from workarounds import *
@@ -485,6 +486,27 @@ def show_file_download_link(file_path):
                 create_download_link(f.read(), "Download", file_path.split("/")[-1])
         except:
             print_html("Please manually download the file at " + file_path)
+
+
+class SerializedWrap:
+    data: T
+    path: str
+
+    def __init__(self, init_data: T, path: str):
+        self.data = init_data
+        self.path = path
+        if os.path.isfile(path):
+            self.load()
+        else:
+            self.save()
+
+    def load(self):
+        with open(self.path, "rb") as f:
+            self.data = pickle.load(f)
+
+    def save(self):
+        with open(self.path, "wb") as f:
+            pickle.dump(self.data, f, protocol=0)
 
 
 if __name__ == "__main__":

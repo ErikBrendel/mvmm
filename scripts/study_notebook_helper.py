@@ -12,13 +12,15 @@ def get_path_end_parts(path: str) -> Set[str]:
     return set(path_parts)
 
 
-def format_code(content: str, own_path: str, other_path: str) -> str:
+def format_code(content: str, own_path: str = None, other_path: str = None) -> str:
+    content_no_html = content.replace("<", "&lt;").replace(">", "&gt;")
+    if other_path is None:
+        return content_no_html
     own_parts = get_path_end_parts(own_path)
     other_parts = get_path_end_parts(other_path)
     for p in own_parts:
         if p in other_parts:
             other_parts.remove(p)
-    content_no_html = content.replace("<", "&lt;").replace(">", "&gt;")
     # language=HTML
     replacement = r'<mark style="background-color: #b28549">\1</mark>'
     return re.sub(fr"""\b({"|".join(other_parts)})\b""", replacement, content_no_html)
