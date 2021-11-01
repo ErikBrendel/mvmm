@@ -113,12 +113,12 @@ class LocalRepo:
         else:
             file_url = f"{REPO_URL_START}{self.repo_name}/blob/{version}/{file_path}"
         if ADD_LINE_NUMBER_TO_LINK and not self.is_identified_by_path() and ending in file_path:
-            file = self.get_file(file_path)
+            file = self.get_file(file_path, version)
             if file is None:
                 print("Cannot find file anymore:", file_path)
                 self.url_cache[cache_key] = file_url
                 return file_url
-            target_node = self.get_tree().find_node(path)
+            target_node = self.get_tree(version).find_node(path)
             if target_node is None or target_node.ts_node is None:
                 self.url_cache[cache_key] = file_url
                 return file_url
@@ -225,7 +225,7 @@ class LocalRepo:
 def should_skip_file(content_bytes):
     content_str = decode(content_bytes)
     lines = content_str.split("\n")
-    if len(lines) >= 5000:
+    if len(lines) >= 20000:
         return True
     max_line_length = max((len(line) for line in lines))
     if max_line_length >= 5000:

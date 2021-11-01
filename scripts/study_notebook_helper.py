@@ -13,6 +13,9 @@ def get_path_end_parts(path: str) -> Set[str]:
 
 
 def format_code(content: str, own_path: str = None, other_path: str = None) -> str:
+    lines = len(content.splitlines())
+    if lines > 1000:
+        return f"// Too much content to display: {lines} lines!"
     content_no_html = content.replace("<", "&lt;").replace(">", "&gt;")
     if other_path is None:
         return content_no_html
