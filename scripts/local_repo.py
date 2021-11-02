@@ -565,6 +565,15 @@ class RepoTree:
                 results.append(self.get_path())
         return results
 
+    def probably_equals(self, other: 'RepoTree'):
+        return self.name == other.name and self.ts_node is not None and other.ts_node is not None and self.byte_range == other.byte_range
+
+    @property
+    def byte_range(self):
+        if self.ts_node is None:
+            return 0
+        return sum(node.end_byte - node.start_byte for node in self.all_ts_nodes())
+
     def traverse_gen(self):
         # yield me and all my recursive children
         yield self

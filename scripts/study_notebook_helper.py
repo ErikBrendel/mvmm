@@ -61,6 +61,33 @@ def make_path_html(r: LocalRepo, path_prefix: str, path_parts: List[str]) -> str
     )
 
 
+def make_tree_comparison_html(left_node: RepoTree, right_node: RepoTree) -> Tuple[str, str]:
+    left_children = set(left_node.children.keys())
+    right_children = set(right_node.children.keys())
+    same_named = left_children.intersection(right_children)
+    left_only = left_children.difference(same_named)
+    right_only = right_children.difference(same_named)
+    unchanged = set([name for name in same_named if left_node.children[name].probably_equals(right_node.children[name])])
+    modified = same_named.difference(unchanged)
+
+    def make_result(only: Set[str]) -> str:
+        result: List[str] = []
+
+        def add_data(data: Set[str], title: str):
+            if len(data) > 0:
+                result.append(f"<b>{title}:</b>")
+                for e in sorted(data):
+                    result.append(f"- {e}")
+
+        add_data(only, "Only in this version")
+        add_data(modified, "Modified")
+        add_data(unchanged, "Unchanged")
+
+        return "<br>".join(result)
+
+    return make_result(left_only), make_result(right_only)
+
+
 # language=HTML
 OWN_STYLE = """
 <style>
