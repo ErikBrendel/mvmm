@@ -75,7 +75,8 @@ def evaluate_metric_alignment(repo: LocalRepo, pattern: PatternType, bb_metric: 
 def make_individual_bb_alignment_table(repo: LocalRepo):
     sm = plt.cm.ScalarMappable(cmap=None, norm=plt.Normalize(vmin=0, vmax=1))
     columns = tuple(f"{''.join(w[0].upper() for w in m.split('_'))}: {len(find_violations_bb(repo, m))}" for m, _f in BB_METRICS)
-    rows = tuple(f"{''.join([str(e) if e is not None else '*' for e in p])}: {len(find_violations_for_pattern(repo, p, 'methods'))} / {len(find_violations_for_pattern(repo, p, 'classes'))}"
+    rows = tuple(f"{''.join([str(e) if e is not None else '*' for e in p])}: "
+                 f"{len(find_violations_for_pattern(repo, p, 'methods'))} / {len(find_violations_for_pattern(repo, p, 'classes'))}"
                  for p, _n, _d in TAXONOMY)
 
     values = [[evaluate_metric_alignment(repo, p, m, f) for m, f in BB_METRICS] for p, _n, _d in TAXONOMY]
@@ -92,7 +93,7 @@ def make_individual_bb_alignment_table(repo: LocalRepo):
                 # the header row is row 0. The header column is column -1
                 table[ri + 1, ci].get_text().set_color("white")
     plt.colorbar(sm)
-    plt.title(repo.name)
+    plt.title(f"{repo.name}\nalignment of disagreement patterns and blue book disharmonies")
     plt.show()
 
 
@@ -167,13 +168,12 @@ def preprocess(repo_name: str):
 
 for repo_name, old_version in [
     # ("jfree/jfreechart:v1.5.3", "v1.5.0"),
-    ("junit-team/junit4:r4.13.2", "r4.6"),
-    #("junit-team/junit4", ?) # https://github.com/junit-team/junit4/tags
-    #("apache/log4j", ?) # https://github.com/apache/log4j/tags
+    # ("junit-team/junit4:r4.13.2", "r4.6"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
 ]:
     r = LocalRepo(repo_name)
     old_r = r.get_old_version(old_version)
-    preprocess(r.name)
+    # preprocess(r.name)
     preprocess(old_r.name)
 
     vd = get_view_disagreement_data(old_r)
@@ -183,15 +183,15 @@ for repo_name, old_version in [
     total = set(get_filtered_nodes(r, "classes"))
 
     make_alignment_table("VD", vd, "REFa", ref, total,
-                         f"{old_r.name}: View Disagreement Reports vs All Automatically Detected Refactorings")
+                         f"{old_r.name}\n View Disagreement Reports vs All Automatically Detected Refactorings")
     make_alignment_table("VD", vd, "REFv", ref_verified, total,
-                         f"{old_r.name}: View Disagreement Reports vs Manually Verified Refactorings")
+                         f"{old_r.name}\n View Disagreement Reports vs Manually Verified Refactorings")
     make_alignment_table("BB", bb, "REFa", ref, total,
-                         f"{old_r.name}: Blue Book Disharmonies vs All Automatically Detected Refactorings")
+                         f"{old_r.name}\n Blue Book Disharmonies vs All Automatically Detected Refactorings")
     make_alignment_table("BB", bb, "REFv", ref_verified, total,
-                         f"{old_r.name}: Blue Book Disharmonies vs Manually Verified Refactorings")
+                         f"{old_r.name}\n Blue Book Disharmonies vs Manually Verified Refactorings")
     make_alignment_table("VD", vd, "BB", bb, total,
-                         f"{old_r.name}: View Disagreement Reports vs Blue Book Disharmonies")
+                         f"{old_r.name}\n View Disagreement Reports vs Blue Book Disharmonies")
     make_individual_bb_alignment_table(old_r)
 
 
