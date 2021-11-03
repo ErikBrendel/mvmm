@@ -56,6 +56,11 @@ class LocalRepo:
         self.url_cache = {}
         self.path_to_file_cache = None
 
+    def get_old_version(self, old_version: str):
+        if old_version is None:
+            return self
+        return LocalRepo(self.name.split(":")[0] + ":" + old_version)
+
     def is_identified_by_path(self):
         return self.name.startswith("/")
 

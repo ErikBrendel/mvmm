@@ -137,17 +137,20 @@ def make_alignment_table_with(repo: LocalRepo, name: str, data: Set[str], title:
     plt.show()
 
 
-def make_aggregated_bb_alignment_table(repo: LocalRepo):
-    bb_context = BBContext.for_repo(repo)
+def make_aggregated_bb_alignment_table(repo: LocalRepo, old_version: str):
+    old_repo = repo.get_old_version(old_version)
+    bb_context = BBContext.for_repo(old_repo)
     bb: Set[str] = set()
     for disharmony in bb_context.find_all_disharmonies():
         bb.add(bb_context.get_containing_class_of(disharmony))
 
-    make_alignment_table_with(repo, "BB", bb, "Own disharmonies vs Blue Book")
+    make_alignment_table_with(old_repo, "BB", bb, "Own disharmonies vs Blue Book")
 
 
-def make_aggregated_ref_alignment_table(repo: LocalRepo, old_version: str):
-    make_alignment_table_with(repo, "Ref", get_classes_being_refactored_in_the_future(repo, old_version), "Own disharmonies vs Future Refactorings")
+def make_aggregated_ref_alignment_table(repo: LocalRepo, old_version: str, only_verified_ones: bool = False):
+    old_repo = repo.get_old_version(old_version)
+    make_alignment_table_with(old_repo, "Ref", get_classes_being_refactored_in_the_future(repo, old_version, only_verified_ones),
+                              f"Own disharmonies vs {'verified' if only_verified_ones else 'all'} Future Refactorings")
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -170,10 +173,16 @@ def preprocess(repo_name: str):
 
 
 for repo_name, old_version in [
-    ("jfree/jfreechart:v1.5.3", "v1.5.0"),
+    # ("jfree/jfreechart:v1.5.3", "v1.5.0"),
+    ("junit-team/junit4:r4.13.2", "r4.6"),
     #("junit-team/junit4", ?) # https://github.com/junit-team/junit4/tags
     #("apache/log4j", ?) # https://github.com/apache/log4j/tags
 ]:
     r = LocalRepo(repo_name)
+    preprocess(r.name)
+    preprocess(r.get_old_version(old_version).name)
+
     make_aggregated_ref_alignment_table(r, old_version)
+    make_aggregated_ref_alignment_table(r, old_version, True)
+    make_aggregated_bb_alignment_table(r, old_version)
 
