@@ -53,7 +53,7 @@ TWO = 2
 THREE = 3
 FEW = 3  # 2-5
 SEVERAL = 4  # 2-5
-MANY = 7  # TODO this is nowhere defined, I just picked a number that felt good to me!!!!
+MANY = 5  # TODO this is nowhere defined, I just picked a number that felt good to me!!!!
 SHORT_MEMORY_CAPACITY = 8  # 7-8
 
 

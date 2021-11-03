@@ -75,7 +75,8 @@ def evaluate_metric_alignment(repo: LocalRepo, pattern: PatternType, bb_metric: 
 def make_individual_bb_alignment_table(repo: LocalRepo):
     sm = plt.cm.ScalarMappable(cmap=None, norm=plt.Normalize(vmin=0, vmax=1))
     columns = tuple(f"{''.join(w[0].upper() for w in m.split('_'))}: {len(find_violations_bb(repo, m))}" for m, _f in BB_METRICS)
-    rows = tuple(f"{''.join([str(e) if e is not None else '*' for e in p])}: {len(find_violations_for_pattern(repo, p, 'methods'))} / {len(find_violations_for_pattern(repo, p, 'classes'))}" for p, _n, _d in TAXONOMY)
+    rows = tuple(f"{''.join([str(e) if e is not None else '*' for e in p])}: {len(find_violations_for_pattern(repo, p, 'methods'))} / {len(find_violations_for_pattern(repo, p, 'classes'))}"
+                 for p, _n, _d in TAXONOMY)
 
     values = [[evaluate_metric_alignment(repo, p, m, f) for m, f in BB_METRICS] for p, _n, _d in TAXONOMY]
     colors = [[sm.to_rgba(cell) for cell in data] for data in values]
@@ -146,7 +147,7 @@ def get_bb_data(repo: LocalRepo) -> Set[str]:
     return result
 
 
-plt.rcParams['figure.dpi'] = 300
+plt.rcParams['figure.dpi'] = 150
 
 
 def preprocess(repo_name: str):
@@ -191,5 +192,6 @@ for repo_name, old_version in [
                          f"{old_r.name}: Blue Book Disharmonies vs Manually Verified Refactorings")
     make_alignment_table("VD", vd, "BB", bb, total,
                          f"{old_r.name}: View Disagreement Reports vs Blue Book Disharmonies")
+    make_individual_bb_alignment_table(old_r)
 
 
