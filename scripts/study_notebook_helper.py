@@ -61,7 +61,10 @@ def make_path_html(r: LocalRepo, path_prefix: str, path_parts: List[str]) -> str
     )
 
 
-def make_tree_comparison_html(left_node: RepoTree, right_node: RepoTree) -> Tuple[str, str]:
+def make_tree_comparison_html(left_node: RepoTree, right_node: RepoTree, get_url: Callable[[str, bool], str]) -> Tuple[str, str]:
+    """
+    :param get_url: given a path and a bool (left True, right False), get the url for it
+    """
     left_children = set(left_node.children.keys())
     right_children = set(right_node.children.keys())
     same_named = left_children.intersection(right_children)
@@ -70,14 +73,14 @@ def make_tree_comparison_html(left_node: RepoTree, right_node: RepoTree) -> Tupl
     unchanged = set([name for name in same_named if left_node.children[name].probably_equals(right_node.children[name])])
     modified = same_named.difference(unchanged)
 
-    def make_result(only: Set[str]) -> str:
+    def make_result(only: Set[str], base_path: str, is_left: bool) -> str:
         result: List[str] = []
 
         def add_data(data: Set[str], title: str):
             if len(data) > 0:
-                result.append(f"<b>{title}:</b>")
+                result.append(f"<b>{title} ({len(data)}):</b>")
                 for e in sorted(data):
-                    result.append(f"- {e}")
+                    result.append(f"""- <a href="{get_url(base_path + "/" + e, is_left)}">{e}</a>""")
 
         add_data(only, "Only in this version")
         add_data(modified, "Modified")
@@ -85,7 +88,7 @@ def make_tree_comparison_html(left_node: RepoTree, right_node: RepoTree) -> Tupl
 
         return "<br>".join(result)
 
-    return make_result(left_only), make_result(right_only)
+    return make_result(left_only, left_node.get_path(), True), make_result(right_only, left_node.get_path(), False)
 
 
 # language=HTML
