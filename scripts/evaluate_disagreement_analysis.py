@@ -95,19 +95,12 @@ def make_individual_bb_alignment_table(repo: LocalRepo):
     plt.show()
 
 
-def make_alignment_table_with(repo: LocalRepo, name: str, data: Set[str], title: str):
-    vd: Set[str] = set()
-    for p, n, d in TAXONOMY:
-        vd.update(find_violations_for_pattern(repo, p, "classes"))
-        for m in find_violations_for_pattern(repo, p, "methods"):
-            vd.add(repo.get_tree().find_node(m).get_containing_class_node().get_path())
+def make_alignment_table(row_name: str, row_data: Set[str], col_name: str, col_data: Set[str], total_data: Set[str], title: str):
+    not_row_data = total_data.difference(row_data)
+    not_col_data = total_data.difference(col_data)
 
-    total = set(get_filtered_nodes(repo, "classes"))
-    not_data = total.difference(data)
-    not_vd = total.difference(vd)
-
-    columns = (f" {name} ", f" -{name} ", " Total ")
-    rows = (" VD ", " -VD ", " Total ")
+    columns = (f" {col_name} ", f" -{col_name} ", " Total ")
+    rows = (f" {row_name} ", f" -{row_name} ", " Total ")
 
     def fmt(a: Set[str], b: Set[str] = None) -> str:
         if b is None:
@@ -116,41 +109,41 @@ def make_alignment_table_with(repo: LocalRepo, name: str, data: Set[str], title:
         return f"{int(intersection / float(len(a) + len(b) - intersection) * 100)}%\n({intersection})"
 
     cell_text = [
-        [fmt(vd, data), fmt(vd, not_data), fmt(vd)],
-        [fmt(not_vd, data), fmt(not_vd, not_data), fmt(not_vd)],
-        [fmt(data), fmt(not_data), fmt(total)]
+        [fmt(row_data, col_data), fmt(row_data, not_col_data), fmt(row_data)],
+        [fmt(not_row_data, col_data), fmt(not_row_data, not_col_data), fmt(not_row_data)],
+        [fmt(col_data), fmt(not_col_data), fmt(total_data)]
     ]
-
     plt.axis('tight')
     plt.axis('off')
     table = plt.table(cellText=cell_text, colLabels=columns, rowLabels=rows, loc='center', cellLoc="center")
     table.scale(0.5, 3.5)
-    plt.title(f"{repo.name}: {title}")
-    accuracy = (len(vd.intersection(data)) + len(not_vd.intersection(not_data))) / float(len(total))
+    plt.title(title)
+    accuracy = (len(row_data.intersection(col_data)) + len(not_row_data.intersection(not_col_data))) / float(len(total_data))
     super_balanced_accuracy = (  # https://en.wikipedia.org/wiki/Precision_and_recall#Imbalanced_data
-                                      (len(vd.intersection(data)) / len(vd)) +
-                                      (len(vd.intersection(data)) / len(data)) +
-                                      (len(not_vd.intersection(not_data)) / len(not_vd)) +
-                                      (len(not_vd.intersection(not_data)) / len(not_data))
+                                      (len(row_data.intersection(col_data)) / len(row_data)) +
+                                      (len(row_data.intersection(col_data)) / len(col_data)) +
+                                      (len(not_row_data.intersection(not_col_data)) / len(not_row_data)) +
+                                      (len(not_row_data.intersection(not_col_data)) / len(not_col_data))
                               ) / 4.0
     plt.text(0.5, 0.1, f"Accuracy: {int(accuracy * 100)}%, balanced: {int(super_balanced_accuracy * 100)}%", horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
 
 
-def make_aggregated_bb_alignment_table(repo: LocalRepo, old_version: str):
-    old_repo = repo.get_old_version(old_version)
-    bb_context = BBContext.for_repo(old_repo)
-    bb: Set[str] = set()
+def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
+    results: Set[str] = set()
+    for p, n, d in TAXONOMY:
+        results.update(find_violations_for_pattern(repo, p, "classes"))
+        for m in find_violations_for_pattern(repo, p, "methods"):
+            results.add(repo.get_tree().find_node(m).get_containing_class_node().get_path())
+    return results
+
+
+def get_bb_data(repo: LocalRepo) -> Set[str]:
+    bb_context = BBContext.for_repo(repo)
+    result: Set[str] = set()
     for disharmony in bb_context.find_all_disharmonies():
-        bb.add(bb_context.get_containing_class_of(disharmony))
-
-    make_alignment_table_with(old_repo, "BB", bb, "Own disharmonies vs Blue Book")
-
-
-def make_aggregated_ref_alignment_table(repo: LocalRepo, old_version: str, only_verified_ones: bool = False):
-    old_repo = repo.get_old_version(old_version)
-    make_alignment_table_with(old_repo, "Ref", get_classes_being_refactored_in_the_future(repo, old_version, only_verified_ones),
-                              f"Own disharmonies vs {'verified' if only_verified_ones else 'all'} Future Refactorings")
+        result.add(bb_context.get_containing_class_of(disharmony))
+    return result
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -169,7 +162,6 @@ def preprocess(repo_name: str):
 #for repo_name in repos:
 #    r = LocalRepo(repo_name)
 #    make_individual_bb_alignment_table(r)
-#    make_aggregated_bb_alignment_table(r)
 
 
 for repo_name, old_version in [
@@ -179,10 +171,25 @@ for repo_name, old_version in [
     #("apache/log4j", ?) # https://github.com/apache/log4j/tags
 ]:
     r = LocalRepo(repo_name)
+    old_r = r.get_old_version(old_version)
     preprocess(r.name)
-    preprocess(r.get_old_version(old_version).name)
+    preprocess(old_r.name)
 
-    make_aggregated_ref_alignment_table(r, old_version)
-    make_aggregated_ref_alignment_table(r, old_version, True)
-    make_aggregated_bb_alignment_table(r, old_version)
+    vd = get_view_disagreement_data(old_r)
+    bb = get_bb_data(old_r)
+    ref = get_classes_being_refactored_in_the_future(r, old_version, False)
+    ref_verified = get_classes_being_refactored_in_the_future(r, old_version, True)
+    total = set(get_filtered_nodes(r, "classes"))
+
+    make_alignment_table("VD", vd, "REFa", ref, total,
+                         f"{old_r.name}: View Disagreement Reports vs All Automatically Detected Refactorings")
+    make_alignment_table("VD", vd, "REFv", ref_verified, total,
+                         f"{old_r.name}: View Disagreement Reports vs Manually Verified Refactorings")
+    make_alignment_table("BB", bb, "REFa", ref, total,
+                         f"{old_r.name}: Blue Book Disharmonies vs All Automatically Detected Refactorings")
+    make_alignment_table("BB", bb, "REFv", ref_verified, total,
+                         f"{old_r.name}: Blue Book Disharmonies vs Manually Verified Refactorings")
+    make_alignment_table("VD", vd, "BB", bb, total,
+                         f"{old_r.name}: View Disagreement Reports vs Blue Book Disharmonies")
+
 
