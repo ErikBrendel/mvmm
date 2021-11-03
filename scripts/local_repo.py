@@ -360,6 +360,21 @@ class RepoTree:
             # return "/".join(x.name for x in self.self_and_parents_gen())
             return self.parent.get_path() + "/" + self.name
 
+    def get_java_name(self):
+        """return the full java name to reference this node"""
+        if self.name in ["java", "src", "main", "source"]:
+            # this is probably a root folder, so from here the package naming starts
+            return ""
+        if self.parent is None:
+            return ""
+        if self.is_file_node():
+            # in java, files add no extra step to the name
+            return self.parent.get_java_name()
+        parent_java_name = self.parent.get_java_name()
+        if len(parent_java_name) == 0:
+            return self.name
+        return parent_java_name + "." + self.name
+
     def self_and_parents_gen(self):
         current = self
         while current is not None:
@@ -434,11 +449,14 @@ class RepoTree:
 
     def get_containing_file_node(self) -> Optional['RepoTree']:
         """find me or my first parent that is a file"""
-        if self.ts_node is None and "." in self.name:
+        if self.is_file_node():
             return self
         if self.parent is not None:
             return self.parent.get_containing_file_node()
         return None
+
+    def is_file_node(self):
+        return self.ts_node is None and "." in self.name
 
     def get_children_of_type(self, type_str) -> List['RepoTree']:
         return [c for c in self.children.values() if c.get_type() == type_str]
