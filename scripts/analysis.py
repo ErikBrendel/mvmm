@@ -70,7 +70,7 @@ def get_filtered_nodes(repo: LocalRepo, mode: NodeFilterMode) -> List[str]:
             if node_filter_func(tree_node.get_path())]
 
 
-SHOW_RESULTS_SIZE = 500
+SHOW_RESULTS_SIZE = 2000
 
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType,

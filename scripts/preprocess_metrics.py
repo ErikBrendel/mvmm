@@ -19,6 +19,19 @@ repos = [
     "SonarSource/sonarqube",
     "eclipse/aspectj.eclipse.jdt.core",
 ]
+repos = [
+    # "jfree/jfreechart:v1.5.3",
+    # "junit-team/junit4:r4.13.2",
+    # "apache/logging-log4j2:rel/2.14.1",
+    "jfree/jfreechart:v1.5.0",
+    "jfree/jfreechart:v1.0.18",
+    "junit-team/junit4:r4.6",
+    "apache/logging-log4j2:rel/2.11.2",
+    "apache/logging-log4j2:rel/2.8",
+    "apache/logging-log4j2:rel/2.4",
+    "apache/logging-log4j2:rel/2.1",
+    "apache/logging-log4j2:rel/2.0",
+]
 
 
 def preprocess(repo_name: str):

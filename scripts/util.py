@@ -5,6 +5,8 @@ from typing import *
 from workarounds import *
 
 T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
 
 if os.environ.get("JUPYTER"):
     from tqdm.notebook import tqdm as log_progress
@@ -34,6 +36,24 @@ def all_pairs(data: List[any]) -> Generator[Tuple[any, any], None, None]:
     for i in range(length):
         for j in range(i):
             yield data[j], data[i]
+
+
+def merge_dicts(merger: Callable[[V, V], V], *dicts: Dict[K, V]) -> Dict[K, V]:
+    if len(dicts) == 0:
+        return {}
+    if len(dicts) == 1:
+        return dicts[0]
+    result: Dict[K, V] = {}
+    for key in set.union(*[set(d.keys()) for d in dicts]):
+        value: V = None
+        for d in dicts:
+            if key in d and d[key] is not None:
+                if value is None:
+                    value = d[key]
+                else:
+                    value = merger(value, d[key])
+        result[key] = value
+    return result
 
 
 def frange(start, stop, step):

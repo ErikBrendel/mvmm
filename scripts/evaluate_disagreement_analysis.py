@@ -1,3 +1,5 @@
+import statistics
+
 import pyfiglet
 
 from custom_types import *
@@ -5,10 +7,11 @@ from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
 from best_results_set import BestResultsSet, BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
-from util import map_parallel
+from util import map_parallel, merge_dicts
+from prc_auc import make_prc_plot
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
-from refactorings_detection import get_classes_being_refactored_in_the_future
+from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
 
 repos = [
     'ErikBrendel/LudumDare',
@@ -43,19 +46,31 @@ repos = [
 
 def match_score(result: BRS_DATA_TYPE):
     errors = result[0]
-    return sum(x * x for x in errors)
+    return statistics.mean(x * x for x in errors)
 
 
-def find_violations_for_pattern(repo: LocalRepo, pattern: PatternType, filter_mode: NodeFilterMode) -> List[str]:
+def find_violations_for_pattern(repo: LocalRepo, pattern: PatternType, filter_mode: NodeFilterMode) -> Set[str]:
     raw_results = analyze_disagreements(repo, ALL_VIEWS, [pattern], filter_mode)[0]
     results: Set[str] = set()
     for result in raw_results.get_best(make_sort_weights(pattern)):
         score = match_score(result)
-        if score <= 0.5:
+        if score <= 0.15:
             a, b, *_ = result[1]
             results.add(a)
             results.add(b)
-    return list(results)
+    return results
+
+
+def find_violations_for_pattern_probabilities(repo: LocalRepo, pattern: PatternType, filter_mode: NodeFilterMode) -> Dict[str, float]:
+    raw_results = analyze_disagreements(repo, ALL_VIEWS, [pattern], filter_mode)[0]
+    results: Dict[str, float] = {}
+    for result in raw_results.get_best(make_sort_weights(pattern)):
+        score = match_score(result)
+        a, b, *_ = result[1]
+        for clazz in [a, b]:
+            if clazz not in results or results[clazz] < score:
+                results[clazz] = score
+    return results
 
 
 def find_violations_bb(repo: LocalRepo, bb_metric: str) -> List[str]:
@@ -63,7 +78,7 @@ def find_violations_bb(repo: LocalRepo, bb_metric: str) -> List[str]:
 
 
 def evaluate_metric_alignment(repo: LocalRepo, pattern: PatternType, bb_metric: str, filter_mode: NodeFilterMode) -> float:
-    own_results = set(find_violations_for_pattern(repo, pattern, filter_mode))
+    own_results = find_violations_for_pattern(repo, pattern, filter_mode)
     bb_results = set(find_violations_bb(repo, bb_metric))
     intersection_size = len(own_results.intersection(bb_results))
     union_size = len(own_results) + len(bb_results) - intersection_size
@@ -131,6 +146,24 @@ def make_alignment_table(row_name: str, row_data: Set[str], col_name: str, col_d
     plt.show()
 
 
+def make_prc_plot_for(data_name: str, data: Dict[str, float], base_data: Set[str], total_data: Set[str], title: str):
+    data_list = [1 - data.get(item, 1) for item in total_data]
+    base_labels = [1 if item in base_data else 0 for item in total_data]
+    make_prc_plot(data_list, base_labels, data_name, title, show=False)
+    zero_data = sum(x == 0 for x in data_list)
+    one_data = sum(x == 1 for x in data_list)
+    nontrivial_data = len(data_list) - zero_data - one_data
+    n = len(total_data)
+    plt.text(0.5, 0.2, f"Base data size: {len(base_data)} of {n} ({int(len(base_data) / n * 100)}%)\n"
+                       f"Data distribution:"
+                       f" 0: {zero_data} ({int(zero_data / n * 100)}%),"
+                       f" 1: {one_data} ({int(one_data / n * 100)}%),"
+                       f" nontrivial: {nontrivial_data} ({int(nontrivial_data / n * 100)}%)"
+                       f" of {n}",
+             horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
+    plt.show()
+
+
 def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
     results: Set[str] = set()
     for p, n, d in TAXONOMY:
@@ -146,6 +179,13 @@ def get_bb_data(repo: LocalRepo) -> Set[str]:
     for disharmony in bb_context.find_all_disharmonies():
         result.add(bb_context.get_containing_class_of(disharmony))
     return result
+
+
+def get_view_disagreement_data_probabilities(repo: LocalRepo) -> Dict[str, float]:
+    return merge_dicts(lambda a, b: max(a, b), *[find_violations_for_pattern_probabilities(repo, p, "classes") for p, *_ in TAXONOMY])
+
+
+##############################
 
 
 plt.rcParams['figure.dpi'] = 150
@@ -167,9 +207,14 @@ def preprocess(repo_name: str):
 
 
 for repo_name, old_version in [
-    # ("jfree/jfreechart:v1.5.3", "v1.5.0"),
-    # ("junit-team/junit4:r4.13.2", "r4.6"),
+    # ("jfree/jfreechart:v1.5.3", "v1.0.18"),
+    ("jfree/jfreechart:v1.5.3", "v1.5.0"),
+    ("junit-team/junit4:r4.13.2", "r4.6"),
     ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
 ]:
     r = LocalRepo(repo_name)
     old_r = r.get_old_version(old_version)
@@ -180,18 +225,29 @@ for repo_name, old_version in [
     bb = get_bb_data(old_r)
     ref = get_classes_being_refactored_in_the_future(r, old_version, False)
     ref_verified = get_classes_being_refactored_in_the_future(r, old_version, True)
-    total = set(get_filtered_nodes(r, "classes"))
+    ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(r, old_version)
+    total_list = get_filtered_nodes(r, "classes")
+    total = set(total_list)
 
-    make_alignment_table("VD", vd, "REFa", ref, total,
-                         f"{old_r.name}\n View Disagreement Reports vs All Automatically Detected Refactorings")
-    make_alignment_table("VD", vd, "REFv", ref_verified, total,
-                         f"{old_r.name}\n View Disagreement Reports vs Manually Verified Refactorings")
-    make_alignment_table("BB", bb, "REFa", ref, total,
-                         f"{old_r.name}\n Blue Book Disharmonies vs All Automatically Detected Refactorings")
-    make_alignment_table("BB", bb, "REFv", ref_verified, total,
-                         f"{old_r.name}\n Blue Book Disharmonies vs Manually Verified Refactorings")
-    make_alignment_table("VD", vd, "BB", bb, total,
-                         f"{old_r.name}\n View Disagreement Reports vs Blue Book Disharmonies")
-    make_individual_bb_alignment_table(old_r)
+    # make_alignment_table("VD", vd, "REFa", ref, total,
+    #                      f"{old_r.name}\n View Disagreement Reports vs All Automatically Detected Refactorings")
+    # make_alignment_table("VD", vd, "REFh", ref_heuristic, total,
+    #                      f"{old_r.name}\n View Disagreement Reports vs Heuristically Filtered Refactorings")
+    # make_alignment_table("VD", vd, "REFv", ref_verified, total,
+    #                      f"{old_r.name}\n View Disagreement Reports vs Manually Verified Refactorings")
+    # make_alignment_table("BB", bb, "REFa", ref, total,
+    #                      f"{old_r.name}\n Blue Book Disharmonies vs All Automatically Detected Refactorings")
+    # make_alignment_table("BB", bb, "REFh", ref_heuristic, total,
+    #                      f"{old_r.name}\n Blue Book Disharmonies vs Heuristically Filtered Refactorings")
+    # make_alignment_table("BB", bb, "REFv", ref_verified, total,
+    #                      f"{old_r.name}\n Blue Book Disharmonies vs Manually Verified Refactorings")
+    # make_alignment_table("VD", vd, "BB", bb, total,
+    #                      f"{old_r.name}\n View Disagreement Reports vs Blue Book Disharmonies")
+    # make_individual_bb_alignment_table(old_r)
+    vd_prob = get_view_disagreement_data_probabilities(old_r)
+    make_prc_plot_for("VD", vd_prob, ref, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements predicting all refactorings")
+    make_prc_plot_for("VD", vd_prob, ref_heuristic, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements heuristically filtered refactorings")
+    # make_prc_plot_for("VD", vd_prob, bb, total, "Precision-Recall Plot of View Disagreements predicting BB")
+
 
 

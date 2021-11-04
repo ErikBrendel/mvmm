@@ -9,18 +9,21 @@ from matplotlib import pyplot as plt
 
 # draw PR-diagram and calculate AUC
 # https://machinelearningmastery.com/roc-curves-and-precision-recall-curves-for-classification-in-python/
-def make_prc_plot(probabilities: List[float], actual_labels: List[int], label: str):
+def make_prc_plot(probabilities: List[float], actual_labels: List[int], label: str, title: str, show = True):
     precision, recall, _ = precision_recall_curve(actual_labels, probabilities)
     auc_value = auc(recall, precision)
     no_skill = sum(actual_labels) / len(actual_labels)  # = P / total
-    plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill: ' + str(no_skill))
+    plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label=f'No Skill: {int(no_skill * 1000) / 1000}')
     plt.plot(recall, precision, marker='.', label=label)
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
-    plt.ylim([no_skill - 0.03, 1.03])
+    # plt.ylim([no_skill - 0.03, 1.03])
+    plt.ylim([-0.03, 1.03])
     plt.text(0.5, 0.3, f"AUC: {int(auc_value * 1000)/10}%", horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
-    plt.show()
+    plt.title(title)
+    if show:
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -35,4 +38,4 @@ if __name__ == "__main__":
     lr_probs = model.predict_proba(testX)
     # keep probabilities for the positive outcome only
     lr_probs = lr_probs[:, 1]
-    make_prc_plot([p for p in lr_probs], [c for c in testy], "Example Curve")
+    make_prc_plot([p for p in lr_probs], [c for c in testy], "Example Curve", "PRC example")

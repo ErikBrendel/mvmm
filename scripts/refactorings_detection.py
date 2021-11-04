@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import tempfile
+from collections import defaultdict
 
 from cachier import cachier
 
@@ -110,6 +111,10 @@ def refactoring_process_path(repo: LocalRepo, locations: List[Dict[str, Any]]) -
             concrete_nodes = file_node.find_descendants_of_name(name)
             for concrete_node in concrete_nodes:
                 if concrete_node.get_simple_type() == "class" and location["codeElementType"] == "METHOD_DECLARATION":
+                    if "constructor" not in concrete_node.children:
+                        print("Cannot find the constructor in " + location["filePath"])
+                        print(location)
+                        continue
                     concrete_node = concrete_node.children["constructor"]
                 if concrete_node.get_simple_type() not in ["method", "attribute"]:
                     print("wow")
@@ -142,6 +147,41 @@ def get_classes_being_refactored_in_the_future(repo: LocalRepo, old_version: str
     else:
         return set([repo.get_tree().find_node(r).get_containing_class_node().get_path()
                     for r in get_nodes_being_refactored_in_the_future(repo, old_version)])
+
+
+def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: LocalRepo, old_version: str):
+    old_repo = new_repo.get_old_version(old_version)
+
+    old_tree = old_repo.get_tree()
+    old = old_repo.get_head_commit().hexsha
+    new = new_repo.get_head_commit().hexsha
+    results: Dict[str, List[str]] = defaultdict(lambda: [])  # old class, old other class, type_name
+    for commit in get_raw_refactorings_per_commit(new_repo, old, new):
+        for ref in commit["refactorings"]:
+            type_name = ref["type"]
+            if type_name not in {
+                "Add Parameter Modifier",
+                "Change Attribute Access Modifier",
+                "Change Method Access Modifier",
+                "Inline Variable",
+                "Modify Method Annotation",
+                "Remove Parameter Modifier",
+                "Reorder Parameter",
+            }:
+                left_side_paths = set(refactoring_process_path(old_repo, ref["leftSideLocations"]))
+                left_side_class_paths = set(old_tree.find_node(left_side_path).get_containing_class_node().get_path() for left_side_path in left_side_paths)
+                for left_side_class_path in left_side_class_paths:
+                    results[left_side_class_path].append(type_name)
+    refactoring_weights: Dict[str, float] = {
+        "Extract Method": 3,
+        "Extract And Move Method": 4,
+        "Inline Method": 2,
+        "Move And Rename Method": 3,
+        "Move Method": 3,
+
+        "Merge Parameter": 2,
+    }
+    return [name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 7]
 
 
 def get_confirmed_class_refactorings_dict(repo_name: str, old_version: str):
