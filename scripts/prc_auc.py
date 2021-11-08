@@ -18,7 +18,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
     plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label=f'No Skill: {int(no_skill * 1000) / 10}%')
 
     for datum_name, datum_prediction in data_list:
-        if isinstance(datum_prediction[0], float):  # list of probability assignments and true labels
+        if any(isinstance(v, float) for v in datum_prediction):  # list of probability assignments and true labels
             precision, recall, _ = precision_recall_curve(actual_labels, datum_prediction)
             if len(precision) > 3:
                 precision = precision[:-1]

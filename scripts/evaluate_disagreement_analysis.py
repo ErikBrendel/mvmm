@@ -153,9 +153,7 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     data_comments: List[str] = []
     converted_data_list: List[PRC_PLOT_DATA_ENTRY] = []
 
-    base_labels = [1 if item in base_data else 0 for item in total_data]
     n = len(total_data)
-    data_comments.append(f"Base data size: {len(base_data)} of {n} ({int(len(base_data) / n * 100)}%)")
 
     for name, original_data in data_list:
         converted_data: Union[List[float], List[int]]
@@ -167,12 +165,14 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
             data_comments.append(f"{name} data:"
                                  f" 0: {zero_data} ({int(zero_data / n * 100)}%),"
                                  f" 1: {one_data} ({int(one_data / n * 100)}%),"
-                                 f" nontrivial: {nontrivial_data} ({int(nontrivial_data / n * 100)}%)"
-                                 f" of {n}")
+                                 f" nontrivial: {nontrivial_data} ({int(nontrivial_data / n * 100)}%)")
         else:
             converted_data = [1 if item in original_data else 0 for item in total_data]
-            data_comments.append(f"{name} data: {len(original_data)} of {n} ({int(len(original_data) / n * 100)}%)")
+            data_comments.append(f"{name} data: {len(original_data)} ({int(len(original_data) / n * 100)}%)")
         converted_data_list.append((name, converted_data))
+
+    base_labels = [1 if item in base_data else 0 for item in total_data]
+    data_comments.append(f"Base data size: {len(base_data)} ({int(len(base_data) / n * 100)}%) / Total: {n}")
 
     make_prc_plot(converted_data_list, base_labels, title, show=False)
     plt.text(0.5, 0.2, "\n".join(data_comments),
@@ -222,19 +222,19 @@ def preprocess(repo_name: str):
 #    make_individual_bb_alignment_table(r)
 
 
-for repo_name, old_version in [
+repos_and_old_versions = [
     # ("jfree/jfreechart:v1.5.3", "v1.0.18"),
-    ("jfree/jfreechart:v1.5.3", "v1.5.0"),
-    ("junit-team/junit4:r4.13.2", "r4.6"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
-]:
+    # ("jfree/jfreechart:v1.5.3", "v1.5.0"),
+    # ("junit-team/junit4:r4.13.2", "r4.6"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
+] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15)]
+for repo_name, old_version in repos_and_old_versions:
     r = LocalRepo(repo_name)
     old_r = r.get_old_version(old_version)
-    # preprocess(r.name)
     preprocess(old_r.name)
 
     vd = get_view_disagreement_data(old_r)

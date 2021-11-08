@@ -71,7 +71,7 @@ def is_hexsha(identifier: str) -> bool:
         return False
 
 
-@cachier()
+@cachier(separate_files=True)
 def get_raw_refactorings_per_commit(repo: LocalRepo, old: str, new: str):
     temp_file_path = None
     try:

@@ -72,8 +72,9 @@ BB_METRICS = [
 _BB_CONTEXT_CACHE: Dict[str, "BBContext"] = dict()
 
 
-@cachier()
+@cachier(separate_files=True)
 def calculate_usages_graphs(repo_name: str) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
+    """filters usages to be methods and attributes only, and used_by to be methods only"""
     uses_graph: Dict[str, Set[str]] = dict()
     is_used_by_graph: Dict[str, Set[str]] = dict()
     repo = LocalRepo(repo_name)
@@ -82,20 +83,24 @@ def calculate_usages_graphs(repo_name: str) -> Tuple[Dict[str, Set[str]], Dict[s
     def handle_reference(a, b, _strength):
         nonlocal uses_graph
         nonlocal is_used_by_graph
-        if tree.find_node(a).get_simple_type() in ["class", "method"] and tree.find_node(b).get_simple_type() in ["class", "method"]:
-            if a not in uses_graph:
-                uses_graph[a] = set()
-            uses_graph[a].add(b)
-            if b not in is_used_by_graph:
-                is_used_by_graph[b] = set()
-            is_used_by_graph[b].add(a)
+        a_type = tree.find_node(a).get_simple_type()
+        b_type = tree.find_node(b).get_simple_type()
+        if a_type in ["class", "method", "attribute"] and b_type in ["class", "method", "attribute"]:
+            if b_type in ["method", "attribute"]:
+                if a not in uses_graph:
+                    uses_graph[a] = set()
+                uses_graph[a].add(b)
+            if a_type == "method":
+                if b not in is_used_by_graph:
+                    is_used_by_graph[b] = set()
+                is_used_by_graph[b].add(a)
 
     ReferencesContext(repo).iterate_all_references(handle_reference, "Extracting code references")
 
     return uses_graph, is_used_by_graph
 
 
-@cachier()
+@cachier(separate_files=True)
 def find_disharmonies_cached(repo: LocalRepo, name: str) -> List[str]:
     return BBContext.for_repo(repo).find_by_name_uncached(name)
 
