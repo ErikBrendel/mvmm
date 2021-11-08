@@ -74,7 +74,8 @@ SHOW_RESULTS_SIZE = 2000
 
 
 def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: PatternsType,
-                          node_filter_mode: NodeFilterMode, ignore_previous_results=False) -> List[BestResultsSet]:
+                          node_filter_mode: NodeFilterMode, ignore_previous_results=False,
+                          random_shuffled_view_access=False) -> List[BestResultsSet]:
     """
     when views are [ref, evo, ling], the pattern [0, 1, None, "comment"] searches for nodes that are
     strongly coupled evolutionary, loosely coupled by references, and the language does not matter
@@ -95,7 +96,13 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     if all(r is not None for r in result_sets):
         return result_sets
 
-    analysis_graphs = list([MetricManager.get(repo, g) for g in views])
+    if random_shuffled_view_access:
+        # access all views in random order to balance preprocessing
+        views_shuffled = views[:]
+        random.shuffle(views_shuffled)
+        for v in views_shuffled:
+            MetricManager.get(repo, v)
+    analysis_graphs = list([MetricManager.get(repo, v) for v in views])
 
     all_nodes = get_filtered_nodes(repo, node_filter_mode)
 
