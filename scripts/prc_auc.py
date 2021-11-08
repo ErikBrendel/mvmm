@@ -7,20 +7,40 @@ from sklearn.metrics import auc
 from matplotlib import pyplot as plt
 
 
+PRC_PLOT_DATA_ENTRY = Tuple[str, Union[List[float], List[int]]]
+
+
 # draw PR-diagram and calculate AUC
 # https://machinelearningmastery.com/roc-curves-and-precision-recall-curves-for-classification-in-python/
-def make_prc_plot(probabilities: List[float], actual_labels: List[int], label: str, title: str, show = True):
-    precision, recall, _ = precision_recall_curve(actual_labels, probabilities)
-    auc_value = auc(recall, precision)
+def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int], title: str, show=True):
+
     no_skill = sum(actual_labels) / len(actual_labels)  # = P / total
-    plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label=f'No Skill: {int(no_skill * 1000) / 1000}')
-    plt.plot(recall, precision, marker='.', label=label)
+    plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label=f'No Skill: {int(no_skill * 1000) / 10}%')
+
+    for datum_name, datum_prediction in data_list:
+        if isinstance(datum_prediction[0], float):  # list of probability assignments and true labels
+            precision, recall, _ = precision_recall_curve(actual_labels, datum_prediction)
+            if len(precision) > 3:
+                precision = precision[:-1]
+                recall = recall[:-1]
+            auc_value = auc(recall, precision)
+        else:  # list of binary classes
+            tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
+            if tp == 0:
+                precision = 0
+                recall = 0
+            else:
+                fp = sum(a == 0 and p == 1 for a, p in zip(actual_labels, datum_prediction))
+                fn = sum(a == 1 and p == 0 for a, p in zip(actual_labels, datum_prediction))
+                precision = tp / float(tp + fp)
+                recall = tp / float(tp + fn)
+            auc_value = precision * recall
+        plt.plot(recall, precision, marker='.', label=f"{datum_name}: {int(auc_value * 1000)/10}%")
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
     # plt.ylim([no_skill - 0.03, 1.03])
     plt.ylim([-0.03, 1.03])
-    plt.text(0.5, 0.3, f"AUC: {int(auc_value * 1000)/10}%", horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.title(title)
     if show:
         plt.show()
@@ -38,4 +58,6 @@ if __name__ == "__main__":
     lr_probs = model.predict_proba(testX)
     # keep probabilities for the positive outcome only
     lr_probs = lr_probs[:, 1]
-    make_prc_plot([p for p in lr_probs], [c for c in testy], "Example Curve", "PRC example")
+    make_prc_plot([
+        ("Example Curve", [p for p in lr_probs]),
+    ], [c for c in testy], "PRC example")

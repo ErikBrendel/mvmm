@@ -8,7 +8,7 @@ from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
 from best_results_set import BestResultsSet, BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
 from util import map_parallel, merge_dicts
-from prc_auc import make_prc_plot
+from prc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
@@ -146,20 +146,36 @@ def make_alignment_table(row_name: str, row_data: Set[str], col_name: str, col_d
     plt.show()
 
 
-def make_prc_plot_for(data_name: str, data: Dict[str, float], base_data: Set[str], total_data: Set[str], title: str):
-    data_list = [1 - data.get(item, 1) for item in total_data]
+PRC_DATA_ENTRY = Tuple[str, Union[Dict[str, float], Set[str]]]
+
+
+def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str], title: str):
+    data_comments: List[str] = []
+    converted_data_list: List[PRC_PLOT_DATA_ENTRY] = []
+
     base_labels = [1 if item in base_data else 0 for item in total_data]
-    make_prc_plot(data_list, base_labels, data_name, title, show=False)
-    zero_data = sum(x == 0 for x in data_list)
-    one_data = sum(x == 1 for x in data_list)
-    nontrivial_data = len(data_list) - zero_data - one_data
     n = len(total_data)
-    plt.text(0.5, 0.2, f"Base data size: {len(base_data)} of {n} ({int(len(base_data) / n * 100)}%)\n"
-                       f"Data distribution:"
-                       f" 0: {zero_data} ({int(zero_data / n * 100)}%),"
-                       f" 1: {one_data} ({int(one_data / n * 100)}%),"
-                       f" nontrivial: {nontrivial_data} ({int(nontrivial_data / n * 100)}%)"
-                       f" of {n}",
+    data_comments.append(f"Base data size: {len(base_data)} of {n} ({int(len(base_data) / n * 100)}%)")
+
+    for name, original_data in data_list:
+        converted_data: Union[List[float], List[int]]
+        if isinstance(original_data, dict):
+            converted_data = [1 - original_data.get(item, 1) for item in total_data]
+            zero_data = sum(x == 0 for x in converted_data)
+            one_data = sum(x == 1 for x in converted_data)
+            nontrivial_data = len(converted_data) - zero_data - one_data
+            data_comments.append(f"{name} data:"
+                                 f" 0: {zero_data} ({int(zero_data / n * 100)}%),"
+                                 f" 1: {one_data} ({int(one_data / n * 100)}%),"
+                                 f" nontrivial: {nontrivial_data} ({int(nontrivial_data / n * 100)}%)"
+                                 f" of {n}")
+        else:
+            converted_data = [1 if item in original_data else 0 for item in total_data]
+            data_comments.append(f"{name} data: {len(original_data)} of {n} ({int(len(original_data) / n * 100)}%)")
+        converted_data_list.append((name, converted_data))
+
+    make_prc_plot(converted_data_list, base_labels, title, show=False)
+    plt.text(0.5, 0.2, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
 
@@ -245,8 +261,8 @@ for repo_name, old_version in [
     #                      f"{old_r.name}\n View Disagreement Reports vs Blue Book Disharmonies")
     # make_individual_bb_alignment_table(old_r)
     vd_prob = get_view_disagreement_data_probabilities(old_r)
-    make_prc_plot_for("VD", vd_prob, ref, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements predicting all refactorings")
-    make_prc_plot_for("VD", vd_prob, ref_heuristic, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements heuristically filtered refactorings")
+    # make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements predicting all refactorings")
+    make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref_heuristic, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements heuristically filtered refactorings")
     # make_prc_plot_for("VD", vd_prob, bb, total, "Precision-Recall Plot of View Disagreements predicting BB")
 
 
