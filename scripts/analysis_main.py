@@ -109,4 +109,6 @@ tatsächlich statistisch-korrektes Bayesian updating statt arbiträren support v
 
 fix FM merge collisions / add sliding window to git?
 
+MANOVA: https://www.marsja.se/python-manova-made-easy-using-statsmodels/
+
 """

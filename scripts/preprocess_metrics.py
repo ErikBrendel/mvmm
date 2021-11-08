@@ -35,7 +35,9 @@ repos = [
     # "apache/logging-log4j2:rel/2.4",
     # "apache/logging-log4j2:rel/2.1",
     # "apache/logging-log4j2:rel/2.0",
-] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 16)]
+]\
+        + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 16)]\
+        + [("apache/hadoop:release-0.23.11", f"release-0.{v}.0") for v in range(1, 24)]
 
 
 def preprocess(job_info: str):
@@ -69,8 +71,8 @@ for jobs_repo_info in repos:
     else:
         new_name, old_version = jobs_repo_info
         old_repo = LocalRepo(new_name).get_old_version(old_version)
-        # jobs.append(("ref", new_name, old_version))
-    # jobs.append(("views", old_repo.name))
+        jobs.append(("ref", new_name, old_version))
+    jobs.append(("views", old_repo.name))
     jobs.append(("bb", old_repo.name))
 
 print(jobs)
