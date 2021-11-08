@@ -181,7 +181,7 @@ def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: 
 
         "Merge Parameter": 2,
     }
-    return [name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 7]
+    return [name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 5]
 
 
 def get_confirmed_class_refactorings_dict(repo_name: str, old_version: str):
