@@ -1,4 +1,5 @@
 import random
+import sys
 from time import sleep
 
 from local_repo import LocalRepo
@@ -61,6 +62,9 @@ def preprocess(job_info: str):
     except Exception as e:
         print("Exception!:")
         print(e)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 # this loop also ensures in sync that they are all cloned
@@ -78,4 +82,4 @@ for jobs_repo_info in repos:
 print(jobs)
 map_parallel(jobs, preprocess, lambda foo: foo,
              f"Preprocessing all {len(repos)} repos",
-             force_non_parallel=False)
+             force_non_parallel=True)
