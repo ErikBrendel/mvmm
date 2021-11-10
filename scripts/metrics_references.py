@@ -37,13 +37,14 @@ def flush_unresolvable_vars():
 
 class Env(ABC):
     """an identifier-lookup environment"""
+    compound_cleanup_regex = regex.compile(r"((?<=\W)\s+(?=\w)|(?<=\w)\s+(?=\W)|(?<=\W)\s+(?=\W))")
 
     def __init__(self, context, path):
         self.context = context
         self.path = path
 
     def get_env_for_name(self, compound_name) -> Optional['Env']:
-        compound_name = "".join([part.strip() for part in regex.split(r"((?<=\W)\s+(?=\w)|(?<=\w)\s+(?=\W)|(?<=\W)\s+(?=\W))", compound_name)])  # remove any whitespace within the name and around structure characters
+        compound_name = "".join([part.strip() for part in Env.compound_cleanup_regex.split(compound_name)])  # remove any whitespace within the name and around structure characters
         if compound_name in ignored_types:
             return None
         if compound_name.endswith("]") and "[" in compound_name:
