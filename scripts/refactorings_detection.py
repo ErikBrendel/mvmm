@@ -175,10 +175,9 @@ def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: 
     refactoring_weights: Dict[str, float] = {
         "Extract Method": 3,
         "Extract And Move Method": 4,
-        "Inline Method": 2,
+        "Inline Method": 3,
         "Move And Rename Method": 3,
         "Move Method": 3,
-
         "Merge Parameter": 2,
     }
     return [name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 5]
