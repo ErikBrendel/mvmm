@@ -19,16 +19,12 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
 
     for datum_name, datum_prediction in data_list:
         if any(isinstance(v, float) for v in datum_prediction):  # list of probability assignments and true labels
-            precision, recall, thresholds = precision_recall_curve(actual_labels, datum_prediction)
+            precision, recall, _ = precision_recall_curve(actual_labels, datum_prediction)
             if len(precision) > 3:
                 precision = precision[:-1]
                 recall = recall[:-1]
             auc_value = auc(recall, precision)
             marker = "."
-            reference_points = list(set([
-                max(zip(precision, recall, thresholds), key=lambda prt: (p:=prt[0], r:=prt[1], (p ** alpha) * r)[-1])
-                for alpha in [0.25, 1.0, 4.0]
-            ]))
         else:  # list of binary classes
             tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
             if tp == 0:
@@ -41,11 +37,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 recall = tp / float(tp + fn)
             auc_value = precision * recall
             marker = "x"
-            reference_points = []
         plt.plot(recall, precision, marker=marker, label=f"{datum_name}: {int(auc_value * 1000)/10}%")
-        for ref_p, ref_r, threshold in reference_points:
-            plt.plot(ref_r, ref_p, "k+", label=None)
-            plt.text(ref_r, ref_p, f"{int(threshold * 1000) / 10}%")
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
