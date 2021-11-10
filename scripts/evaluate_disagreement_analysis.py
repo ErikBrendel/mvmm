@@ -8,7 +8,7 @@ from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
 from best_results_set import BestResultsSet, BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
 from util import map_parallel, merge_dicts
-from prc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY, make_roc_plot
+from prc_roc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY, make_roc_plot
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
@@ -69,7 +69,7 @@ def find_violations_for_pattern_probabilities(repo: LocalRepo, pattern: PatternT
         a, b, *_ = result[1]
         for clazz in [a, b]:
             if clazz not in results or results[clazz] < score:
-                results[clazz] = score
+                results[clazz] = 1 - score
     return results
 
 
@@ -158,7 +158,7 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     for name, original_data in data_list:
         converted_data: Union[List[float], List[int]]
         if isinstance(original_data, dict):
-            converted_data = [1 - original_data.get(item, 1) for item in total_data]
+            converted_data = [original_data.get(item, 0) for item in total_data]
             zero_data = sum(x == 0 for x in converted_data)
             one_data = sum(x == 1 for x in converted_data)
             nontrivial_data = len(converted_data) - zero_data - one_data
@@ -176,11 +176,11 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     data_comments.append(f"Base data size: {len(base_data)} ({int(len(base_data) / n * 100)}%) / Total: {n}")
 
     make_prc_plot(converted_data_list, base_labels, title, show=False)
-    plt.text(0.5, 0.6, "\n".join(data_comments),
+    plt.text(0.5, 0.2, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
     make_roc_plot(converted_data_list, base_labels, title, show=False)
-    plt.text(0.5, 0.6, "\n".join(data_comments),
+    plt.text(0.5, 0.4, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
 
