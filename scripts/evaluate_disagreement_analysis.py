@@ -8,7 +8,7 @@ from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
 from best_results_set import BestResultsSet, BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
 from util import map_parallel, merge_dicts
-from prc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY
+from prc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY, make_roc_plot
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
@@ -168,7 +168,8 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
                                  f" nontrivial: {nontrivial_data} ({int(nontrivial_data / n * 100)}%)")
         else:
             converted_data = [1 if item in original_data else 0 for item in total_data]
-            data_comments.append(f"{name} data: {len(original_data)} ({int(len(original_data) / n * 100)}%)")
+            converted_ones = sum(converted_data)
+            data_comments.append(f"{name} data: {converted_ones} ({int(converted_ones / n * 100)}%)")
         converted_data_list.append((name, converted_data))
 
     base_labels = [1 if item in base_data else 0 for item in total_data]
@@ -178,6 +179,11 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     plt.text(0.5, 0.2, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
+    make_roc_plot(converted_data_list, base_labels, title, show=False)
+    plt.text(0.5, 0.2, "\n".join(data_comments),
+             horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
+    plt.show()
+
 
 
 def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
