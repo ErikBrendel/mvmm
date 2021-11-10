@@ -24,6 +24,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = precision[:-1]
                 recall = recall[:-1]
             auc_value = auc(recall, precision)
+            marker = "."
         else:  # list of binary classes
             tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
             if tp == 0:
@@ -35,7 +36,8 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = tp / float(tp + fp)
                 recall = tp / float(tp + fn)
             auc_value = precision * recall
-        plt.plot(recall, precision, marker='.', label=f"{datum_name}: {int(auc_value * 1000)/10}%")
+            marker = "x"
+        plt.plot(recall, precision, marker=marker, label=f"{datum_name}: {int(auc_value * 1000)/10}%")
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
@@ -55,6 +57,7 @@ def make_roc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
         if any(isinstance(v, float) for v in datum_prediction):  # list of probability assignments and true labels
             fpr, tpr, _ = roc_curve(actual_labels, datum_prediction)
             auc_value = auc(fpr, tpr)
+            marker = "."
         else:  # list of binary classes
             tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
             fp = sum(a == 0 and p == 1 for a, p in zip(actual_labels, datum_prediction))
@@ -63,7 +66,8 @@ def make_roc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
             fpr = fp / float(n)
             tpr = tp / float(p)
             auc_value = tpr * (1 - fpr)
-        plt.plot(fpr, tpr, marker='.', label=f"{datum_name}: {int(auc_value * 1000)/10}%")
+            marker = "x"
+        plt.plot(fpr, tpr, marker=marker, label=f"{datum_name}: {int(auc_value * 1000)/10}%")
     plt.xlim([-0.03, 1.03])
     plt.ylim([-0.03, 1.03])
     plt.xlabel("False Positive Rate")

@@ -176,11 +176,11 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     data_comments.append(f"Base data size: {len(base_data)} ({int(len(base_data) / n * 100)}%) / Total: {n}")
 
     make_prc_plot(converted_data_list, base_labels, title, show=False)
-    plt.text(0.5, 0.2, "\n".join(data_comments),
+    plt.text(0.5, 0.6, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
     make_roc_plot(converted_data_list, base_labels, title, show=False)
-    plt.text(0.5, 0.2, "\n".join(data_comments),
+    plt.text(0.5, 0.6, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
 
@@ -237,7 +237,7 @@ repos_and_old_versions = [
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
-] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15)]
+] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15, 4)]
 for repo_name, old_version in repos_and_old_versions:
     r = LocalRepo(repo_name)
     old_r = r.get_old_version(old_version)
@@ -268,7 +268,7 @@ for repo_name, old_version in repos_and_old_versions:
     # make_individual_bb_alignment_table(old_r)
     vd_prob = get_view_disagreement_data_probabilities(old_r)
     # make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements predicting all refactorings")
-    make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref_heuristic, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements heuristically filtered refactorings")
+    make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref_heuristic, total, f"{old_r.name}\nView Disagreements VS heuristically filtered refactorings")
     # make_prc_plot_for("VD", vd_prob, bb, total, "Precision-Recall Plot of View Disagreements predicting BB")
 
 
