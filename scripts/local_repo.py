@@ -208,7 +208,10 @@ class LocalRepo:
         if self.trees is None:
             self.trees = {}
         if version not in self.trees:
-            self.trees[version] = RepoTree.init_from_repo(self, version)
+            cache_key = self.name if version is None else self.get_old_version(version).name
+            if cache_key not in _RepoTreeCache:
+                _RepoTreeCache[cache_key] = RepoTree.init_from_repo(self, version)
+            self.trees[version] = _RepoTreeCache[cache_key]
         return self.trees[version]
 
     def __eq__(self, other):
@@ -615,3 +618,6 @@ class RepoTree:
         print("enums:", sum(node.get_type() == "enum" for node in all_nodes))
         print("other type:", sum(node.get_type() is not None and node.get_type() not in ["method", "constructor", "field", "class", "interface", "enum"] for node in all_nodes))
         print("without type:", sum(node.get_type() is None for node in all_nodes))
+
+
+_RepoTreeCache: Dict[str, RepoTree] = dict()
