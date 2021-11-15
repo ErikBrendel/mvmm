@@ -148,6 +148,9 @@ PRC_DATA_ENTRY = Tuple[str, Union[Dict[str, float], Set[str]]]
 
 
 def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str], title: str):
+    if len(base_data) == 0:
+        print(f"No data for {title}")
+        return
     data_comments: List[str] = []
     converted_data_list: List[PRC_PLOT_DATA_ENTRY] = []
 
@@ -225,6 +228,14 @@ def preprocess(repo_name: str):
 #    make_individual_bb_alignment_table(r)
 
 
+class_loc_ranges = [
+    (0, 50),
+    (50, 200),
+    (200, 500),
+    (500, 9999999999),
+]
+
+
 repos_and_old_versions = [
     # ("jfree/jfreechart:v1.5.3", "v1.0.18"),
     ("junit-team/junit4:r4.13.2", "r4.6"),
@@ -239,47 +250,33 @@ for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
     old_r = new_r.get_old_version(old_version)
     preprocess(old_r.name)
 
-    vd = get_view_disagreement_data(old_r)
-    bb = get_bb_data(old_r)
-    ref = get_classes_being_refactored_in_the_future(new_r, old_version, False)
-    ref_verified = get_classes_being_refactored_in_the_future(new_r, old_version, True)
-    ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version)
-    total_list = get_filtered_nodes(old_r, "classes")
-    total = set(total_list)
+    for min_class_loc, max_class_loc in class_loc_ranges:
 
-    # make_alignment_table("VD", vd, "REFa", ref, total,
-    #                      f"{old_r.name}\n View Disagreement Reports vs All Automatically Detected Refactorings")
-    # make_alignment_table("VD", vd, "REFh", ref_heuristic, total,
-    #                      f"{old_r.name}\n View Disagreement Reports vs Heuristically Filtered Refactorings")
-    # make_alignment_table("VD", vd, "REFv", ref_verified, total,
-    #                      f"{old_r.name}\n View Disagreement Reports vs Manually Verified Refactorings")
-    # make_alignment_table("BB", bb, "REFa", ref, total,
-    #                      f"{old_r.name}\n Blue Book Disharmonies vs All Automatically Detected Refactorings")
-    # make_alignment_table("BB", bb, "REFh", ref_heuristic, total,
-    #                      f"{old_r.name}\n Blue Book Disharmonies vs Heuristically Filtered Refactorings")
-    # make_alignment_table("BB", bb, "REFv", ref_verified, total,
-    #                      f"{old_r.name}\n Blue Book Disharmonies vs Manually Verified Refactorings")
-    # make_alignment_table("VD", vd, "BB", bb, total,
-    #                      f"{old_r.name}\n View Disagreement Reports vs Blue Book Disharmonies")
-    # make_individual_bb_alignment_table(old_r)
-    vd_prob = get_view_disagreement_data_probabilities(old_r)
-    bb_prob = (dict((entry, 1.0) for entry in bb))
-    for key in bb_prob.keys():
-        if key not in vd_prob:
-            vd_prob[key] = 0
-    vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
-    class_size_prob = dict((name, old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total)
-    # make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements predicting all refactorings")
-    make_prc_plot_for([
-        ("VD", vd_prob),
-        ("VD+BB", vd_bb),
-        ("ClassSize", class_size_prob),
-        ("BB", bb),
-    ], ref_heuristic, total, f"{old_r.name} <> {new_r.committish}\nView Disagreements VS heuristically filtered refactorings")
+        total_list = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
+        total = set(total_list)
 
-    # plt.savefig(f"images/prc_{r.repo_name.replace('/', '_')}_{str(i).zfill(3)}.png")
-    # plt.close()
-    # make_prc_plot_for("VD", vd_prob, bb, total, "Precision-Recall Plot of View Disagreements predicting BB")
+        vd = get_view_disagreement_data(old_r).intersection(total)
+        bb = get_bb_data(old_r).intersection(total)
+        ref = get_classes_being_refactored_in_the_future(new_r, old_version, False).intersection(total)
+        ref_verified = get_classes_being_refactored_in_the_future(new_r, old_version, True).intersection(total)
+        ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total)
+
+        vd_prob = get_view_disagreement_data_probabilities(old_r)
+        for name in list(vd_prob.keys()):
+            if name not in total:
+                vd_prob.pop(name)
+        bb_prob = (dict((entry, 1.0) for entry in bb))
+        for key in bb_prob.keys():
+            if key not in vd_prob:
+                vd_prob[key] = 0
+        vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
+        class_size_prob = dict((name, old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total)
+        make_prc_plot_for([
+            ("VD", vd_prob),
+            ("VD+BB", vd_bb),
+            ("ClassSize", class_size_prob),
+            ("BB", bb),
+        ], ref_heuristic, total, f"{old_r.name} <> {new_r.committish} (Class Loc in range [{min_class_loc}, {max_class_loc}])\nView Disagreements VS heuristically filtered refactorings")
 
 
 

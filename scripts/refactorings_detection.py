@@ -149,7 +149,7 @@ def get_classes_being_refactored_in_the_future(repo: LocalRepo, old_version: str
                     for r in get_nodes_being_refactored_in_the_future(repo, old_version)])
 
 
-def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: LocalRepo, old_version: str):
+def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: LocalRepo, old_version: str) -> Set[str]:
     old_repo = new_repo.get_old_version(old_version)
 
     old_tree = old_repo.get_tree()
@@ -180,7 +180,7 @@ def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: 
         "Move Method": 3,
         "Merge Parameter": 2,
     }
-    return [name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 5]
+    return set(name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 5)
 
 
 def get_confirmed_class_refactorings_dict(repo_name: str, old_version: str):
