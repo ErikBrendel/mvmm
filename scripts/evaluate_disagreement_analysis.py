@@ -244,39 +244,46 @@ repos_and_old_versions = [
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
-] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15)]
-for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
-    new_r = LocalRepo(repo_name)
-    old_r = new_r.get_old_version(old_version)
-    preprocess(old_r.name)
+] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 4)]
 
-    for min_class_loc, max_class_loc in class_loc_ranges:
+for min_class_loc, max_class_loc in class_loc_ranges:
+    total = set()
+    vd = set()
+    bb = set()
+    ref_heuristic = set()
+    vd_prob: Dict[str, float] = dict()
+    class_size_prob: Dict[str, float] = dict()
+    for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
+        new_r = LocalRepo(repo_name)
+        old_r = new_r.get_old_version(old_version)
+        preprocess(old_r.name)
 
-        total_list = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
-        total = set(total_list)
+        total_list_r = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
+        total_r = set(total_list_r)
+        total.update(f"{old_r.name}/{name}" for name in total_r)
 
-        vd = get_view_disagreement_data(old_r).intersection(total)
-        bb = get_bb_data(old_r).intersection(total)
-        ref = get_classes_being_refactored_in_the_future(new_r, old_version, False).intersection(total)
-        ref_verified = get_classes_being_refactored_in_the_future(new_r, old_version, True).intersection(total)
-        ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total)
+        vd.update(f"{old_r.name}/{name}" for name in get_view_disagreement_data(old_r).intersection(total_r))
+        bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
+        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_r))
 
-        vd_prob = get_view_disagreement_data_probabilities(old_r)
-        for name in list(vd_prob.keys()):
-            if name not in total:
-                vd_prob.pop(name)
-        bb_prob = (dict((entry, 1.0) for entry in bb))
-        for key in bb_prob.keys():
-            if key not in vd_prob:
-                vd_prob[key] = 0
-        vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
-        class_size_prob = dict((name, old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total)
-        make_prc_plot_for([
-            ("VD", vd_prob),
-            ("VD+BB", vd_bb),
-            ("ClassSize", class_size_prob),
-            ("BB", bb),
-        ], ref_heuristic, total, f"{old_r.name} <> {new_r.committish} (Class Loc in range [{min_class_loc}, {max_class_loc}])\nView Disagreements VS heuristically filtered refactorings")
+        vd_prob_r = get_view_disagreement_data_probabilities(old_r)
+        for name in list(vd_prob_r.keys()):
+            if name not in total_r:
+                vd_prob_r.pop(name)
+        vd_prob.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_r.items()))
+        class_size_prob.update(dict((f"{old_r.name}/{name}", old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total_r))
+
+    bb_prob = (dict((entry, 1.0) for entry in bb))
+    for key in bb_prob.keys():
+        if key not in vd_prob:
+            vd_prob[key] = 0
+    vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
+    make_prc_plot_for([
+        ("VD", vd_prob),
+        ("VD+BB", vd_bb),
+        ("ClassSize", class_size_prob),
+        ("BB", bb),
+    ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
 
 
 
