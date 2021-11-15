@@ -241,14 +241,15 @@ class_loc_ranges = [
 
 repos_and_old_versions = [
     # ("jfree/jfreechart:v1.5.3", "v1.0.18"),
-    ("junit-team/junit4:r4.13.2", "r4.6"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
+    # ("junit-team/junit4:r4.13.2", "r4.6"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
-] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 4)]
+] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15, 4)]
 
+"""
 for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
     vd = set()
@@ -287,6 +288,36 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         ("BB", bb),
         ("ClassSize", class_size_prob),
     ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
+"""
 
+for repo_name, old_version in repos_and_old_versions:
+    new_r = LocalRepo(repo_name)
+    old_r = new_r.get_old_version(old_version)
 
+    total_list = get_filtered_nodes(old_r, "classes")
+    total_set = set(total_list)
+    ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_set)
 
+    vd_prob_old = get_view_disagreement_data_probabilities(old_r)
+    vd_prob_new = get_view_disagreement_data_probabilities(new_r)
+
+    exp = 4
+    vd_changes_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in ref_heuristic]
+    vd_changes_no_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in (total_set - ref_heuristic)]
+
+    for title, data in [("Ref", vd_changes_ref), ("No-Ref", vd_changes_no_ref)]:
+        # perform normalization (Cosineau 2005): X_ij := X_ij − mean(X_j) + mean_(X)
+        total_mean = statistics.mean([(a + b) / 2 for a, b in data])
+        norm_data = [(old - mean + total_mean, new - mean + total_mean) for old, new, mean in [(old, new, (old + new) / 2) for old, new in data]]
+
+        plt.boxplot([[old for old, new in norm_data], [new for old, new in norm_data]], labels=["old", "new"], widths=0.6)
+        for old, new in norm_data:
+            if old != new:
+                plt.plot([1, 2], [old, new], 'k', alpha=0.05)
+        plt.xlabel('Version')
+        plt.ylim([-0.03, 1.03])
+        plt.ylabel('Disagreement Strength')
+        plt.title(title)
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.1)
+        plt.gcf().set_size_inches(plt.gcf().get_figwidth() * 0.5, plt.gcf().get_figheight())
+        plt.show()
