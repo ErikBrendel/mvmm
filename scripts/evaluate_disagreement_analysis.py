@@ -290,20 +290,28 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
 """
 
-for repo_name, old_version in repos_and_old_versions:
-    new_r = LocalRepo(repo_name)
-    old_r = new_r.get_old_version(old_version)
+for min_class_loc, max_class_loc in class_loc_ranges:
+    total = set()
+    ref_heuristic = set()
+    vd_prob_old: Dict[str, float] = dict()
+    vd_prob_new: Dict[str, float] = dict()
+    for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
+        new_r = LocalRepo(repo_name)
+        old_r = new_r.get_old_version(old_version)
 
-    total_list = get_filtered_nodes(old_r, "classes")
-    total_set = set(total_list)
-    ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_set)
+        total_list_r = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
+        total_set_r = set(total_list_r)
+        total.update(f"{old_r.name}/{name}" for name in total_list_r)
+        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_set_r))
 
-    vd_prob_old = get_view_disagreement_data_probabilities(old_r)
-    vd_prob_new = get_view_disagreement_data_probabilities(new_r)
+        vd_prob_old_r = get_view_disagreement_data_probabilities(old_r)
+        vd_prob_old.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_old_r.items()))
+        vd_prob_new_r = get_view_disagreement_data_probabilities(new_r)
+        vd_prob_new.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_new_r.items()))
 
-    exp = 4
+    exp = 2
     vd_changes_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in ref_heuristic]
-    vd_changes_no_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in (total_set - ref_heuristic)]
+    vd_changes_no_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in (total - ref_heuristic)]
 
     for title, data in [("Ref", vd_changes_ref), ("No-Ref", vd_changes_no_ref)]:
         # perform normalization (Cosineau 2005): X_ij := X_ij − mean(X_j) + mean_(X)
@@ -312,12 +320,11 @@ for repo_name, old_version in repos_and_old_versions:
 
         plt.boxplot([[old for old, new in norm_data], [new for old, new in norm_data]], labels=["old", "new"], widths=0.6)
         for old, new in norm_data:
-            if old != new:
-                plt.plot([1, 2], [old, new], 'k', alpha=0.05)
+            plt.plot([1, 2], [old, new], 'k', alpha=0.05)
         plt.xlabel('Version')
         plt.ylim([-0.03, 1.03])
         plt.ylabel('Disagreement Strength')
-        plt.title(title)
+        plt.title(f"{title}: Class Loc in range [{min_class_loc}, {max_class_loc}]")
         plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.1)
         plt.gcf().set_size_inches(plt.gcf().get_figwidth() * 0.5, plt.gcf().get_figheight())
         plt.show()
