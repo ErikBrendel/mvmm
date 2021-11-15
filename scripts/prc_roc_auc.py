@@ -36,7 +36,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = tp / float(tp + fp)
                 recall = tp / float(tp + fn)
             auc_value = precision * recall
-            marker = "x"
+            marker = "X"
         plt.plot(recall, precision, marker=marker, label=f"{datum_name}: {int(auc_value * 1000)/10}%")
     plt.xlabel('Recall')
     plt.ylabel('Precision')
