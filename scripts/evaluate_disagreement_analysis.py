@@ -240,9 +240,9 @@ class_loc_ranges = [
 
 
 repos_and_old_versions = [
-    # ("jfree/jfreechart:v1.5.3", "v1.0.18"),
-    # ("junit-team/junit4:r4.13.2", "r4.6"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
+    ("jfree/jfreechart:v1.5.3", "v1.0.18"),
+    ("junit-team/junit4:r4.13.2", "r4.6"),
+    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.0"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
@@ -325,6 +325,8 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         plt.ylim([-0.03, 1.03])
         plt.ylabel('Disagreement Strength')
         plt.title(f"{title}: Class Loc in range [{min_class_loc}, {max_class_loc}]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.1)
+        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
         plt.gcf().set_size_inches(plt.gcf().get_figwidth() * 0.5, plt.gcf().get_figheight())
+        mean_change = statistics.mean([new - old for old, new in data])
+        plt.text(0.5, -0.18, f"{mean_change=:.4f}", horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
         plt.show()
