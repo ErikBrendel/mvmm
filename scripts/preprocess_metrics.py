@@ -36,9 +36,29 @@ repos = [
     # "apache/logging-log4j2:rel/2.4",
     # "apache/logging-log4j2:rel/2.1",
     # "apache/logging-log4j2:rel/2.0",
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.13.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.12.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.10.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.9.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.7"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.6"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.5"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.3"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.2"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
+    ("jfree/jfreechart:v1.5.3", "v1.0.18"),
+    ("jfree/jfreechart:v1.5.3", "v1.5.0"),
+    ("junit-team/junit4:r4.13.2", "r4.6"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
 ]\
-        + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 16)]\
-        + [("apache/hadoop:release-0.23.11", f"release-0.{v}.0") for v in range(1, 24)]
+#         + [("hapifhir/hapi-fhir:v1.0", f"v0.{v}") for v in range(4, 10)]\
+#         + [("hapifhir/hapi-fhir:v2.0", f"v1.{v}") for v in range(0, 7)]\
+#         + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 16)]\
+#         + [("apache/hadoop:release-0.23.11", f"release-0.{v}.0") for v in range(1, 24)]
 
 
 def preprocess(job_info: str):
@@ -82,4 +102,4 @@ for jobs_repo_info in repos:
 print(jobs)
 map_parallel(jobs, preprocess, lambda foo: foo,
              f"Preprocessing all {len(repos)} repos",
-             force_non_parallel=True)
+             force_non_parallel=False)

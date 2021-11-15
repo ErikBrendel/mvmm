@@ -1,14 +1,12 @@
 import statistics
 
-import pyfiglet
-
 from custom_types import *
 from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
-from best_results_set import BestResultsSet, BRS_DATA_TYPE
+from best_results_set import BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
-from util import map_parallel, merge_dicts
-from prc_roc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY, make_roc_plot
+from util import merge_dicts
+from prc_roc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
@@ -179,11 +177,10 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     plt.text(0.5, 0.2, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
-    make_roc_plot(converted_data_list, base_labels, title, show=False)
-    plt.text(0.5, 0.4, "\n".join(data_comments),
-             horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
-    plt.show()
-
+    # make_roc_plot(converted_data_list, base_labels, title, show=False)
+    # plt.text(0.5, 0.4, "\n".join(data_comments),
+    #          horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
+    # plt.show()
 
 
 def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
@@ -230,25 +227,24 @@ def preprocess(repo_name: str):
 
 repos_and_old_versions = [
     # ("jfree/jfreechart:v1.5.3", "v1.0.18"),
-    # ("jfree/jfreechart:v1.5.3", "v1.5.0"),
-    # ("junit-team/junit4:r4.13.2", "r4.6"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
+    ("junit-team/junit4:r4.13.2", "r4.6"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.2"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
     # ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
-] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15, 4)]
-for repo_name, old_version in repos_and_old_versions:
-    r = LocalRepo(repo_name)
-    old_r = r.get_old_version(old_version)
+] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15)]
+for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
+    new_r = LocalRepo(repo_name)
+    old_r = new_r.get_old_version(old_version)
     preprocess(old_r.name)
 
     vd = get_view_disagreement_data(old_r)
     bb = get_bb_data(old_r)
-    ref = get_classes_being_refactored_in_the_future(r, old_version, False)
-    ref_verified = get_classes_being_refactored_in_the_future(r, old_version, True)
-    ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(r, old_version)
-    total_list = get_filtered_nodes(r, "classes")
+    ref = get_classes_being_refactored_in_the_future(new_r, old_version, False)
+    ref_verified = get_classes_being_refactored_in_the_future(new_r, old_version, True)
+    ref_heuristic = get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version)
+    total_list = get_filtered_nodes(old_r, "classes")
     total = set(total_list)
 
     # make_alignment_table("VD", vd, "REFa", ref, total,
@@ -267,8 +263,22 @@ for repo_name, old_version in repos_and_old_versions:
     #                      f"{old_r.name}\n View Disagreement Reports vs Blue Book Disharmonies")
     # make_individual_bb_alignment_table(old_r)
     vd_prob = get_view_disagreement_data_probabilities(old_r)
+    bb_prob = (dict((entry, 1.0) for entry in bb))
+    for key in bb_prob.keys():
+        if key not in vd_prob:
+            vd_prob[key] = 0
+    vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
+    class_size_prob = dict((name, old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total)
     # make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref, total, f"{old_r.name}\nPrecision-Recall Plot of View Disagreements predicting all refactorings")
-    make_prc_plot_for([("VD", vd_prob), ("BB", bb)], ref_heuristic, total, f"{old_r.name}\nView Disagreements VS heuristically filtered refactorings")
+    make_prc_plot_for([
+        ("VD", vd_prob),
+        ("VD+BB", vd_bb),
+        ("ClassSize", class_size_prob),
+        ("BB", bb),
+    ], ref_heuristic, total, f"{old_r.name} <> {new_r.committish}\nView Disagreements VS heuristically filtered refactorings")
+
+    # plt.savefig(f"images/prc_{r.repo_name.replace('/', '_')}_{str(i).zfill(3)}.png")
+    # plt.close()
     # make_prc_plot_for("VD", vd_prob, bb, total, "Precision-Recall Plot of View Disagreements predicting BB")
 
 
