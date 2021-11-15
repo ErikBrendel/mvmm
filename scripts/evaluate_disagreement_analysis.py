@@ -177,7 +177,9 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     data_comments.append(f"Base data size: {len(base_data)} ({int(len(base_data) / n * 100)}%) / Total: {n}")
 
     make_prc_plot(converted_data_list, base_labels, title, show=False)
-    plt.text(0.5, 0.2, "\n".join(data_comments),
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.25)
+    plt.gcf().set_size_inches(plt.gcf().get_figwidth(), plt.gcf().get_figheight() * 1.5)
+    plt.text(0.5, -0.25, "\n".join(data_comments),
              horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
     plt.show()
     # make_roc_plot(converted_data_list, base_labels, title, show=False)
