@@ -24,6 +24,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = precision[:-1]
                 recall = recall[:-1]
             auc_value = auc(recall, precision)
+            plot_kwargs = {"marker": "."}
             marker = "."
         else:  # list of binary classes
             tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
@@ -36,8 +37,8 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = tp / float(tp + fp)
                 recall = tp / float(tp + fn)
             auc_value = precision * recall
-            marker = "X"
-        plt.plot(recall, precision, marker=marker, label=f"{datum_name}: {int(auc_value * 1000)/10}%")
+            plot_kwargs = {"marker": "X", "linestyle": "None"}
+        plt.plot(recall, precision, label=f"{datum_name}: {int(auc_value * 1000)/10}%", **plot_kwargs)
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()

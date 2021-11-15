@@ -230,9 +230,10 @@ def preprocess(repo_name: str):
 
 class_loc_ranges = [
     (0, 50),
-    (50, 200),
-    (200, 500),
-    (500, 9999999999),
+    (50, 100),
+    (100, 200),
+    (200, 400),
+    (400, 9999999999),
 ]
 
 
@@ -281,8 +282,8 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     make_prc_plot_for([
         ("VD", vd_prob),
         ("VD+BB", vd_bb),
-        ("ClassSize", class_size_prob),
         ("BB", bb),
+        ("ClassSize", class_size_prob),
     ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
 
 
