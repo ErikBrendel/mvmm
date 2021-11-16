@@ -3,7 +3,7 @@ import sys
 import os
 from typing import *
 
-from util import log_progress
+from util import log_progress, show_histogram
 
 CPP_GRAPH_CLI_PATH = os.getenv("COUPLING_GRAPH_EXECUTABLE", "/home/ebrendel/util/mvmm-graphs/coupling_graphs")
 METRICS_SAVE_PATH = "../metrics/"
@@ -28,8 +28,12 @@ class GraphManager:
         cmd = "|".join(commands) + "\n"
         if LOG_COMMANDS:
             print("[CG] " + cmd[:-1])
-        self.process.stdin.write(cmd.encode("utf-8"))
-        self.process.stdin.flush()
+        try:
+            self.process.stdin.write(cmd.encode("utf-8"))
+            self.process.stdin.flush()
+        except BrokenPipeError as e:
+            print("Command failed: " + cmd[:-1])
+            raise e
 
     def execute_string(self, commands: List[str]) -> str:
         self.execute_void(commands)
@@ -40,7 +44,7 @@ class GraphManager:
                 self._show_progress(int(progress_parts[0]), int(progress_parts[1]), progress_parts[2])
             else:
                 if "Unknown command" in line:
-                    raise Exception("LAST COMMAND FAILED: " + "|".join(commands))
+                    raise Exception(f"LAST COMMAND FAILED: {'|'.join(commands)} | Error message: {line}")
                 if len(line) > 0:
                     print("[G] " + line)
                     sys.stdout.flush()
@@ -196,6 +200,34 @@ class ExplicitCouplingGraph(CouplingGraph):
     def dilate(self, iterations=1, weight_factor=0.2):
         self._exec_void("explicitDilate", [str(iterations), str(weight_factor)])
         self._exec_string("getGraphName")
+        
+    def get_data(self):
+        # see the c++ program for the output format specification, but it should be this:
+        # line 1: format specifier (always "Explicit")
+        # line 2: all node strings
+        # line 3: support values for each node
+        # line 4: all edges, by node index "n1,n2,weight"
+        type_name, raw_node_names, raw_supports, raw_edges = self._exec_strings("explicitGetData")
+        if type_name != "Explicit":
+            raise Exception("expected explicit type for getting data")
+        node_names = raw_node_names.split(";")
+        supports = [float(support) for support in raw_supports.split(";")]
+        edges = [(int(n1), int(n2), float(weight)) for n1, n2, weight in (edge_data.split(",") for edge_data in raw_edges.split(";"))]
+        return node_names, supports, edges
+
+    def show_weight_histogram(self):
+        node_names, supports, edges = self.get_data()
+
+        edge_weights = [w for n1, n2, w in edges]
+        show_histogram(edge_weights, 'Histogram of edge weights in coupling graph', 'Coupling Strength', 'Amount', 'b')
+
+        node_weights = [0.0 for _n in supports]
+        for n1, n2, w in edges:
+            node_weights[n1] += w
+            node_weights[n2] += w
+        show_histogram(node_weights, 'Histogram of node weights', 'Coupling Strength', 'Amount', 'g')
+
+        show_histogram(supports, 'Histogram of node support values', 'Support', 'Amount', 'g')
 
 
 class SimilarityCouplingGraph(CouplingGraph):
