@@ -337,13 +337,13 @@ def get_commit_diffs(commit: Commit, create_patch=False) -> List[List[Diff]]:
     return [p.diff(commit, create_patch=create_patch) for p in commit.parents]
 
 
-def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, List[str]]) -> FutureMapping:
+def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, Set[str]]) -> FutureMapping:
     commit = repo.get_commit(commit_sha)
     parent_diffs = get_commit_diffs(commit)
 
     changed_methods = find_changed_methods(repo, parent_diffs)
-    modern_changed_methods = [future_mapping.get_modern_name_for(m) for m in changed_methods]
-    result[commit_sha] = [m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)]
+    modern_changed_methods = {future_mapping.get_modern_name_for(m) for m in changed_methods}
+    result[commit_sha] = {m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)}
 
     new_future = future_mapping.clone()
     for older_name, newer_name in find_renamings(parent_diffs):
@@ -353,7 +353,7 @@ def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: Fut
 
 def evo_calc_new(repo: LocalRepo):
     """end result: for each commit, which methods have changed in it?"""
-    result: Dict[str, List[str]] = {}
+    result: Dict[str, Set[str]] = {}
 
     """first, for all the commits, find out which / how many children they have"""
     print("discovering commit children information")

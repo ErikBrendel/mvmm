@@ -15,7 +15,7 @@ ENTRIES_PER_PATTERN = 4
 
 
 @cachier()
-def get_evo_changes(repo: str) -> Dict[str, List[str]]:
+def get_evo_changes(repo: str) -> Dict[str, Set[str]]:
     return evo_calc_new(LocalRepo(repo))
 
 
