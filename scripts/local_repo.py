@@ -576,7 +576,7 @@ class RepoTree:
         results = set()
         for my_child in self.children.values():
             if other.has_child(my_child.name):
-                results += my_child.calculate_diff_to(other.children[my_child.name], my_content_bytes, other_content_bytes)
+                results.update(my_child.calculate_diff_to(other.children[my_child.name], my_content_bytes, other_content_bytes))
             else:
                 results.add(my_child.get_path())
         for other_child in other.children.values():
