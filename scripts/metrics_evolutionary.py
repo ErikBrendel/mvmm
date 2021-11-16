@@ -12,7 +12,7 @@ MAX_COMMIT_METHODS = 200
 
 
 # needs to be separate so that multiprocessing lib can find it
-def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
+def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[Set[str]]:
     # repo_tree = repo.get_tree()
 
     def walk_tree_cursor(cursor, prefix, content_bytes, node_handler):
@@ -67,33 +67,31 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
         errors = error_query.captures(tree.root_node)
         return len(errors) > 1
 
-    def blob_diff(diff) -> List[str]:
+    def blob_diff(diff) -> Set[str]:
         # pdb.set_trace()
         if diff.a_blob is None:
-            return [diff.b_path]  # newly created
+            return {diff.b_path}  # newly created
         elif diff.b_blob is None:
-            return [diff.a_path]  # deleted
+            return {diff.a_path}  # deleted
         path = diff.b_path  # in case of rename, stick to newer path, better chance at getting the right thing
-        # if not repo_tree.has_node(path):
-        #     return []  # ignore changed files that are not part of the interesting project structure
         if not path.endswith("." + repo.type_extension()):
-            return [path]
+            return {path}
         a_content = diff.a_blob.data_stream.read()
         if should_skip_file(a_content):
-            return []
+            return set()
         b_content = diff.b_blob.data_stream.read()
         if should_skip_file(b_content):
-            return []
+            return set()
         a_tree = java_parser.parse(a_content)
         b_tree = java_parser.parse(b_content)
         if _has_error(a_tree) or _has_error(b_tree):
-            return [path]  # I guess just the file changed, no more details available
+            return {path}  # I guess just the file changed, no more details available
         a_repo_tree = walk_tree(a_tree, a_content, path)
         if a_repo_tree is None:
-            return [path]
+            return {path}
         b_repo_tree = walk_tree(b_tree, b_content, path)
         if b_repo_tree is None:
-            return [path]
+            return {path}
         return a_repo_tree.calculate_diff_to(b_repo_tree, a_content, b_content)
 
     c1 = repo.get_commit(commit_hash)
@@ -104,7 +102,7 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
         # t5 = timer()
         if not (MIN_COMMIT_FILES <= len(diff) <= MAX_COMMIT_FILES):
             return None
-        diffs = [result for d in diff for result in blob_diff(d)]  # if repo_tree.has_node(result)
+        diffs = {result for d in diff for result in blob_diff(d)}  # if repo_tree.has_node(result)
         # t6 = timer()
         # print("Diff: " + str(len(diff)) + " / " + str(len(diffs)) + " changes")
 
@@ -127,7 +125,7 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[List[str]]:
 
 
 def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCouplingGraph):
-    def processDiffs(diffs):
+    def processDiffs(diffs: Set[str]):
         score = 2 / len(diffs)
         diffs = [d for d in diffs if repo.get_tree().has_node(d)]
         for f1, f2 in all_pairs(diffs):
@@ -157,7 +155,7 @@ def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
 #########################################
 
 
-def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> List[str]:
+def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Set[str]:
     """return the list of all method names (name after commit) that have changed in this commit"""
     ignored_ast_node_types = {
         "import_declaration", "comment", "package_declaration", "modifiers", "superclass", "super_interfaces", "identifier", "field_access", "type_identifier", "formal_parameters"
@@ -215,36 +213,36 @@ def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Lis
         errors = error_query.captures(tree.root_node)
         return len(errors) > 1
 
-    def blob_diff(diff: Diff) -> List[str]:
+    def blob_diff(diff: Diff) -> Set[str]:
         if diff.a_blob is None:
-            return [diff.b_path]  # newly created
+            return {diff.b_path}  # newly created
         elif diff.b_blob is None:
-            return []  # deleted -> not interested
+            return set()  # deleted -> not interested
         path = diff.b_path
         if not path.endswith("." + repo.type_extension()):
-            return [path]
+            return {path}
         a_content = diff.a_blob.data_stream.read()
         if should_skip_file(a_content):
-            return []
+            return set()
         b_content = diff.b_blob.data_stream.read()
         if should_skip_file(b_content):
-            return []
+            return set()
         a_tree = java_parser.parse(a_content)
         b_tree = java_parser.parse(b_content)
         if _has_error(a_tree) or _has_error(b_tree):
-            return [path]  # I guess just the file changed, no more details available
+            return {path}  # I guess just the file changed, no more details available
         a_repo_tree = walk_tree(a_tree, a_content, path)
         if a_repo_tree is None:
-            return [path]
+            return {path}
         b_repo_tree = walk_tree(b_tree, b_content, path)
         if b_repo_tree is None:
-            return [path]
+            return {path}
         return a_repo_tree.calculate_diff_to(b_repo_tree, a_content, b_content)
 
-    result: List[str] = []
+    result: Set[str] = set()
     for diff in parent_diffs:
         for d in diff:
-            result.extend(blob_diff(d))
+            result += blob_diff(d)
     return result
 
 

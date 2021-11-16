@@ -31,7 +31,7 @@ import numpy as np
 # https://github.com/tqdm/tqdm/blob/master/tqdm/std.py
 
 
-def all_pairs(data: List[any]) -> Generator[Tuple[any, any], None, None]:
+def all_pairs(data: List[T]) -> Generator[Tuple[T, T], None, None]:
     length = len(data)
     for i in range(length):
         for j in range(i):

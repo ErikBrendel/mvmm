@@ -570,25 +570,24 @@ class RepoTree:
     def node_count(self) -> int:
         return sum([c.node_count() for c in self.children.values()]) + 1
 
-    def calculate_diff_to(self, other: 'RepoTree', my_content_bytes, other_content_bytes) -> List[str]:
+    def calculate_diff_to(self, other: 'RepoTree', my_content_bytes, other_content_bytes) -> Set[str]:
         """return list of paths of minimal nodes that have changed content or are unmappable"""
         # assumption: self.name == other.name
-        results = []
+        results = set()
         for my_child in self.children.values():
             if other.has_child(my_child.name):
                 results += my_child.calculate_diff_to(other.children[my_child.name], my_content_bytes, other_content_bytes)
             else:
-                results.append(my_child.get_path())
+                results.add(my_child.get_path())
         for other_child in other.children.values():
             if not self.has_child(other_child.name):
-                results.append(other_child.get_path())
+                results.add(other_child.get_path())
         if len(results) == 0 and self.ts_node is not None and other.ts_node is not None:  # TODO why can they be None?
-            # if self.ts_node.
-            # TODO: insteadcheck if the treesitter trees are equal!
+            # TODO: instead check if the treesitter trees are equal!
             my_content = decode(my_content_bytes[self.ts_node.start_byte:self.ts_node.end_byte])
             other_content = decode(other_content_bytes[other.ts_node.start_byte:other.ts_node.end_byte])
             if my_content != other_content:
-                results.append(self.get_path())
+                results.add(self.get_path())
         return results
 
     def probably_equals(self, other: 'RepoTree'):

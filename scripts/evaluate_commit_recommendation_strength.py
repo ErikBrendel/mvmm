@@ -40,7 +40,7 @@ metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
 
 @processify
-def get_commit_diff_processified(*args):
+def get_commit_diff_processified(*args) -> Optional[Set[str]]:
     return get_commit_diff(*args)
 
 
