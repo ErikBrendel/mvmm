@@ -200,14 +200,28 @@ class NestedEnv(Env):
         return self.parent_env.debug_location_info() + "/"
 
 
-class ArrayEnv(Env):
-    def __init__(self, context, base_type, containing_env):
-        Env.__init__(self, context, base_type + "[]")
+class SpecializedEnv(Env, ABC):
+    def __init__(self, context, base_type, extra_type_part, containing_env):
+        Env.__init__(self, context, base_type + extra_type_part)
         self.base_type = base_type
         self.containing_env = containing_env
 
-    def _get_base_env(self):
-        return self.containing_env.get_env_for_name(self.base_type)
+    def _get_base_env(self) -> Optional[Env]:
+        potential_base_env = self.containing_env.get_env_for_name(self.base_type)
+        if potential_base_env is self:
+            return None
+        return potential_base_env
+
+    def get_result_type_envs(self):
+        return [self]
+
+    def debug_location_info(self):
+        return self.containing_env.debug_location_info() + "/" + self.path
+
+
+class ArrayEnv(SpecializedEnv):
+    def __init__(self, context, base_type, containing_env):
+        SpecializedEnv.__init__(self, context, base_type, "[]", containing_env)
 
     def get_env_for_single_name(self, name):
         if name in ["length"]:
@@ -219,9 +233,6 @@ class ArrayEnv(Env):
     def get_env_for_array_access(self):
         return self._get_base_env()
 
-    def get_result_type_envs(self):
-        return [self]
-
     def get_self_paths(self):
         base_env = self._get_base_env()
         if base_env is None:
@@ -229,19 +240,11 @@ class ArrayEnv(Env):
         else:
             return base_env.get_self_paths()
 
-    def debug_location_info(self):
-        return self.containing_env.debug_location_info() + "/" + self.path
 
-
-class GenericEnv(Env):
+class GenericEnv(SpecializedEnv):
     def __init__(self, context, base_type, generic_parameter_types, containing_env):
-        Env.__init__(self, context, base_type + "<" + ",".join(generic_parameter_types) + ">")
-        self.base_type = base_type
+        SpecializedEnv.__init__(self, context, base_type, "<" + ",".join(generic_parameter_types) + ">", containing_env)
         self.generic_parameter_types = generic_parameter_types
-        self.containing_env = containing_env
-
-    def _get_base_env(self):
-        return self.containing_env.get_env_for_name(self.base_type)
 
     def _get_generic_parameter_envs(self):
         return [self.containing_env.get_env_for_name(par) for par in self.generic_parameter_types]
@@ -255,9 +258,6 @@ class GenericEnv(Env):
         # TODO add a wrapper env that replaces the generic type names with the concrete types we know
         return base_env.get_env_for_single_name(name)
 
-    def get_result_type_envs(self):
-        return [self]
-
     def get_self_paths(self):
         base_env = self._get_base_env()
         base_paths = [] if base_env is None else base_env.get_self_paths()
@@ -268,9 +268,6 @@ class GenericEnv(Env):
 
     def get_ungeneric_env(self) -> Optional['RepoTreeEnv']:
         return self._get_base_env()
-
-    def debug_location_info(self):
-        return self.containing_env.debug_location_info() + "/" + self.base_type + "<>"
 
 
 package_query = JA_LANGUAGE.query("(package_declaration (_) @decl)")
