@@ -142,7 +142,7 @@ class CouplingGraph:
 
     def print_statistics(self):
         self._exec_void("printStatistics")
-        self._exec_string("getGraphName")  # TODO remove
+        self._flush()
 
     def get_most_linked_node_pairs(self, amount: int) -> List[Tuple[float, str, str]]:
         return [(float(w), a, b) for w, a, b in (p.split(";") for p in self._exec_strings("getMostLinkedNodePairs", [str(amount)]))]
@@ -168,6 +168,9 @@ class CouplingGraph:
     def _exec_strings(self, cmd: str, other_args: List[str] = []) -> List[str]:
         return graph_manager.execute_strings([cmd, str(self.id)] + other_args)
 
+    def _flush(self):
+        graph_manager.flush()
+
 
 class ExplicitCouplingGraph(CouplingGraph):
     def __init__(self, name_or_id: Union[int, str]):
@@ -187,19 +190,19 @@ class ExplicitCouplingGraph(CouplingGraph):
 
     def cutoff_edges(self, minimum_weight: float):
         self._exec_void("explicitCutoffEdges", [str(minimum_weight)])
-        self._exec_string("getGraphName")
+        self._flush()
 
     def remove_small_components(self, minimum_component_size: int):
         self._exec_void("explicitRemoveSmallComponents", [str(minimum_component_size)])
-        self._exec_string("getGraphName")
+        self._flush()
 
     def propagate_down(self, layers=1, weight_factor=0.2):
         self._exec_void("explicitPropagateDown", [str(layers), str(weight_factor)])
-        self._exec_string("getGraphName")
+        self._flush()
 
     def dilate(self, iterations=1, weight_factor=0.2):
         self._exec_void("explicitDilate", [str(iterations), str(weight_factor)])
-        self._exec_string("getGraphName")
+        self._flush()
         
     def get_data(self):
         # see the c++ program for the output format specification, but it should be this:
