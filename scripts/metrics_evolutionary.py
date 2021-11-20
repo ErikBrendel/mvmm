@@ -404,7 +404,8 @@ def evo_calc_new(repo: LocalRepo):
     """first, for all the commits, find out which / how many children they have"""
     print("discovering commit children information")
     commit_children: Dict[str, List[str]] = {}
-    for commit_sha in repo.get_all_commits():
+    all_commits = repo.get_all_commits()
+    for commit_sha in all_commits:
         for parent_sha in [p.hexsha for p in repo.get_commit(commit_sha).parents]:
             if parent_sha not in commit_children:
                 commit_children[parent_sha] = []
@@ -413,7 +414,7 @@ def evo_calc_new(repo: LocalRepo):
     """ find all the diffs for each commit in parallel """
     all_changed_methods_and_renamings: Dict[str, Tuple[Set[str], Set[Tuple[str, str]]]] = dict()
     map_parallel(
-        [(repo.name, c) for c in repo.get_all_commits()],
+        [(repo.name, c) for c in all_commits],
         get_changed_methods_for_commit,
         lambda data: (all_changed_methods_and_renamings.setdefault(data[0], data[1])),
         "Finding all commit diffs",
