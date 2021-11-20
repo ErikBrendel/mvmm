@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from git import Commit, Diff, DiffIndex
 
 from graph import ExplicitCouplingGraph
@@ -242,71 +244,110 @@ def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Set
     result: Set[str] = set()
     for diff in parent_diffs:
         for d in diff:
-            result += blob_diff(d)
+            result.update(blob_diff(d))
     return result
 
 
 class FutureMapping:
-    def __init__(self):
-        self.renamings: Dict[str, str] = {}  # mapping historical method paths to modern ones, must not end with a slash
+    # FMs are chained FM, where each FM object only does
+    # the renamings of one commit, and points to the next FM objects, and modern name translation
+    # happens by iterating this DAG of mappers to the modern end.
+    def __init__(self, next_futures: List['FutureMapping'] = None):
+        self.renamings: Dict[str, str] = {}  # mapping historical method paths to one-step-closer-to-modern ones, both must not end with a slash
+        self.next_futures: List[FutureMapping] = next_futures or []
 
     def add_renaming(self, older_name, newer_name):
         """apply the given renaming before the current state of this object"""
-        # for each renaming: if the key starts with newer_name, replace this prefix with older_name
-        # TODO maybe instead implement a chained FM approach, where each FM object only does
-        #  the renamings of one commit, and points to the next FM object, and modern name translation
-        #  happens by iterating this linked list of mappers to the modern end.
-        #  might be slower, but more easier to understand and implement correctly
 
-        old_keys = list(self.renamings.keys())
-        self.renamings[older_name] = self.get_modern_name_for(newer_name)  # TODO is this reasonable?
-        for key in old_keys:
-            if key.startswith(newer_name):
-                older_key = older_name + key[len(newer_name):]
-                modern = self.renamings[key]
-                del self.renamings[key]
-                self.renamings[older_key] = modern
+        if older_name.endswith("/") or newer_name.endswith("/"):
+            print("Names end wit slash! Please stop that!")
+            if older_name.endswith("/"):
+                older_name = older_name[:-1]
+            if newer_name.endswith("/"):
+                newer_name = newer_name[:-1]
 
-    def get_modern_name_for(self, name: str) -> str:
+        if self.has_information_for(older_name):
+            print(f"Single-Step FM collision: {list(self.renamings.keys())} - {older_name}! Please come and fix this!")
+
+        self.renamings[older_name] = newer_name
+
+    def has_information_for(self, potential_older_name):
+        for existing_older_name in self.renamings.keys():
+            if existing_older_name.startswith(potential_older_name) or potential_older_name.startswith(existing_older_name):
+                return True
+        return False
+
+    def get_modern_names_for(self, name: str) -> Set[str]:
         """given the full path of a method, what will this method be called in the HEAD of the project?"""
-        # iterate, chop off ends of the path and see if we have renaming information on this sub-path
+        # since the FM objects form a DAG, we can do some topological sorting iteration,
+        # deduplicating same names that appear through multiple paths at the same FM
+
+        fm_open_input_counts: Dict[FutureMapping, int] = defaultdict(lambda: 0)
+        for fm in self.self_and_all_descendants():
+            for child in fm.next_futures:
+                fm_open_input_counts[child] += 1
+
+        waiting_before_names: Dict[FutureMapping, Set[str]] = defaultdict(lambda: set())
+        ready_ends: Dict[FutureMapping, Set[str]] = {self: {name}}
+        after_names = set()
+        while len(ready_ends) > 0:
+            fm, before_names = ready_ends.popitem()
+            after_names = {fm.get_single_step_future_name_of(name) for name in before_names}
+            for next_fm in fm.next_futures:
+                fm_open_input_counts[next_fm] -= 1
+                if fm_open_input_counts[next_fm] == 0:
+                    ready_ends[next_fm] = after_names.union(waiting_before_names.pop(next_fm, set()))
+                else:
+                    waiting_before_names[next_fm].update(after_names)
+        if len(waiting_before_names) > 0 or any(value != 0 for value in fm_open_input_counts.values()):
+            print("FM DAG traversal error!")
+            pdb.set_trace()
+        if len(after_names) > 1 and name in after_names:
+            after_names.remove(name)
+        if len(after_names) != 1:
+            print("Multiple after names found: ", name, after_names)
+        return after_names  # we know that the last one from that loop is the FM of the HEAD commit
+
+    def get_single_step_future_name_of(self, name: str) -> str:
+        """given the full path of a method, what will this method be called after this FM?"""
         if name in self.renamings:
             return self.renamings[name]
-        parts = name.split("/")
-        for i in range(len(parts) - 1, 0, -1):
-            first_part = "/".join(parts[:i])
-            if first_part in self.renamings:
-                end_part = "/".join(parts[i:])
-                return self.renamings[first_part] + "/" + end_part
+        for old, new in self.renamings.items():
+            if name.startswith(old):
+                return new + name[len(old):]  # this string splice should still include the slash
         return name  # if no renaming for no part of the path has been found, maybe it has not been renamed ever :D
 
-    def clone(self) -> 'FutureMapping':
-        res = FutureMapping()
-        res.renamings = self.renamings.copy()
-        return res
+    def self_and_all_descendants(self):
+        # return me and all my recursive next FMs
+        result: Set[FutureMapping] = set()
+        open_fms: Set[FutureMapping] = {self}
+        while len(open_fms) > 0:
+            current_fm = open_fms.pop()
+            if current_fm in result:
+                continue
+            result.add(current_fm)
+            for next_fms in current_fm.next_futures:
+                if next_fms not in result:
+                    open_fms.add(next_fms)
+        return result
 
-    def merge(self, other: 'FutureMapping'):
-        """merge other into this one"""
-        for key, value in other.renamings.items():
-            if key in self.renamings:
-                if self.renamings[key] != value:
-                    print("FM merge collision! What does this mean? Please debug and have a look")
-                else:
-                    pass  # we both agree on the value, nothing to merge here
-            else:
-                # other has a new key - lets just copy it and hope that this will work
-                self.renamings[key] = value
+    def compress(self):
+        """if I can be merged with my single next FM object, merge it into me"""
+        if len(self.next_futures) != 1:
+            return
+        next_fm = self.next_futures[0]
+        if any(next_fm.has_information_for(my_older_key) for my_older_key in self.renamings.keys()):
+            return  # cannot merge safely
+        for next_older_name, next_newer_name in next_fm.renamings.items():
+            self.add_renaming(next_older_name, next_newer_name)
+        self.next_futures = list(next_fm.next_futures)
 
     @staticmethod
-    def merge_all(mappings: List['FutureMapping']) -> 'FutureMapping':
-        if len(mappings) == 0:
-            return FutureMapping()
-        if len(mappings) == 1:
-            return mappings[0].clone()
-        result = mappings[0].clone()
-        for other in mappings[1:]:
-            result.merge(other)
-        return result
+    def create_for(next_futures: List['FutureMapping'] = None):
+        # in that moment, the passed objects are finished, so we can try to compress them each
+        for fm in next_futures:
+            fm.compress()
+        return FutureMapping(next_futures)
 
 
 def find_renamings(parent_diffs: List[List[Diff]]) -> List[Tuple[str, str]]:
@@ -342,10 +383,10 @@ def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: Fut
     parent_diffs = get_commit_diffs(commit)
 
     changed_methods = find_changed_methods(repo, parent_diffs)
-    modern_changed_methods = {future_mapping.get_modern_name_for(m) for m in changed_methods}
+    modern_changed_methods: Set[str] = {name for m in changed_methods for name in future_mapping.get_modern_names_for(m)}
     result[commit_sha] = {m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)}
 
-    new_future = future_mapping.clone()
+    new_future = FutureMapping([future_mapping])
     for older_name, newer_name in find_renamings(parent_diffs):
         new_future.add_renaming(older_name, newer_name)
     return new_future
@@ -380,7 +421,7 @@ def evo_calc_new(repo: LocalRepo):
             parent_children_shas = commit_children.get(parent.hexsha, [])
             if all(c in commit_futures for c in parent_children_shas):
                 # this parent now has mappings for all its children! Let's handle it!
-                todo_list.append((parent.hexsha, FutureMapping.merge_all([commit_futures[c] for c in parent_children_shas])))
+                todo_list.append((parent.hexsha, FutureMapping.create_for([commit_futures[c] for c in parent_children_shas])))
     bar.close()
     return result
 
