@@ -350,16 +350,16 @@ class FutureMapping:
         return FutureMapping(next_futures)
 
 
-def find_renamings(parent_diffs: List[List[Diff]]) -> List[Tuple[str, str]]:
+def find_renamings(parent_diffs: List[List[Diff]]) -> Set[Tuple[str, str]]:
     """return the list of all renamings that happened in this commit, in the form (name before this commit, name after this commit)"""
     deleted: List[Diff] = []
     created: List[Diff] = []
 
-    result: List[Tuple[str, str]] = []
+    result: Set[Tuple[str, str]] = set()
     for diff in parent_diffs:
         for d in diff:
             if d.a_path is not None and d.b_path is not None and d.a_path != d.b_path:
-                result.append((d.a_path, d.b_path))
+                result.add((d.a_path, d.b_path))
             elif d.a_path is None:
                 created.append(d)
             elif d.b_path is None:
@@ -378,18 +378,23 @@ def get_commit_diffs(commit: Commit, create_patch=False) -> List[List[Diff]]:
     return [p.diff(commit, create_patch=create_patch) for p in commit.parents]
 
 
-def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, Set[str]]) -> FutureMapping:
-    commit = repo.get_commit(commit_sha)
-    parent_diffs = get_commit_diffs(commit)
-
-    changed_methods = find_changed_methods(repo, parent_diffs)
+def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, Set[str]],
+                           all_changed_methods_and_renamings: Dict[str, Tuple[Set[str], Set[Tuple[str, str]]]]) -> FutureMapping:
+    changed_methods, renamings = all_changed_methods_and_renamings[commit_sha]
     modern_changed_methods: Set[str] = {name for m in changed_methods for name in future_mapping.get_modern_names_for(m)}
     result[commit_sha] = {m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)}
 
     new_future = FutureMapping([future_mapping])
-    for older_name, newer_name in find_renamings(parent_diffs):
+    for older_name, newer_name in renamings:
         new_future.add_renaming(older_name, newer_name)
     return new_future
+
+
+def get_changed_methods_for_commit(data):
+    repo_name, commit_sha = data
+    repo = LocalRepo(repo_name)
+    parent_diffs = get_commit_diffs(repo.get_commit(commit_sha))
+    return commit_sha, (find_changed_methods(repo, parent_diffs), find_renamings(parent_diffs))
 
 
 def evo_calc_new(repo: LocalRepo):
@@ -405,6 +410,15 @@ def evo_calc_new(repo: LocalRepo):
                 commit_children[parent_sha] = []
             commit_children[parent_sha].append(commit_sha)
 
+    """ find all the diffs for each commit in parallel """
+    all_changed_methods_and_renamings: Dict[str, Tuple[Set[str], Set[Tuple[str, str]]]] = dict()
+    map_parallel(
+        [(repo.name, c) for c in repo.get_all_commits()],
+        get_changed_methods_for_commit,
+        lambda data: (all_changed_methods_and_renamings.setdefault(data[0], data[1])),
+        "Finding all commit diffs",
+    )
+
     """iterate back through time, only handling commits once and when all their future has been handled"""
     head_commit_sha = repo.get_head_commit().hexsha
 
@@ -415,7 +429,7 @@ def evo_calc_new(repo: LocalRepo):
     while len(todo_list) > 0:
         bar.update()
         current_sha, prev_mapping = todo_list.pop()
-        new_mapping = evo_new_analyze_commit(repo, current_sha, prev_mapping, result)
+        new_mapping = evo_new_analyze_commit(repo, current_sha, prev_mapping, result, all_changed_methods_and_renamings)
         commit_futures[current_sha] = new_mapping
         for parent in repo.get_commit(current_sha).parents:
             parent_children_shas = commit_children.get(parent.hexsha, [])
