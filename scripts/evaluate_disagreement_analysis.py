@@ -198,12 +198,12 @@ def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_dat
             return x_var.get(entry, 0)
         else:
             return 1 if entry in x_var else 0
-    X = [[1] + [get_of_data(x_var, entry) for _name, x_var in data_list]
+    X = [[get_of_data(x_var, entry) for _name, x_var in data_list]
          for entry in total_data_list]
     Y = [1 if item in base_data else 0 for item in total_data_list]
-    coef = [1] + [1 for _data in data_list]
+    coef = [1 for _data in data_list]
     step_size = 0.5
-    while step_size > 0.001:
+    while step_size > 0.0001:
         print(f"{step_size}: {','.join(f'{c:.2f}' for c in coef)}")
         # find all new possible coefficients
         all_options = list(product(*[[c, c - step_size, c + step_size] for c in coef]))
@@ -220,7 +220,7 @@ def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_dat
     result: Dict[str, float] = dict()
     for name, x_entry in zip(total_data_list, X):
         result[name] = sum(coef_val * x_val for coef_val, x_val in zip(coef, x_entry))
-    names = [""] + [name for name, _x_var in data_list]
+    names = [name for name, _x_var in data_list]
     new_name = ' + '.join([f'{coef:.2f}' + name for name, coef in zip(names, coef)])
     return new_name, result
 
@@ -314,6 +314,10 @@ for min_class_loc, max_class_loc in class_loc_ranges:
                 vd_prob_r.pop(name)
         vd_prob.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_r.items()))
         class_size_prob.update(dict((f"{old_r.name}/{name}", old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total_r))
+
+    if len(ref_heuristic) == 0:
+        print("No refactorings found, continuing to next loop")
+        continue
 
     bb_prob = (dict((entry, 1.0) for entry in bb))
     for key in bb_prob.keys():
