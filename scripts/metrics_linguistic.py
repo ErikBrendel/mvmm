@@ -33,7 +33,7 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
                          "string", "super", "switch", "symbol", "synchronized", "this", "throw", "throws", "transient", "true", "True", "try", "type", "typeof", "var", "void", "volatile", "while",
                          "with", "yield"]
     stop_words = set(list(get_stop_words('en')) + custom_stop_words)  # TODO ignored "list(stopwords.words('english'))" because it had "y" and other weird ones
-    splitter = r"(?:[\W_]+|(?<![A-Z])(?=[A-Z])|(?<!^)(?=[A-Z][a-z]))"
+    splitter = r"(?:[\W_]+|(?<![A-Z])(?=[A-Z])|(?=[A-Z][a-z]))"
     lemma = WordNetLemmatizer()
     printable_characters = set(string.printable)
 
