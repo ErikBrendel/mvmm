@@ -32,8 +32,8 @@ class MetricsGeneration:
 
         self.repo.get_tree()
         new_couple_by_same_commits(self.repo, coupling_graph)
-        coupling_graph.cutoff_edges(0.0001)
-        coupling_graph.remove_small_components(3)
+        # coupling_graph.cutoff_edges(0.0001)
+        # coupling_graph.remove_small_components(3)
 
         return coupling_graph
 
@@ -56,7 +56,7 @@ class MetricsGeneration:
         context.couple_files_by_import(coupling_graph)
         context.couple_by_inheritance(coupling_graph)
         context.couple_members_by_content(coupling_graph)
-        coupling_graph.remove_small_components(3)
+        # coupling_graph.remove_small_components(3)
         flush_unresolvable_vars()
 
         return coupling_graph
