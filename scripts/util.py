@@ -21,7 +21,6 @@ import math
 import time
 import re
 import regex
-from multiprocessing import Pool, TimeoutError, Process, Manager, Lock
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -196,9 +195,10 @@ def map_parallel(data_list, mapper, result_handler, desc, force_non_parallel=Fal
                          MAX_PARALLEL_BATCH_SIZE)
         print("Going parallel, with a batch size of " + str(batch_size) + " of " + str(
             data_length) + ", resulting in " + str(math.ceil(data_length / batch_size)) + " batches.")
-        with Pool(processes=PARALLEL_THREADS) as pool:
+        from concurrent.futures import ProcessPoolExecutor as NestedPool
+        with NestedPool(max_workers=PARALLEL_THREADS) as pool:
             bar = log_progress(total=len(data_list), desc=desc)
-            results = pool.imap_unordered(mapper, data_list, batch_size)
+            results = pool.map(mapper, data_list, chunksize=batch_size)
 
             for result in results:
                 if result is not None:
