@@ -188,6 +188,21 @@ class LocalRepo:
             current_commit_date = self.get_head_commit().committed_date
             return [ch for ch in commit_hash_list if self.get_commit(ch).committed_date <= current_commit_date]
 
+    def get_commit_history_of_head(self) -> List[str]:
+        """this is similar to get_all_commits, except that it iterates back the history of the HEAD commit, thus being more accurate"""
+        head_commit_sha = self.get_head_commit().hexsha
+        result: Set[str] = set()
+        todo_list: List[str] = [head_commit_sha]
+        while len(todo_list) > 0:
+            current_sha = todo_list.pop()
+            if current_sha in result:
+                continue
+            result.add(current_sha)
+            for parent in (p.hexsha for p in self.get_commit(current_sha).parents):
+                if parent not in result:
+                    todo_list.append(parent)
+        return list(result)
+
     def get_future_commits(self) -> List[str]:
         if self.committish is None:
             return []

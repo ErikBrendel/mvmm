@@ -380,6 +380,8 @@ def get_commit_diffs(commit: Commit, create_patch=False) -> List[List[Diff]]:
 
 def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: FutureMapping, result: Dict[str, Set[str]],
                            all_changed_methods_and_renamings: Dict[str, Tuple[Set[str], Set[Tuple[str, str]]]]) -> FutureMapping:
+    if commit_sha not in all_changed_methods_and_renamings:
+        raise Exception(f"missing commit! {commit_sha=}, {repo.name=}")
     changed_methods, renamings = all_changed_methods_and_renamings[commit_sha]
     modern_changed_methods: Set[str] = {name for m in changed_methods for name in future_mapping.get_modern_names_for(m)}
     result[commit_sha] = {m for m in modern_changed_methods if m is not None and repo.get_tree().has(m)}
@@ -404,7 +406,7 @@ def evo_calc_new(repo: LocalRepo):
     """first, for all the commits, find out which / how many children they have"""
     print("discovering commit children information")
     commit_children: Dict[str, List[str]] = {}
-    all_commits = repo.get_all_commits()
+    all_commits = repo.get_commit_history_of_head()
     for commit_sha in all_commits:
         for parent_sha in [p.hexsha for p in repo.get_commit(commit_sha).parents]:
             if parent_sha not in commit_children:
