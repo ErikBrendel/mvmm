@@ -6,7 +6,7 @@ from cachier import cachier
 from local_repo import LocalRepo
 from metrics import MetricManager
 from metrics_evolutionary import get_commit_diff
-from legacy_graph import LegacyWeightCombinedGraph, LegacyResultCachedGraph, LegacyCouplingGraph
+from graph import CombinedCouplingGraph, CachedCouplingGraph, CouplingGraph, graph_manager
 from prcoessify import processify
 from plotting import parallel_coordinates
 # from graph import CachedCouplingGraph, CouplingGraph, CombinedCouplingGraph, graph_manager
@@ -49,8 +49,8 @@ def node_filter(tree_node):
 
 
 repo_objects = {repo: LocalRepo(repo) for repo in repos}
-nodes_tests_cache: dict[str, Tuple[List[str], List[tuple[str, List[str]]]]] = {}
-graph_cache: dict[str, List[LegacyCouplingGraph]] = {}
+nodes_tests_cache: dict[str, Tuple[int, List[tuple[str, List[str]]]]] = {}
+graph_cache: dict[str, List[CouplingGraph]] = {}
 def get_nodes_and_tests(repo: str):
     if repo not in nodes_tests_cache:
         r = repo_objects[repo]
@@ -65,13 +65,14 @@ def get_nodes_and_tests(repo: str):
                 prediction_tests.append((method_to_predict, other_methods))
         # nodeset_id = graph_manager.create_node_set(all_nodes)
         # nodes_tests_cache[repo] = (nodeset_id, prediction_tests)
-        nodes_tests_cache[repo] = (all_nodes, prediction_tests)
+        all_nodes_ns = graph_manager.create_node_set(all_nodes)
+        nodes_tests_cache[repo] = (all_nodes_ns, prediction_tests)
         print("Total method nodes: " + str(len(all_nodes)))
         print("Total future tests: " + str(len(prediction_tests)))
     return nodes_tests_cache[repo]
 def get_graphs(repo: str):
     if repo not in graph_cache:
-        graph_cache[repo] = [LegacyResultCachedGraph(MetricManager.get(repo_objects[repo], m)) for m in metrics]
+        graph_cache[repo] = [CachedCouplingGraph(MetricManager.get(repo_objects[repo], m)) for m in metrics]
     return graph_cache[repo]
 
 
@@ -79,7 +80,7 @@ def get_graphs(repo: str):
 def get_commit_prediction_score_cpp(repo: str, weights: Tuple[float]):
     all_nodes, prediction_tests = get_nodes_and_tests(repo)
     scores = []
-    combined_graph = LegacyWeightCombinedGraph(get_graphs(repo), weights)
+    combined_graph = CombinedCouplingGraph(get_graphs(repo), weights)
     for missing, others in prediction_tests:
         scores.append(combined_graph.how_well_predicts_missing_node(others, missing, all_nodes))
     return sum(scores) / len(scores)
