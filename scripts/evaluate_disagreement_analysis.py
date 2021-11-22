@@ -188,6 +188,43 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     # plt.show()
 
 
+def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str]) -> PRC_DATA_ENTRY:
+    from sklearn.metrics import precision_recall_curve
+    from sklearn.metrics import auc
+    from itertools import product
+    total_data_list = list(total_data)
+    def get_of_data(x_var, entry):
+        if isinstance(x_var, dict):
+            return x_var.get(entry, 0)
+        else:
+            return 1 if entry in x_var else 0
+    X = [[1] + [get_of_data(x_var, entry) for _name, x_var in data_list]
+         for entry in total_data_list]
+    Y = [1 if item in base_data else 0 for item in total_data_list]
+    coef = [1] + [1 for _data in data_list]
+    step_size = 0.5
+    while step_size > 0.001:
+        print(f"{step_size}: {','.join(f'{c:.2f}' for c in coef)}")
+        # find all new possible coefficients
+        all_options = list(product(*[[c, c - step_size, c + step_size] for c in coef]))
+        aucs = [auc(recall, precision) for precision, recall, _t in (precision_recall_curve(
+            Y,
+            [sum(coef_val * x_val for coef_val, x_val in zip(o, x_entry)) for x_entry in X]
+        ) for o in all_options)]
+        if max(aucs) == aucs[0]:
+            # no improvement here, lets decrease step size and repeat
+            step_size /= 2
+        else:
+            coef = all_options[aucs.index(max(aucs))]
+
+    result: Dict[str, float] = dict()
+    for name, x_entry in zip(total_data_list, X):
+        result[name] = sum(coef_val * x_val for coef_val, x_val in zip(coef, x_entry))
+    names = [""] + [name for name, _x_var in data_list]
+    new_name = ' + '.join([f'{coef:.2f}' + name for name, coef in zip(names, coef)])
+    return new_name, result
+
+
 def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
     results: Set[str] = set()
     for p, n, d in TAXONOMY:
@@ -231,25 +268,26 @@ def preprocess(repo_name: str):
 
 
 class_loc_ranges = [
-    (0, 50),
-    (50, 100),
-    (100, 200),
-    (200, 400),
-    (400, 9999999999),
+    # (0, 50),
+    # (50, 100),
+    # (100, 200),
+    # (200, 400),
+    # (400, 9999999999),
+    (0, 9999999999),
 ]
 
 
 repos_and_old_versions = [
     ("jfree/jfreechart:v1.5.3", "v1.0.18"),
     ("junit-team/junit4:r4.13.2", "r4.6"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.0"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
-    # ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.0"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
+    ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
 ] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15, 4)]
 
-"""
+# """
 for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
     vd = set()
@@ -282,11 +320,19 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         if key not in vd_prob:
             vd_prob[key] = 0
     vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
+
+    best_combination = make_linear_regression_combination([
+        ("VD", vd_prob),
+        ("BB", bb),
+        ("ClassSize", class_size_prob),
+    ], ref_heuristic, total)
+
     make_prc_plot_for([
         ("VD", vd_prob),
         ("VD+BB", vd_bb),
         ("BB", bb),
         ("ClassSize", class_size_prob),
+        best_combination,
     ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
 """
 
@@ -330,3 +376,4 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         mean_change = statistics.mean([new - old for old, new in data])
         plt.text(0.5, -0.18, f"{mean_change=:.4f}", horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
         plt.show()
+# """
