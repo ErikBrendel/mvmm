@@ -173,8 +173,8 @@ class LocalRepo:
         test_skipper = DirectoryExclusionTracker(['test', 'tests', 'samples', 'example', 'examples', 'androidTest'])
         all_files = self.get_all_files(version)
         result = [file for file in all_files if not (file.should_get_skipped() or test_skipper.should_get_skipped(file.get_path()))]
-        print("Analyzing", len(result), "of", len(all_files), "files, the rest was skipped as tests or samples")
-        print("Skipped", len(test_skipper.get_skipped_roots()), "test and sample roots:", test_skipper.get_skipped_roots())
+        # print("Analyzing", len(result), "of", len(all_files), "files, the rest was skipped as tests or samples")
+        # print("Skipped", len(test_skipper.get_skipped_roots()), "test and sample roots:", test_skipper.get_skipped_roots())
         return result
 
     def get_file_object_content(self, git_object):
