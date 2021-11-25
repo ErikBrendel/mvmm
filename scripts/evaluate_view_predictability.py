@@ -46,13 +46,12 @@ repos = [
 ]
 metrics = ["references", "evolutionary", "linguistic", "module_distance"]
 
-#repos.sort(key=lambda repo: len(LocalRepo(repo).get_all_interesting_files()))
+#repos.sort(key=lambda repo: len(LocalRepo.for_name(repo).get_all_interesting_files()))
 
 
 fig, axes = plt.subplots(len(repos), 4, figsize=(15, len(repos) * 2.5), constrained_layout=True)
 # fig.suptitle('How well can a combination of three views predict the fourth?', fontsize=15)
 
-repo_obj_cache: dict[str, LocalRepo] = dict()
 repo_metric_cache: dict[str, CouplingGraph] = dict()
 repo_metric_values_cache: dict[str, List[List[float]]] = dict()
 
@@ -60,17 +59,14 @@ repo_metric_values_cache: dict[str, List[List[float]]] = dict()
 def get_view(repo: str, view: str) -> CouplingGraph:
     key = repo + "-" + view
     if key not in repo_metric_cache:
-        if repo not in repo_obj_cache:
-            repo_obj_cache[repo] = LocalRepo(repo)
-            repo_obj_cache[repo].update()
-        repo_metric_cache[key] = MetricManager.get(repo_obj_cache[repo], view)
+        repo_metric_cache[key] = MetricManager.get(LocalRepo.for_name(repo), view)
     return repo_metric_cache[key]
 
 
 def get_metric_values(repo: str, max_node_pairs_to_check=100000) -> List[List[float]]:
     if repo not in repo_metric_values_cache:
         graphs = [get_view(repo, view) for view in metrics]
-        nodes = sorted([tree_node.get_path() for tree_node in repo_obj_cache[repo].get_tree().traverse_gen() if tree_node.get_type() == "method" and tree_node.get_line_span() >= 1])
+        nodes = sorted([tree_node.get_path() for tree_node in LocalRepo.for_name(repo).get_tree().traverse_gen() if tree_node.get_type() == "method" and tree_node.get_line_span() >= 1])
         node_pairs = list(all_pairs(nodes))
         random.seed(42)  # for reproducibility
         if len(node_pairs) > max_node_pairs_to_check:

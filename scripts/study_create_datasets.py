@@ -16,7 +16,7 @@ ENTRIES_PER_PATTERN = 4
 
 @cachier()
 def get_evo_changes(repo: str) -> Dict[str, Set[str]]:
-    return evo_calc_new(LocalRepo(repo))
+    return evo_calc_new(LocalRepo.for_name(repo))
 
 
 def get_commit_metrics(commit: Commit) -> COMMIT_CHANGES_TYPE:
@@ -39,7 +39,7 @@ def get_commit_metrics(commit: Commit) -> COMMIT_CHANGES_TYPE:
 
 # @cachier()
 def find_commits(repo: str, m0: str, m1: str) -> COMMITS_TYPE:
-    r = LocalRepo(repo)
+    r = LocalRepo.for_name(repo)
     result: COMMITS_TYPE = []
     for hexsha, methods in get_evo_changes(repo).items():
         m0_match = m0 in methods
@@ -71,7 +71,7 @@ def main():
             print("Skipping existing " + repo)
             continue
         print(pyfiglet.figlet_format(repo))
-        r = LocalRepo(repo)
+        r = LocalRepo.for_name(repo)
         results = analyze_disagreements(r, ALL_VIEWS, [p for p, *_ in TAXONOMY], "methods")
 
         # if a pair of methods appears in multiple taxonomy queries, only assign it to the one where it matched the most

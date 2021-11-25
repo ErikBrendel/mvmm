@@ -33,12 +33,12 @@ repos = [
 ]"""
 print("Repos to check: " + str(len(repos)))
 print(repos)
-# repos.sort(key=lambda repo: len(LocalRepo(repo).get_all_interesting_files()))
+# repos.sort(key=lambda repo: len(LocalRepo.for_name(repo).get_all_interesting_files()))
 print("Sorted results:")
 print(repos)
 
 for repo in repos:
-    r = LocalRepo(repo)
+    r = LocalRepo.for_name(repo)
     print(pyfiglet.figlet_format(r.name))
     r.update()
     # print("|".join(sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if get_node_filter_func(r, "classes")(tree_node.get_path())])))

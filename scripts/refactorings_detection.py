@@ -190,10 +190,10 @@ def get_confirmed_class_refactorings_dict(repo_name: str, old_version: str):
 
 
 if __name__ == "__main__":
-    # res = get_processed_refactorings_data(LocalRepo("jfree/jfreechart"), "b7cccc63890b0789357a63c4f652dbcdbbfda177", "1f1a39ba311472fa9c9e19c4e5ad9221ece63185")
-    # res = get_processed_refactorings_data(LocalRepo("jfree/jfreechart"), "v1.5.3", "master")
+    # res = get_processed_refactorings_data(LocalRepo.for_name("jfree/jfreechart"), "b7cccc63890b0789357a63c4f652dbcdbbfda177", "1f1a39ba311472fa9c9e19c4e5ad9221ece63185")
+    # res = get_processed_refactorings_data(LocalRepo.for_name("jfree/jfreechart"), "v1.5.3", "master")
     # print(res)
-    repo = LocalRepo("jfree/jfreechart:v1.5.3")
+    repo = LocalRepo.for_name("jfree/jfreechart:v1.5.3")
     results = get_classes_being_refactored_in_the_future(repo, "v1.5.0")
     print(results)
-    # print(get_nodes_being_refactored_in_the_future(LocalRepo("jfree/jfreechart:b3d63c7148e5bbff621fd01e22db69189f09bf89")))
+    # print(get_nodes_being_refactored_in_the_future(LocalRepo.for_name("jfree/jfreechart:b3d63c7148e5bbff621fd01e22db69189f09bf89")))

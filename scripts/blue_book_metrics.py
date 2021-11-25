@@ -77,7 +77,7 @@ def calculate_usages_graphs(repo_name: str) -> Tuple[Dict[str, Set[str]], Dict[s
     """filters usages to be methods and attributes only, and used_by to be methods only"""
     uses_graph: Dict[str, Set[str]] = dict()
     is_used_by_graph: Dict[str, Set[str]] = dict()
-    repo = LocalRepo(repo_name)
+    repo = LocalRepo.for_name(repo_name)
     tree = repo.get_tree()
 
     def handle_reference(a, b, _strength):
@@ -435,7 +435,7 @@ class BBContext:
 
 if __name__ == "__main__":
     for repo in ["jfree/jfreechart:v1.5.1"]:
-        r = LocalRepo(repo)
+        r = LocalRepo.for_name(repo)
         ctx = BBContext.for_repo(r)
         all_disharmonies = set(ctx.find_all_disharmonies())
         everything = set(ctx.all_methods() + ctx.all_classes())

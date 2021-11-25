@@ -8,7 +8,7 @@ from repos import *
 from metrics import *
 from analysis import *
 
-r = LocalRepo("jfree/jfreechart")
+r = LocalRepo.for_name("jfree/jfreechart")
 print(pyfiglet.figlet_format(r.name))
 
 

@@ -23,7 +23,7 @@ def get_date(repo):
 
 @cachier()
 def get_repo_commit_count(repo: str) -> int:
-    return len(LocalRepo(repo).get_all_commits())
+    return len(LocalRepo.for_name(repo).get_all_commits())
 
 
 # "cloc --git master --include-ext=java --json"
@@ -50,7 +50,7 @@ def mapper(file, repo_path):
 
 @cachier()
 def get_cloc_data_parallel(repo: str):
-    r = LocalRepo(repo)
+    r = LocalRepo.for_name(repo)
     files = [(f.get_name(), f.get_content_without_copyright()) for f in r.get_all_interesting_files()]
     comment = 0
     code = 0
@@ -75,7 +75,7 @@ for repo, versions in repos_and_versions:
     try:
         data = get_cloc_data_parallel(repo)
         commits = get_repo_commit_count(repo)
-        r = LocalRepo(repo)
+        r = LocalRepo.for_name(repo)
         repo_user, repo_name = r.repo_name.split("/")
         repo_display_name = fr"{{\scriptsize {repo_user}/}}{repo_name}~~\emph{{\scriptsize {r.committish}}}"
         print(fr"    {repo_display_name} & ${fmt(data['nFiles'])}$ & ${fmt(data['code'])}$ & ${fmt(data['comment'])}$ & ${fmt(commits)}$ \\")
@@ -85,7 +85,7 @@ for repo, versions in repos_and_versions:
 print("\nVersion Table:\n")
 
 for repo, versions in repos_and_versions:
-    r = LocalRepo(repo)
+    r = LocalRepo.for_name(repo)
     repo_user, repo_name = r.repo_name.split("/")
     repo_header_cell = r"\midrule"'\n'r"    \multirow{" + str(len(versions)) + r"}{*}{\begin{tabular}[c]{@{}l@{}}" + repo_user + r"/\\ " + repo_name + r"\\ (" + r.committish + r")\end{tabular}}"
     for i, version in enumerate(versions):

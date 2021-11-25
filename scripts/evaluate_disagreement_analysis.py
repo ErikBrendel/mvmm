@@ -253,7 +253,7 @@ plt.rcParams['figure.dpi'] = 150
 
 
 def preprocess(repo_name: str):
-    repo = LocalRepo(repo_name)
+    repo = LocalRepo.for_name(repo_name)
     all_patterns = [p for p, n, d in TAXONOMY]
     analyze_disagreements(repo, ALL_VIEWS, all_patterns, "classes")
     analyze_disagreements(repo, ALL_VIEWS, all_patterns, "methods")
@@ -263,7 +263,7 @@ def preprocess(repo_name: str):
 #    preprocess(repo_name)
 
 #for repo_name in repos:
-#    r = LocalRepo(repo_name)
+#    r = LocalRepo.for_name(repo_name)
 #    make_individual_bb_alignment_table(r)
 
 
@@ -296,7 +296,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     vd_prob: Dict[str, float] = dict()
     class_size_prob: Dict[str, float] = dict()
     for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
-        new_r = LocalRepo(repo_name)
+        new_r = LocalRepo.for_name(repo_name)
         old_r = new_r.get_old_version(old_version)
         preprocess(old_r.name)
 
@@ -346,7 +346,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     vd_prob_old: Dict[str, float] = dict()
     vd_prob_new: Dict[str, float] = dict()
     for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
-        new_r = LocalRepo(repo_name)
+        new_r = LocalRepo.for_name(repo_name)
         old_r = new_r.get_old_version(old_version)
 
         total_list_r = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]

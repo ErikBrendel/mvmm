@@ -48,12 +48,11 @@ def node_filter(tree_node):
     return tree_node is not None and tree_node.get_type() == "method" and tree_node.get_line_span() >= 1
 
 
-repo_objects = {repo: LocalRepo(repo) for repo in repos}
 nodes_tests_cache: dict[str, Tuple[int, List[tuple[str, List[str]]]]] = {}
 graph_cache: dict[str, List[CouplingGraph]] = {}
 def get_nodes_and_tests(repo: str):
     if repo not in nodes_tests_cache:
-        r = repo_objects[repo]
+        r = LocalRepo.for_name(repo)
         all_nodes = sorted([tree_node.get_path() for tree_node in r.get_tree().traverse_gen() if node_filter(tree_node)])
         prediction_tests: List[tuple[str, List[str]]] = []
         future_commit_diffs = [get_commit_diff_processified(ch, r) for ch in r.get_future_commits()]
@@ -72,7 +71,7 @@ def get_nodes_and_tests(repo: str):
     return nodes_tests_cache[repo]
 def get_graphs(repo: str):
     if repo not in graph_cache:
-        graph_cache[repo] = [CachedCouplingGraph(MetricManager.get(repo_objects[repo], m)) for m in metrics]
+        graph_cache[repo] = [CachedCouplingGraph(MetricManager.get(LocalRepo.for_name(repo), m)) for m in metrics]
     return graph_cache[repo]
 
 
@@ -87,7 +86,7 @@ def get_commit_prediction_score_cpp(repo: str, weights: Tuple[float]):
 
 
 for repo in repos:
-    r = LocalRepo(repo)
+    r = LocalRepo.for_name(repo)
     r.update()
     print(str(len(r.get_all_commits())) + " known commits, " + str(len(r.get_future_commits())) + " yet to come.")
     nodes, tests = get_nodes_and_tests(repo)

@@ -7,14 +7,6 @@ from repos import *
 from metrics import *
 from analysis import *
 
-repo_by_name_cache = {}
-def get_repo_cached(repo_name: str) -> LocalRepo:
-    if repo_name not in repo_by_name_cache:
-        repo = LocalRepo(repo_name)
-        repo.update()
-        repo_by_name_cache[repo_name] = repo
-    return repo_by_name_cache[repo_name]
-
 
 print("IDE endpoint script ready")
 while True:
@@ -27,7 +19,7 @@ while True:
         graph_manager.execute_void(cmd[len("gv "):].split("|"))
     elif cmd.startswith("getGraph "):
         repo_name, view_name = cmd[len("getGraph "):].split("|")
-        graph_id = MetricManager.get(LocalRepo(repo_name), view_name).id
+        graph_id = MetricManager.get(LocalRepo.for_name(repo_name), view_name).id
         print("#result " + str(graph_id))
     else:
         print("Unknown command!", cmd)

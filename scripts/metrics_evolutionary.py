@@ -394,7 +394,7 @@ def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: Fut
 
 def get_changed_methods_for_commit(data):
     repo_name, commit_sha = data
-    repo = LocalRepo(repo_name)
+    repo = LocalRepo.for_name(repo_name)
     parent_diffs = get_commit_diffs(repo.get_commit(commit_sha))
     return commit_sha, (find_changed_methods(repo, parent_diffs), find_renamings(parent_diffs))
 

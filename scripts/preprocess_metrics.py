@@ -28,7 +28,7 @@ def preprocess(job_info: str):
                 cpu_usage = psutil.cpu_percent(0.5)
                 ram_usage = psutil.virtual_memory()[2]
 
-        r = LocalRepo(job_info[1])
+        r = LocalRepo.for_name(job_info[1])
         if job_info[0] == "views":
             from study_common import TAXONOMY
             from analysis import analyze_disagreements, ALL_VIEWS
@@ -53,10 +53,10 @@ def preprocess(job_info: str):
 jobs = []
 for jobs_repo_info in repos:
     if isinstance(jobs_repo_info, str):
-        old_repo = LocalRepo(jobs_repo_info)
+        old_repo = LocalRepo.for_name(jobs_repo_info)
     else:
         new_name, old_version = jobs_repo_info
-        old_repo = LocalRepo(new_name).get_old_version(old_version)
+        old_repo = LocalRepo.for_name(new_name).get_old_version(old_version)
         jobs.append(("ref", new_name, old_version))
     jobs.append(("views", old_repo.name))
     jobs.append(("bb", old_repo.name))
