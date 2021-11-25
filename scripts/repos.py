@@ -173,3 +173,6 @@ repos_and_versions = [
         "release-0.5.0",
     ]),
 ]
+
+all_old_repos = [f"{repo.split(':')[0]}:{old_version}" for repo, old_versions in repos_and_versions for old_version in old_versions]
+all_new_repos = [repo for repo, _old_versions in repos_and_versions]
