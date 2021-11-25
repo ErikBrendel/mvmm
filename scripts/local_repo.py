@@ -37,13 +37,19 @@ _LOCAL_REPO_CACHE: Dict[str, 'LocalRepo'] = dict()
 
 # https://gitpython.readthedocs.io/en/stable/reference.html
 class LocalRepo:
+    __creation_token = object()
+
     @staticmethod
-    def for_name(name: str):
+    def for_name(name: str, force_new_instance=False):
+        if force_new_instance:
+            return LocalRepo(LocalRepo.__creation_token, name)
         if name not in _LOCAL_REPO_CACHE:
-            _LOCAL_REPO_CACHE[name] = LocalRepo(name)
+            _LOCAL_REPO_CACHE[name] = LocalRepo(LocalRepo.__creation_token, name)
         return _LOCAL_REPO_CACHE[name]
 
-    def __init__(self, name: str):
+    def __init__(self, token, name: str):
+        if token != LocalRepo.__creation_token:
+            raise Exception("Please do not instantiate LocalRepo Objects, use the for_name getter!")
         self.name = name
         self.committish = None
         if self.is_identified_by_path():
