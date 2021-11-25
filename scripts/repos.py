@@ -129,16 +129,10 @@ repos = repos_all
 
 # those are the ones i'm using for my thesis
 repos_and_versions = [
-    ("apache/logging-log4j2:rel/2.14.1", [
-        "rel/2.12.0",
-        "rel/2.9.0",
-        "rel/2.6",
-        "rel/2.3",
-        "rel/2.0",
-    ]),
-    ("jfree/jfreechart:v1.5.3", [
-        "v1.5.0",
-        "v1.0.18",
+    ("hunterhacker/jdom:JDOM-2.0.6", [
+        "JDOM-2.0.4",
+        "JDOM-2.0.2",
+        "JDOM-2.0.0",
     ]),
     ("junit-team/junit4:r4.13.2", [
         "r4.12",
@@ -146,29 +140,36 @@ repos_and_versions = [
         "r4.8",
         "r4.6",
     ]),
-    ("hunterhacker/jdom:JDOM-2.0.6", [
-        "JDOM-2.0.3",
-        "JDOM-2.0.0",
+    ("PhilJay/MPAndroidChart:v2.2.5", [
+        "v2.2.0",
+        "v2.1.0",
+        "v2.0.0",
+    ]),
+    ("netty/netty:netty-3.10.6.Final", [
+        "netty-3.9.0.Final",
+        "netty-3.6.0.Final",
+        "netty-3.3.0.Final",
+    ]),
+    ("jfree/jfreechart:v1.5.3", [
+        "v1.5.2",
+        "v1.5.1",
+        "v1.5.0",
+    ]),
+    ("apache/logging-log4j2:rel/2.14.1", [
+        "rel/2.12.0",
+        "rel/2.9.0",
+        "rel/2.6",
+        "rel/2.3",
+        "rel/2.0",
     ]),
     ("hapifhir/hapi-fhir:v5.6.0", [
         "v5.4.0",
         "v5.2.0",
         "v5.0.0",
     ]),
-    ("apache/hadoop:release-0.23.0", [
-        "release-0.20.0",
+    ("apache/hadoop:release-0.20.0", [
         "release-0.15.0",
         "release-0.10.0",
         "release-0.5.0",
-    ]),
-    ("PhilJay/MPAndroidChart:v3.0.0", [
-        "v2.2.0",
-        "v2.1.0",
-        "v2.0.0",
-    ]),
-    ("netty/netty:netty-4.0.0.Final", [
-        "netty-3.9.0.Final",
-        "netty-3.6.0.Final",
-        "netty-3.3.0.Final",
     ]),
 ]
