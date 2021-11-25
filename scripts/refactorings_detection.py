@@ -73,6 +73,7 @@ def is_hexsha(identifier: str) -> bool:
 
 @cachier(separate_files=True)
 def get_raw_refactorings_per_commit(repo: LocalRepo, old: str, new: str):
+    print(f"Starting refactoring analysis for {repo.name} from {old} to {new}...")
     temp_file_path = None
     try:
         temp_file_path = tempfile.mktemp(".json", "tmp-refactoring-miner-output-")

@@ -120,6 +120,7 @@ def analyze_disagreements(repo: LocalRepo, views: List[str], target_patterns: Pa
     print("all filtered nodes:", len(all_nodes))
 
     required_patterns = [p for p, r in zip(target_patterns, result_sets) if r is None]
+    print(f"Starting disagreement analysis for {len(required_patterns)} patterns for {repo.name}...")
     calculated_results: List[BestResultsSet] = find_disagreement_results_serial_cpp(analysis_graphs, required_patterns, all_nodes)
 
     fill_none_with_other(result_sets, calculated_results)

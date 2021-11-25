@@ -304,8 +304,8 @@ class FutureMapping:
             pdb.set_trace()
         if len(after_names) > 1 and name in after_names:
             after_names.remove(name)
-        if len(after_names) != 1:
-            print("Multiple after names found: ", name, after_names)
+        # if len(after_names) != 1:
+        #     print("Multiple after names found: ", name, after_names)
         return after_names  # we know that the last one from that loop is the FM of the HEAD commit
 
     def get_single_step_future_name_of(self, name: str) -> str:

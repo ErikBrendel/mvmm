@@ -113,13 +113,11 @@ class MetricManager:
         if MetricManager.cache_key(repo, name) in MetricManager.graph_cache:
             return MetricManager.graph_cache[MetricManager.cache_key(repo, name)]
         if MetricManager._data_present(repo.name, name):
-            print("Using precalculated " + name + " values")
             graph = CouplingGraph.load(repo.name, name, METRIC_GRAPH_CLASSES[name])
         else:
-            print("No precalculated " + name + " values found, starting calculations...")
+            print(f"No precalculated {name} values found for {repo.name}, starting calculations...")
             graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
             graph.print_statistics()
-            print("Calculated " + name + " values, saving them now...")
             graph.save(repo.name)
         if not ignore_post_processing:
             getattr(MetricsGeneration(repo), "post_" + name)(graph)
