@@ -59,7 +59,7 @@ def fmt(num):
     #return "{:.1f}".format(num / 1000.0)
     return "{:,}".format(num)
 
-for repo in repos:
+for repo, versions in repos_and_versions:
     try:
         data = get_cloc_data_parallel(repo)
         commits = get_repo_commit_count(repo)

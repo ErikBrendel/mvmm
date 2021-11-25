@@ -155,10 +155,11 @@ repos_and_versions = [
         "v5.2.0",
         "v5.0.0",
     ]),
-    ("apache/hadoop:rel/release-3.3.1", [
-        "rel/release-3.2.0",
-        "rel/release-3.1.0",
-        "rel/release-3.0.0",
+    ("apache/hadoop:release-0.23.0", [
+        "release-0.20.0",
+        "release-0.15.0",
+        "release-0.10.0",
+        "release-0.5.0",
     ]),
     ("PhilJay/MPAndroidChart:v3.0.0", [
         "v2.2.0",
@@ -169,6 +170,5 @@ repos_and_versions = [
         "netty-3.9.0.Final",
         "netty-3.6.0.Final",
         "netty-3.3.0.Final",
-        "netty-3.0.0.Final",
     ]),
 ]
