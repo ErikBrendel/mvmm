@@ -90,7 +90,7 @@ for repo, versions in repos_and_versions:
     repo_header_cell = r"\midrule"'\n'r"    \multirow{" + str(len(versions)) + r"}{*}{\begin{tabular}[c]{@{}l@{}}" + repo_user + r"/\\ " + repo_name + r"\\ (" + r.committish + r")\end{tabular}}"
     for i, version in enumerate(versions):
         old_r = r.get_old_version(version)
-        day_count = (get_date(r) - get_date(old_r)).days
+        month_count = (get_date(r) - get_date(old_r)).days / (365.25 / 12)
         day_count_footnote = "*" if r.name in OVERRIDE_DATES or old_r.name in OVERRIDE_DATES else ""
         commit_count = len(set(r.get_commit_history_of_head()).difference(set(old_r.get_commit_history_of_head())))
-        print(fr"    {repo_header_cell if i == 0 else ''} & {version} & ${fmt(day_count)}${day_count_footnote} & ${fmt(commit_count)}$ \\")
+        print(fr"    {repo_header_cell if i == 0 else ''} & {version} & ${round(month_count):,}${day_count_footnote} & ${fmt(commit_count)}$ \\")
