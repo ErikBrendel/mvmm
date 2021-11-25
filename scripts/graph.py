@@ -168,6 +168,9 @@ class CouplingGraph:
     def _exec_strings(self, cmd: str, other_args: List[str] = []) -> List[str]:
         return graph_manager.execute_strings([cmd, str(self.id)] + other_args)
 
+    def _exec_ints(self, cmd: str, other_args: List[str] = []) -> List[int]:
+        return [int(v) for v in self._exec_strings(cmd, other_args)]
+
     def _flush(self):
         graph_manager.flush()
 
@@ -204,7 +207,7 @@ class ExplicitCouplingGraph(CouplingGraph):
         self._exec_void("explicitDilate", [str(iterations), str(weight_factor)])
         self._flush()
         
-    def get_data(self):
+    def get_data(self) -> Tuple[List[str], List[float], List[Tuple[int, int, float]]]:
         # see the c++ program for the output format specification, but it should be this:
         # line 1: format specifier (always "Explicit")
         # line 2: all node strings
@@ -217,6 +220,9 @@ class ExplicitCouplingGraph(CouplingGraph):
         supports = [float(support) for support in raw_supports.split(";")]
         edges = [(int(n1), int(n2), float(weight)) for n1, n2, weight in (edge_data.split(",") for edge_data in raw_edges.split(";"))]
         return node_names, supports, edges
+
+    def get_connected_component_sizes(self):
+        return self._exec_ints("getConnectedComponentSizes")
 
     def show_weight_histogram(self):
         node_names, supports, edges = self.get_data()

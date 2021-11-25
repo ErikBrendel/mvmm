@@ -109,7 +109,7 @@ class MetricManager:
             os.remove(CouplingGraph.pickle_path(repo.name, name))
 
     @staticmethod
-    def get(repo: LocalRepo, name: str, ignore_post_processing=False) -> CouplingGraph:
+    def get(repo: LocalRepo, name: str, ignore_post_processing=False) -> Union[ExplicitCouplingGraph, SimilarityCouplingGraph, ModuleDistanceCouplingGraph]:
         if MetricManager.cache_key(repo, name) in MetricManager.graph_cache:
             return MetricManager.graph_cache[MetricManager.cache_key(repo, name)]
         if MetricManager._data_present(repo.name, name):
