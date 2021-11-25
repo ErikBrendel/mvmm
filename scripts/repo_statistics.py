@@ -7,6 +7,18 @@ from repos import *
 from metrics import *
 from analysis import *
 from cachier import cachier
+from datetime import datetime
+
+OVERRIDE_DATES = {
+    "apache/hadoop:release-0.5.0": datetime(2006, 8, 5),
+    "apache/hadoop:release-0.10.0": datetime(2007, 1, 6),
+    "apache/hadoop:release-0.15.0": datetime(2007, 11, 3),
+    "apache/hadoop:release-0.20.0": datetime(2009, 4, 22),
+}
+def get_date(repo):
+    if repo.name in OVERRIDE_DATES:
+        return OVERRIDE_DATES.get(repo.name)
+    return repo.get_head_commit().authored_datetime
 
 
 @cachier()
@@ -63,8 +75,22 @@ for repo, versions in repos_and_versions:
     try:
         data = get_cloc_data_parallel(repo)
         commits = get_repo_commit_count(repo)
-        print("    " + repo + " & $" + fmt(data["nFiles"]) + "$ & $" + fmt(data["code"]) + "$ & $" + fmt(data["comment"]) + "$ & $" + fmt(commits) + "$ \\\\")
+        r = LocalRepo(repo)
+        repo_user, repo_name = r.repo_name.split("/")
+        repo_display_name = fr"{{\scriptsize {repo_user}/}}{repo_name}~~\emph{{\scriptsize {r.committish}}}"
+        print(fr"    {repo_display_name} & ${fmt(data['nFiles'])}$ & ${fmt(data['code'])}$ & ${fmt(data['comment'])}$ & ${fmt(commits)}$ \\")
     except Exception as e:
         print("Error in " + repo, e)
 
-print("Done")
+print("\nVersion Table:\n")
+
+for repo, versions in repos_and_versions:
+    r = LocalRepo(repo)
+    repo_user, repo_name = r.repo_name.split("/")
+    repo_header_cell = r"\midrule"'\n'r"    \multirow{" + str(len(versions)) + r"}{*}{\begin{tabular}[c]{@{}l@{}}" + repo_user + r"/\\ " + repo_name + r"\\ (" + r.committish + r")\end{tabular}}"
+    for i, version in enumerate(versions):
+        old_r = r.get_old_version(version)
+        day_count = (get_date(r) - get_date(old_r)).days
+        day_count_footnote = "*" if r.name in OVERRIDE_DATES or old_r.name in OVERRIDE_DATES else ""
+        commit_count = len(set(r.get_commit_history_of_head()).difference(set(old_r.get_commit_history_of_head())))
+        print(fr"    {repo_header_cell if i == 0 else ''} & {version} & ${fmt(day_count)}${day_count_footnote} & ${fmt(commit_count)}$ \\")
