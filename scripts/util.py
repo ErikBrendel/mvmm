@@ -230,7 +230,7 @@ def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g'
     if len(datas) == 0:
         print("Empty data, cannot show histogram")
         return
-    alpha = 1.2 ** -len(datas)
+    alpha = 1.25 ** -len(datas)
     _, bins, _ = plt.hist(datas[0], bins=100, facecolor=color, alpha=alpha)
     for data in datas[1:]:
         plt.hist(data, bins=bins, alpha=alpha, facecolor=color)
