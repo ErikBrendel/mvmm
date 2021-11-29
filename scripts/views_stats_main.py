@@ -76,7 +76,7 @@ def stats_ling_edge_weights(r):
     nodes = list(g.get_node_set())
     edge_weights = []
     n = len(nodes)
-    sample_size = min(n, math.ceil(10000 / n))
+    sample_size = min(n, math.ceil(100000 / n))
     for n1 in nodes:
         samples = random.sample(nodes, sample_size)
         for n2 in samples:
@@ -135,14 +135,30 @@ for view in ["evolutionary", "references"]:
 print(pyfiglet.figlet_format("linguistic"))
 all_edge_weights = []
 relative_node_counts = []
+topic_probs = [[] for _i in range(10)]
+supports = []
 for repo in all_new_repos:
     r = LocalRepo.for_name(repo)
-    # sim_graph = cast(SimilarityCouplingGraph, MetricManager.get(r, "linguistic"))
     all_edge_weights.append(stats_ling_edge_weights(r))
     rel_n = stats_ling_relative_n(r)
     relative_node_counts.append(rel_n)
-    # sim_graph.similarity_get_node("")
+    sim_graph = cast(SimilarityCouplingGraph, MetricManager.get(r, "linguistic"))
+    top_support, top_weights = sim_graph.similarity_get_node("")
+    for i, weight in enumerate(sorted(top_weights, reverse=True)):
+        topic_probs[i].append(weight)
+    supports.append(top_support)
     # graph.print_statistics()
+plt.hlines(0.1, 0, 11, linestyles='dashed', colors='k')
+X = [i + 1 for i in range(len(topic_probs))]
+Y = [np.mean(sizes) for sizes in topic_probs]
+err = [np.std(sizes) for sizes in topic_probs]
+plt.bar(X, Y, yerr=err)
+# plt.title(f"Sizes of the topics in the linguistic graphs")
+plt.xlim((0.001, 10.9999))
+plt.ylim((-0.02, 0.3))
+plt.show()
 relative_node_counts.sort()
 print(f"view=linguistic, {np.median(relative_node_counts)=}, {relative_node_counts=}")
-show_multi_histogram(all_edge_weights, f"linguistic diagram of edge weights")
+show_multi_histogram(all_edge_weights, "", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True)  # "linguistic diagram of edge weights")
+supports.sort()
+print(f"view=linguistic, {np.median(supports)=}, {supports=}")
