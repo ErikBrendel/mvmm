@@ -1,3 +1,4 @@
+import math
 import random
 from typing import cast
 
@@ -31,7 +32,6 @@ example topics output
 """
 
 
-
 @cachier()
 def stats_cc_sizes(r, view):
     return MetricManager.get(r, view).get_connected_component_sizes()[::-1]
@@ -49,6 +49,15 @@ def stats_relative_n_m(r, view):
 
 
 @cachier()
+def stats_ling_relative_n(r):
+    all_nodes = set(node.get_path() for node in LocalRepo.for_name(repo).get_tree().traverse_gen())
+    max_n = len(all_nodes)
+    node_names = MetricManager.get(r, "linguistic").get_node_set()
+    n = len(set(node_names).intersection(all_nodes))
+    return n / max_n
+
+
+@cachier()
 def stats_node_degrees_edge_weights(r, view):
     node_names, _supports, edges = MetricManager.get(r, view).get_data()
     node_degrees = [0 for _n in node_names]
@@ -61,6 +70,21 @@ def stats_node_degrees_edge_weights(r, view):
     return node_degrees[:10000], edge_weights[:10000]
 
 
+@cachier()
+def stats_ling_edge_weights(r):
+    g = MetricManager.get(r, "linguistic")
+    nodes = list(g.get_node_set())
+    edge_weights = []
+    n = len(nodes)
+    sample_size = min(n, math.ceil(10000 / n))
+    for n1 in nodes:
+        samples = random.sample(nodes, sample_size)
+        for n2 in samples:
+            edge_weights.append(g.get_normalized_coupling(n1, n2))
+    return edge_weights
+
+
+"""
 for view in ["evolutionary", "references"]:
     print(pyfiglet.figlet_format(view))
     cc_sizes = []
@@ -105,11 +129,20 @@ for view in ["evolutionary", "references"]:
     print(f"{view=}, {np.median(edge_densities)=}, {edge_densities=}")
     show_multi_histogram(all_node_degrees, f"{view} diagram of node degrees")
     show_multi_histogram(all_edge_weights, f"{view} diagram of edge weights")
+"""
 
 
 print(pyfiglet.figlet_format("linguistic"))
+all_edge_weights = []
+relative_node_counts = []
 for repo in all_new_repos:
     r = LocalRepo.for_name(repo)
-    sim_graph = cast(SimilarityCouplingGraph, MetricManager.get(r, "linguistic"))
+    # sim_graph = cast(SimilarityCouplingGraph, MetricManager.get(r, "linguistic"))
+    all_edge_weights.append(stats_ling_edge_weights(r))
+    rel_n = stats_ling_relative_n(r)
+    relative_node_counts.append(rel_n)
     # sim_graph.similarity_get_node("")
     # graph.print_statistics()
+relative_node_counts.sort()
+print(f"view=linguistic, {np.median(relative_node_counts)=}, {relative_node_counts=}")
+show_multi_histogram(all_edge_weights, f"linguistic diagram of edge weights")
