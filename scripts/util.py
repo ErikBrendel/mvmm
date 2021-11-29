@@ -224,6 +224,26 @@ def show_histogram(data, title, xlabel='Data', ylabel='Amount', color='g'):
     plt.show()
 
 
+def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g'):
+    # https://stackoverflow.com/a/51616216/4354423
+    # https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.hist.html
+    if len(datas) == 0:
+        print("Empty data, cannot show histogram")
+        return
+    alpha = 1.2 ** -len(datas)
+    _, bins, _ = plt.hist(datas[0], bins=100, facecolor=color, alpha=alpha)
+    for data in datas[1:]:
+        plt.hist(data, bins=bins, alpha=alpha, facecolor=color)
+
+    # plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid(True)
+    plt.show()
+
+
 def smoothstep(x):
     return x * x * (3 - 2 * x)
 
