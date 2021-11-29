@@ -25,12 +25,19 @@ def preprocess(job_info: str):
                 ram_usage = psutil.virtual_memory()[2]
 
         r = LocalRepo.for_name(job_info[1])
-        if job_info[0] == "views":
+        if job_info[0] == "analyze":
             from study_common import TAXONOMY
             from analysis import analyze_disagreements, ALL_VIEWS
             all_patterns = [p for p, n, d in TAXONOMY]
             analyze_disagreements(r, ALL_VIEWS, all_patterns, "classes", random_shuffled_view_access=True)
             analyze_disagreements(r, ALL_VIEWS, all_patterns, "methods", random_shuffled_view_access=True)
+        if job_info[0] == "views":
+            from analysis import analyze_disagreements, ALL_VIEWS
+            from metrics import MetricManager
+            views_shuffled = ALL_VIEWS[:]
+            random.shuffle(views_shuffled)
+            for v in views_shuffled:
+                MetricManager.get(r, v)
         elif job_info[0] == "bb":
             from blue_book_metrics import BBContext
             BBContext.for_repo(r).find_all_disharmonies()
@@ -52,9 +59,10 @@ for new_name, older_versions in repos_and_versions:
     # new_repo.update()
     for old_version in older_versions:
         old_repo = new_repo.get_old_version(old_version)
-        jobs.append(("ref", new_name, old_version))
-        jobs.append(("views", old_repo.name))
-        jobs.append(("bb", old_repo.name))
+        # jobs.append(("ref", new_name, old_version))
+        # jobs.append(("analyze", old_repo.name))
+        # jobs.append(("bb", old_repo.name))
+    # jobs.append(("analyze", new_repo.name))
     jobs.append(("views", new_repo.name))
 
 print(jobs)
