@@ -452,7 +452,7 @@ def new_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
     for changes in log_progress(list(changes_per_commit.values()), desc="creating coupling graph"):
         usable_changes = [d for d in changes if repo.get_tree().has_node(d)]
         if MIN_COMMIT_METHODS <= len(usable_changes) <= MAX_COMMIT_METHODS:
-            score = 2 / len(changes)
+            score = 2 / len(usable_changes)
             for f1, f2 in all_pairs(usable_changes):
                 coupling_graph.add(f1, f2, score)
             for node in usable_changes:
