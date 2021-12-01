@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 MIN_COMMIT_FILES = 1
 MAX_COMMIT_FILES = 50
 MIN_COMMIT_METHODS = 2
-MAX_COMMIT_METHODS = 200
+MAX_COMMIT_METHODS = 200  # TODO add one zero here and then implement couple_clique on graph side
 
 
 # needs to be separate so that multiprocessing lib can find it
