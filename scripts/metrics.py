@@ -114,6 +114,8 @@ class MetricManager:
             return MetricManager.graph_cache[MetricManager.cache_key(repo, name)]
         if MetricManager._data_present(repo.name, name):
             graph = CouplingGraph.load(repo.name, name, METRIC_GRAPH_CLASSES[name])
+        elif name == "module_distance":
+            graph = ModuleDistanceCouplingGraph()
         else:
             print(f"No precalculated {name} values found for {repo.name}, starting calculations...")
             graph: CouplingGraph = getattr(MetricsGeneration(repo), "calculate_" + name + "_connections")()
