@@ -213,7 +213,7 @@ class ExplicitCouplingGraph(CouplingGraph):
         # line 2: all node strings
         # line 3: support values for each node
         # line 4: all edges, by node index "n1,n2,weight"
-        type_name, raw_node_names, raw_supports, raw_edges = self._exec_strings("explicitGetData")
+        type_name, raw_node_names, raw_supports, raw_edges, *_ = self._exec_strings("explicitGetData")
         if type_name != "Explicit":
             raise Exception("expected explicit type for getting data")
         node_names = raw_node_names.split(";")
