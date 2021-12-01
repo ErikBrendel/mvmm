@@ -67,13 +67,13 @@ def stats_node_degrees_edge_weights(r, view):
     edge_weights = [e[2] for e in edges]
     random.shuffle(node_degrees)
     random.shuffle(edge_weights)
-    return node_degrees[:10000], edge_weights[:10000]
+    return node_degrees[:100000], edge_weights[:100000]
 
 
-@cachier()
-def stats_ling_edge_weights(r):
-    g = MetricManager.get(r, "linguistic")
-    nodes = list(g.get_node_set())
+def stats_sampled_edge_weights(r, view, nodes=None):
+    g = MetricManager.get(r, view)
+    if nodes is None:
+        nodes = list(g.get_node_set())
     edge_weights = []
     n = len(nodes)
     sample_size = min(n, math.ceil(100000 / n))
@@ -84,19 +84,31 @@ def stats_ling_edge_weights(r):
     return edge_weights
 
 
-"""
-for view in ["evolutionary", "references"]:
+@cachier()
+def stats_ling_edge_weights(r):
+    return stats_sampled_edge_weights(r, "linguistic")
+
+
+@cachier()
+def stats_project_structure_edge_weights(r: LocalRepo):
+    return stats_sampled_edge_weights(r, "module_distance", list(node.get_path() for node in r.get_tree().traverse_gen()))
+
+
+for view in ["references", "evolutionary"]:
     print(pyfiglet.figlet_format(view))
     cc_sizes = []
     relative_node_counts = []
     edge_densities = []
     all_node_degrees = []
     all_edge_weights = []
+    cc_amounts = []
 
     for repo in all_new_repos:
         r = LocalRepo.for_name(repo)
         cc = stats_cc_sizes(r, view)
+        print(f"{cc=}")
         total_size = sum(cc)
+        cc_amounts.append(len(cc))
         for i, cc_size in enumerate(cc):
             if i >= 4:
                 break
@@ -114,23 +126,30 @@ for view in ["evolutionary", "references"]:
     for sizes in cc_sizes:
         while len(sizes) < len(cc_sizes[0]):
             sizes.append(0)
-    X = list(range(len(cc_sizes)))
-    Y = [np.mean(sizes) for sizes in cc_sizes]
-    err = [np.std(sizes) for sizes in cc_sizes]
-    plt.bar(X, Y, yerr=err)
-    plt.title(f"Sizes of the connected components in the {view} graphs")
-    # plt.xscale("log")
-    # plt.yscale("log")
-    plt.ylim((-0.02, 1.1))
-    plt.show()
+    # X = [str(x) for x in range(len(cc_sizes))]
+    # Y = [np.mean(sizes) for sizes in cc_sizes]
+    # err = [np.std(sizes) for sizes in cc_sizes]
+    # plt.bar(X, Y, yerr=err)
+    # plt.xlabel("Connected Component")
+    # plt.ylabel("Relative Size")
+    # # plt.title(f"Sizes of the connected components in the {view} graphs")
+    # # plt.xscale("log")
+    # # plt.yscale("log")
+    # plt.ylim((-0.02, 1.1))
+    # # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    # plt.show()
     relative_node_counts.sort()
     edge_densities.sort()
+    print(f"{cc_amounts=}")
+    print("cc-sizes:", cc_sizes)
     print(f"{view=}, {np.median(relative_node_counts)=}, {relative_node_counts=}")
     print(f"{view=}, {np.median(edge_densities)=}, {edge_densities=}")
-    show_multi_histogram(all_node_degrees, f"{view} diagram of node degrees")
-    show_multi_histogram(all_edge_weights, f"{view} diagram of edge weights")
-"""
+    show_multi_histogram(all_node_degrees, "", xlabel="Weighted Node Degree", ylog=True)
+    show_multi_histogram(all_edge_weights, "", xlabel="Edge Weight", ylog=True)
 
+
+import sys
+sys.exit(0)
 
 print(pyfiglet.figlet_format("linguistic"))
 all_edge_weights = []
@@ -162,3 +181,12 @@ print(f"view=linguistic, {np.median(relative_node_counts)=}, {relative_node_coun
 show_multi_histogram(all_edge_weights, "", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True)  # "linguistic diagram of edge weights")
 supports.sort()
 print(f"view=linguistic, {np.median(supports)=}, {supports=}")
+
+
+print(pyfiglet.figlet_format("project_structure"))
+all_edge_weights = []
+for repo in all_new_repos:
+    r = LocalRepo.for_name(repo)
+    all_edge_weights.append(stats_project_structure_edge_weights(r))
+show_multi_histogram(all_edge_weights, "", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True)  # "linguistic diagram of edge weights")
+
