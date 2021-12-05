@@ -224,7 +224,7 @@ def show_histogram(data, title, xlabel='Data', ylabel='Amount', color='g'):
     plt.show()
 
 
-def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g', ylog=False, xlog=False):
+def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g', ylog=False, xlog=False, show=True):
     # https://stackoverflow.com/a/51616216/4354423
     # https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.hist.html
     if len(datas) == 0:
@@ -245,7 +245,8 @@ def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g'
     plt.ylabel(ylabel)
     plt.title(title)
     plt.grid(True)
-    plt.show()
+    if show:
+        plt.show()
 
 
 def smoothstep(x):

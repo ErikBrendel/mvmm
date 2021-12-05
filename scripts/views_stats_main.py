@@ -14,6 +14,11 @@ from graph import ExplicitCouplingGraph, SimilarityCouplingGraph
 from util import show_histogram, show_multi_histogram
 
 
+def plt_save_show(filename):
+    plt.savefig(f"../{filename}.png")
+    plt.show()
+
+
 """
 
 ref / evo:
@@ -126,30 +131,29 @@ for view in ["references", "evolutionary"]:
     for sizes in cc_sizes:
         while len(sizes) < len(cc_sizes[0]):
             sizes.append(0)
-    # X = [str(x) for x in range(len(cc_sizes))]
-    # Y = [np.mean(sizes) for sizes in cc_sizes]
-    # err = [np.std(sizes) for sizes in cc_sizes]
-    # plt.bar(X, Y, yerr=err)
-    # plt.xlabel("Connected Component")
-    # plt.ylabel("Relative Size")
-    # # plt.title(f"Sizes of the connected components in the {view} graphs")
-    # # plt.xscale("log")
-    # # plt.yscale("log")
-    # plt.ylim((-0.02, 1.1))
-    # # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
-    # plt.show()
+    X = [str(x) for x in range(len(cc_sizes))]
+    Y = [np.mean(sizes) for sizes in cc_sizes]
+    err = [np.std(sizes) for sizes in cc_sizes]
+    plt.bar(X, Y, yerr=err)
+    plt.xlabel("Connected Component")
+    plt.ylabel("Relative Size")
+    plt.title(f"Connected Component Sizes in the {view} graphs")
+    # plt.xscale("log")
+    # plt.yscale("log")
+    plt.ylim((-0.02, 1.1))
+    # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt_save_show(f"stats_{view[:3]}_cc")
     relative_node_counts.sort()
     edge_densities.sort()
     print(f"{cc_amounts=}")
     print("cc-sizes:", cc_sizes)
     print(f"{view=}, {np.median(relative_node_counts)=}, {relative_node_counts=}")
     print(f"{view=}, {np.median(edge_densities)=}, {edge_densities=}")
-    show_multi_histogram(all_node_degrees, "", xlabel="Weighted Node Degree", ylog=True)
-    show_multi_histogram(all_edge_weights, "", xlabel="Edge Weight", ylog=True)
+    show_multi_histogram(all_node_degrees, f"Weighted Node Degrees in the {view} graphs", xlabel="Weighted Node Degree", ylog=True, show=False)
+    plt_save_show(f"stats_{view[:3]}_node_degrees")
+    show_multi_histogram(all_edge_weights, f"Edge Weights in the {view} graphs", xlabel="Edge Weight", ylog=True, show=False)
+    plt_save_show(f"stats_{view[:3]}_edge_weights")
 
-
-import sys
-sys.exit(0)
 
 print(pyfiglet.figlet_format("linguistic"))
 all_edge_weights = []
@@ -172,13 +176,14 @@ X = [i + 1 for i in range(len(topic_probs))]
 Y = [np.mean(sizes) for sizes in topic_probs]
 err = [np.std(sizes) for sizes in topic_probs]
 plt.bar(X, Y, yerr=err)
-# plt.title(f"Sizes of the topics in the linguistic graphs")
+plt.title(f"Sizes of the topics in the linguistic graphs")
 plt.xlim((0.001, 10.9999))
 plt.ylim((-0.02, 0.3))
-plt.show()
+plt_save_show(f"stats_ling_topic_sizes")
 relative_node_counts.sort()
 print(f"view=linguistic, {np.median(relative_node_counts)=}, {relative_node_counts=}")
-show_multi_histogram(all_edge_weights, "", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True)  # "linguistic diagram of edge weights")
+show_multi_histogram(all_edge_weights, "Edge Weights in the linguistic graphs", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True, show=False)
+plt_save_show(f"stats_ling_edge_weights")
 supports.sort()
 print(f"view=linguistic, {np.median(supports)=}, {supports=}")
 
@@ -188,5 +193,5 @@ all_edge_weights = []
 for repo in all_new_repos:
     r = LocalRepo.for_name(repo)
     all_edge_weights.append(stats_project_structure_edge_weights(r))
-show_multi_histogram(all_edge_weights, "", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True)  # "linguistic diagram of edge weights")
-
+show_multi_histogram(all_edge_weights, "Edge Weights in the project structure graphs", xlabel="Coupling Strength", ylabel="Amount within a sample of 100,000 edges", ylog=True, show=False)
+plt_save_show(f"stats_project_structure_edge_weights")
