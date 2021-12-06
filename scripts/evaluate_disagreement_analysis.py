@@ -5,41 +5,12 @@ from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
 from best_results_set import BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
+from repos import repos_and_versions
 from util import merge_dicts
 from prc_roc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
 from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
-
-repos = [
-    'ErikBrendel/LudumDare',
-    'ErikBrendel/LD35',
-    "junit-team/junit4",
-    "vanzin/jEdit",
-    # "jfree/jfreechart:5ca5d26bb38bafead25f81e88e0938a5d042c2a4",  # May 15
-    # "jfree/jfreechart:9020a32e62800916f1897c3eb17c95bf0371230b",  # Mar 7
-    # "jfree/jfreechart:99d999395e46f8cf8689724853c9ede89be7c7ea",  # Mar 1
-    # "jfree/jfreechart:fc4ddeed916c4cfd6479bf7378c6cdb94f6a19fe",  # Feb 6
-    # "jfree/jfreechart:461625fd1f7242a1223f8e73716e9f2b4e9fd8a5",  # Dez 19, 2020
-    "jfree/jfreechart",
-    # "jfree/jfreechart:v1.5.3",
-    # "jfree/jfreechart:v1.5.2",
-    # "jfree/jfreechart:v1.5.1",
-    # "jfree/jfreechart:v1.5.0",
-    # "jfree/jfreechart:v1.0.19",
-
-    "jOOQ/jOOQ",
-    "wumpz/jhotdraw",
-    # "neuland/jade4j",
-    "apache/log4j",
-    # "hunterhacker/jdom",
-    "jenkinsci/jenkins",
-    "brettwooldridge/HikariCP",
-    # "adamfisk/LittleProxy",
-    # "dynjs/dynjs",
-    "SonarSource/sonarqube",
-    "eclipse/aspectj.eclipse.jdt.core",
-]
 
 
 def match_score(result: BRS_DATA_TYPE):
@@ -204,13 +175,13 @@ def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_dat
     coef = [1 for _data in data_list]
     step_size = 0.5
     while step_size > 0.0001:
-        print(f"{step_size}: {','.join(f'{c:.2f}' for c in coef)}")
         # find all new possible coefficients
         all_options = list(product(*[[c, c - step_size, c + step_size] for c in coef]))
         aucs = [auc(recall, precision) for precision, recall, _t in (precision_recall_curve(
             Y,
             [sum(coef_val * x_val for coef_val, x_val in zip(o, x_entry)) for x_entry in X]
         ) for o in all_options)]
+        print(f"{step_size}: {','.join(f'{c:.2f}' for c in coef)}, auc={aucs[0]}")
         if max(aucs) == aucs[0]:
             # no improvement here, lets decrease step size and repeat
             step_size /= 2
@@ -259,38 +230,21 @@ def preprocess(repo_name: str):
     analyze_disagreements(repo, ALL_VIEWS, all_patterns, "methods")
 
 
-#for repo_name in repos:
-#    preprocess(repo_name)
-
-#for repo_name in repos:
-#    r = LocalRepo.for_name(repo_name)
-#    make_individual_bb_alignment_table(r)
-
-
 class_loc_ranges = [
-    # (0, 50),
-    # (50, 100),
-    # (100, 200),
-    # (200, 400),
-    # (400, 9999999999),
+    (0, 50),
+    (50, 100),
+    (100, 200),
+    (200, 400),
+    (400, 9999999999),
     (0, 9999999999),
 ]
 
 
-repos_and_old_versions = [
-    ("jfree/jfreechart:v1.5.3", "v1.0.18"),
-    ("junit-team/junit4:r4.13.2", "r4.6"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.11.0"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.8"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.4"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.1"),
-    ("apache/logging-log4j2:rel/2.14.1", "rel/2.0"),
-] + [("apache/hadoop:release-0.15.0", f"release-0.{v}.0") for v in range(1, 15, 4)]
+repos_and_old_versions = [(new, old) for new, olds in repos_and_versions for old in olds]
 
 # """
 for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
-    vd = set()
     bb = set()
     ref_heuristic = set()
     vd_prob: Dict[str, float] = dict()
@@ -304,7 +258,6 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         total_r = set(total_list_r)
         total.update(f"{old_r.name}/{name}" for name in total_r)
 
-        vd.update(f"{old_r.name}/{name}" for name in get_view_disagreement_data(old_r).intersection(total_r))
         bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
         ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_r))
 
@@ -333,10 +286,10 @@ for min_class_loc, max_class_loc in class_loc_ranges:
 
     make_prc_plot_for([
         ("VD", vd_prob),
-        ("VD+BB", vd_bb),
-        ("BB", bb),
+        # ("VD+BB", vd_bb),
         ("ClassSize", class_size_prob),
         best_combination,
+        ("BB", bb),
     ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
 """
 
