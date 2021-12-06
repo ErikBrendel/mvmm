@@ -181,7 +181,7 @@ def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_dat
             Y,
             [sum(coef_val * x_val for coef_val, x_val in zip(o, x_entry)) for x_entry in X]
         ) for o in all_options)]
-        print(f"{step_size}: {','.join(f'{c:.2f}' for c in coef)}, auc={aucs[0]}")
+        print(f"{step_size:.6f}: {','.join(f'{c:.4f}' for c in coef)}, auc={aucs[0]}")
         if max(aucs) == aucs[0]:
             # no improvement here, lets decrease step size and repeat
             step_size /= 2
