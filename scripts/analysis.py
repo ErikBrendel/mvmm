@@ -10,6 +10,7 @@ from custom_types import *
 from local_repo import *
 from metrics import *
 from workarounds import *
+from cachier import cachier
 
 ALL_VIEWS = ["references", "evolutionary", "linguistic", "module_distance"]
 ALL_PATTERNS: PatternsType = [
@@ -63,6 +64,7 @@ def get_node_filter_func(repo: LocalRepo, mode: NodeFilterMode):
     }[mode]
 
 
+@cachier()
 def get_filtered_nodes(repo: LocalRepo, mode: NodeFilterMode) -> List[str]:
     node_filter_func = get_node_filter_func(repo, mode)
     return [tree_node.get_path()
