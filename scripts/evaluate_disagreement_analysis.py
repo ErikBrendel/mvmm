@@ -280,21 +280,20 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
 
     if (min_class_loc, max_class_loc) == (0, math.inf):
-        best_combination = make_linear_regression_combination([
-            ("VD", vd_prob),
-            ("BB", bb),
-            ("ClassSize", class_size_prob),
-        ], ref_heuristic, total)
+        # best_combination = make_linear_regression_combination([
+        #     ("VD", vd_prob),
+        #     ("BB", bb),
+        #     ("ClassSize", class_size_prob),
+        # ], ref_heuristic, total)
         make_prc_plot_for([
-            ("ClassSize", class_size_prob),
+            ("LOC", class_size_prob),
             ("VD", vd_prob),
-            best_combination,
+            # best_combination,
             ("BB", bb),
         ], ref_heuristic, total, "vd_ref_all")
-
     else:
         make_prc_plot_for([
-            ("ClassSize", class_size_prob),
+            ("LOC", class_size_prob),
             ("VD", vd_prob),
             ("BB", bb),
         ], ref_heuristic, total, f"vd_ref_{min_class_loc}_{max_class_loc}")
