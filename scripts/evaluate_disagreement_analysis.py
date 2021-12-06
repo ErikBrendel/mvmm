@@ -1,5 +1,5 @@
 import statistics
-
+import math
 from custom_types import *
 from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
@@ -231,12 +231,12 @@ def preprocess(repo_name: str):
 
 
 class_loc_ranges = [
+    (0, math.inf),
     (0, 50),
     (50, 100),
     (100, 200),
     (200, 400),
-    (400, 9999999999),
-    (0, 9999999999),
+    (400, math.inf),
 ]
 
 
@@ -278,19 +278,26 @@ for min_class_loc, max_class_loc in class_loc_ranges:
             vd_prob[key] = 0
     vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
 
-    best_combination = make_linear_regression_combination([
-        ("VD", vd_prob),
-        ("BB", bb),
-        ("ClassSize", class_size_prob),
-    ], ref_heuristic, total)
+    if (min_class_loc, max_class_loc) == (0, math.inf):
+        best_combination = make_linear_regression_combination([
+            ("VD", vd_prob),
+            ("BB", bb),
+            ("ClassSize", class_size_prob),
+        ], ref_heuristic, total)
+        make_prc_plot_for([
+            ("ClassSize", class_size_prob),
+            ("VD", vd_prob),
+            best_combination,
+            ("BB", bb),
+        ], ref_heuristic, total, f"View Disagreements ~ Future Refactorings")
 
-    make_prc_plot_for([
-        ("VD", vd_prob),
-        # ("VD+BB", vd_bb),
-        ("ClassSize", class_size_prob),
-        best_combination,
-        ("BB", bb),
-    ], ref_heuristic, total, f"Class Loc in range [{min_class_loc}, {max_class_loc}]\nView Disagreements VS heuristically filtered refactorings")
+    else:
+        make_prc_plot_for([
+            ("ClassSize", class_size_prob),
+            ("VD", vd_prob),
+            ("BB", bb),
+        ], ref_heuristic, total, f"View Disagreements ~ Future Refactorings\nClass LOC in range [{min_class_loc}, {max_class_loc}]")
+
 """
 
 for min_class_loc, max_class_loc in class_loc_ranges:
