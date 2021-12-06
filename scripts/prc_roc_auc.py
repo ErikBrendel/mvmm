@@ -24,7 +24,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = precision[:-1]
                 recall = recall[:-1]
             auc_value = auc(recall, precision)
-            plot_kwargs = {"marker": "."}
+            plot_kwargs = {"marker": ","}
         else:  # list of binary classes
             tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
             if tp == 0:
