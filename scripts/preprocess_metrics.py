@@ -59,10 +59,10 @@ for new_name, older_versions in repos_and_versions:
     # new_repo.update()
     for old_version in older_versions:
         old_repo = new_repo.get_old_version(old_version)
-        # jobs.append(("ref", new_name, old_version))
-        # jobs.append(("analyze", old_repo.name))
-        # jobs.append(("bb", old_repo.name))
-    # jobs.append(("analyze", new_repo.name))
+        jobs.append(("ref", new_name, old_version))
+        jobs.append(("analyze", old_repo.name))
+        jobs.append(("bb", old_repo.name))
+    jobs.append(("analyze", new_repo.name))
     jobs.append(("views", new_repo.name))
 
 print(jobs)
