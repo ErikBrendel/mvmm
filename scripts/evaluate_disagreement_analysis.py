@@ -273,12 +273,6 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         print("No refactorings found, continuing to next loop")
         continue
 
-    bb_prob = (dict((entry, 1.0) for entry in bb))
-    for key in bb_prob.keys():
-        if key not in vd_prob:
-            vd_prob[key] = 0
-    vd_bb: Dict[str, float] = merge_dicts(lambda a, b: 1 - ((1 - min(a, b)) ** 2), vd_prob, bb_prob)
-
     if (min_class_loc, max_class_loc) == (0, math.inf):
         # best_combination = make_linear_regression_combination([
         #     ("VD", vd_prob),
