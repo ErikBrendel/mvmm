@@ -11,12 +11,7 @@ from repos import all_new_repos
 from metrics import MetricManager
 from local_repo import LocalRepo
 from graph import ExplicitCouplingGraph, SimilarityCouplingGraph
-from util import show_histogram, show_multi_histogram
-
-
-def plt_save_show(filename):
-    plt.savefig(f"../{filename}.png")
-    plt.show()
+from util import show_histogram, show_multi_histogram, plt_save_show
 
 
 """

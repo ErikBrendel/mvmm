@@ -6,7 +6,7 @@ from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
 from best_results_set import BRS_DATA_TYPE
 from blue_book_metrics import BB_METRICS, BBContext
 from repos import repos_and_versions
-from util import merge_dicts
+from util import merge_dicts, plt_save_show
 from prc_roc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
@@ -118,9 +118,9 @@ def make_alignment_table(row_name: str, row_data: Set[str], col_name: str, col_d
 PRC_DATA_ENTRY = Tuple[str, Union[Dict[str, float], Set[str]]]
 
 
-def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str], title: str):
+def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str], filename: str):
     if len(base_data) == 0:
-        print(f"No data for {title}")
+        print(f"No data for {filename}")
         return
     data_comments: List[str] = []
     converted_data_list: List[PRC_PLOT_DATA_ENTRY] = []
@@ -147,12 +147,13 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     base_labels = [1 if item in base_data else 0 for item in total_data]
     data_comments.append(f"Base data size: {len(base_data)} ({int(len(base_data) / n * 100)}%) / Total: {n}")
 
-    make_prc_plot(converted_data_list, base_labels, title, show=False)
-    plt.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.25)
-    plt.gcf().set_size_inches(plt.gcf().get_figwidth(), plt.gcf().get_figheight() * 1.5)
-    plt.text(0.5, -0.25, "\n".join(data_comments),
-             horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
-    plt.show()
+    make_prc_plot(converted_data_list, base_labels, title="", show=False)
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.11)
+    # plt.gcf().set_size_inches(plt.gcf().get_figwidth(), plt.gcf().get_figheight() * 1.5)
+    # plt.text(0.5, -0.25, "\n".join(data_comments),
+    #          horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
+    print("\n".join(data_comments))
+    plt_save_show(filename)
     # make_roc_plot(converted_data_list, base_labels, title, show=False)
     # plt.text(0.5, 0.4, "\n".join(data_comments),
     #          horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
@@ -289,14 +290,14 @@ for min_class_loc, max_class_loc in class_loc_ranges:
             ("VD", vd_prob),
             best_combination,
             ("BB", bb),
-        ], ref_heuristic, total, f"View Disagreements ~ Future Refactorings")
+        ], ref_heuristic, total, "vd_ref_all")
 
     else:
         make_prc_plot_for([
             ("ClassSize", class_size_prob),
             ("VD", vd_prob),
             ("BB", bb),
-        ], ref_heuristic, total, f"View Disagreements ~ Future Refactorings\nClass LOC in range [{min_class_loc}, {max_class_loc}]")
+        ], ref_heuristic, total, f"vd_ref_{min_class_loc}_{max_class_loc}")
 
 """
 

@@ -249,6 +249,13 @@ def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g'
         plt.show()
 
 
+def plt_save_show(filename):
+    result_path = f"../{filename}.png"
+    plt.savefig(result_path)
+    print(f"Saved plot to {result_path}")
+    plt.show()
+
+
 def smoothstep(x):
     return x * x * (3 - 2 * x)
 
