@@ -37,7 +37,7 @@ def preprocess(job_info: str):
             views_shuffled = ALL_VIEWS[:]
             random.shuffle(views_shuffled)
             for v in views_shuffled:
-                MetricManager.get(r, v)
+                MetricManager.get(r, v, ignore_post_processing=True)
         elif job_info[0] == "bb":
             from blue_book_metrics import BBContext
             BBContext.for_repo(r).find_all_disharmonies()

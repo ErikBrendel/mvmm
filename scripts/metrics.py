@@ -123,7 +123,7 @@ class MetricManager:
             graph.save(repo.name)
         if not ignore_post_processing:
             getattr(MetricsGeneration(repo), "post_" + name)(graph)
-        MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
+            MetricManager.graph_cache[MetricManager.cache_key(repo, name)] = graph
         return graph
 
     @staticmethod
