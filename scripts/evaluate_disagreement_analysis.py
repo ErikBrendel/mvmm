@@ -272,6 +272,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
     bb = set()
     ref_heuristic = set()
+    ref_all = set()
     vd_prob_max: Dict[str, float] = dict()
     vd_prob_sum: Dict[str, float] = dict()
     class_size_prob: Dict[str, float] = dict()
@@ -286,6 +287,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
 
         bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
         ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_r))
+        ref_all.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version).intersection(total_r))
 
         vd_prob_max_r = get_view_disagreement_data_probabilities_max(old_r)
         for name in list(vd_prob_max_r.keys()):
@@ -319,21 +321,27 @@ for min_class_loc, max_class_loc in class_loc_ranges:
             ("LOC", class_size_prob),
             ("VDMax", vd_prob_max),
             ("VDSum", vd_prob_sum),
-            # best_combination_sum,
-            # best_combination_max,
             ("BB", bb),
         ], ref_heuristic, total, "vd_ref_all")
-    else:
-        # best_combination_sum_all = get_vd_best_combination(True, 0, math.inf)
         make_prc_plot_for([
             ("LOC", class_size_prob),
             ("VDMax", vd_prob_max),
             ("VDSum", vd_prob_sum),
-            # best_combination_sum,
-            # best_combination_sum_all,
-            # best_combination_max,
+            ("BB", bb),
+        ], ref_all, total, "vd_refa_all")
+    else:
+        make_prc_plot_for([
+            ("LOC", class_size_prob),
+            ("VDMax", vd_prob_max),
+            ("VDSum", vd_prob_sum),
             ("BB", bb),
         ], ref_heuristic, total, f"vd_ref_{min_class_loc}_{max_class_loc}")
+        make_prc_plot_for([
+            ("LOC", class_size_prob),
+            ("VDMax", vd_prob_max),
+            ("VDSum", vd_prob_sum),
+            ("BB", bb),
+        ], ref_all, total, f"vd_refa_{min_class_loc}_{max_class_loc}")
 
 """
 
