@@ -1,5 +1,6 @@
 import statistics
 import math
+from cachier import cachier
 from custom_types import *
 from local_repo import LocalRepo
 from analysis import analyze_disagreements, ALL_VIEWS, get_filtered_nodes
@@ -160,41 +161,64 @@ def make_prc_plot_for(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], tota
     # plt.show()
 
 
-def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str]) -> PRC_DATA_ENTRY:
+def make_linear_regression_combination(data_list: List[PRC_DATA_ENTRY], base_data: Set[str], total_data: Set[str], merge_fn,
+                                       initial_coefficients=None, initial_step_size=0.5) -> PRC_DATA_ENTRY:
     from sklearn.metrics import precision_recall_curve
     from sklearn.metrics import auc
     from itertools import product
     total_data_list = list(total_data)
+
     def get_of_data(x_var, entry):
         if isinstance(x_var, dict):
             return x_var.get(entry, 0)
         else:
             return 1 if entry in x_var else 0
+
     X = [[get_of_data(x_var, entry) for _name, x_var in data_list]
          for entry in total_data_list]
     Y = [1 if item in base_data else 0 for item in total_data_list]
-    coef = [1 for _data in data_list]
-    step_size = 0.5
-    while step_size > 0.0001:
+
+    def normalize_coef(raw_coef):
+        max_abs_value = max(abs(c) for c in raw_coef)
+        return [c / max_abs_value for c in raw_coef]
+
+    def predict(option):
+        raw_probs = [merge_fn(coef_val * x_val for coef_val, x_val in zip(option, x_entry)) for x_entry in X]
+        minimum, maximum = min(raw_probs), max(raw_probs)
+        return [(prob - minimum) / (maximum - minimum) for prob in raw_probs]
+
+    coef = normalize_coef([1 for _data in data_list])
+    if initial_coefficients is not None:
+        if len(initial_coefficients) != len(coef):
+            raise Exception("Initial coefficients size does not match!")
+        coef = normalize_coef(initial_coefficients)
+    step_size = initial_step_size
+
+    while step_size >= 0.001:
         # find all new possible coefficients
-        all_options = list(product(*[[c, c - step_size, c + step_size] for c in coef]))
-        aucs = [auc(recall, precision) for precision, recall, _t in (precision_recall_curve(
-            Y,
-            [sum(coef_val * x_val for coef_val, x_val in zip(o, x_entry)) for x_entry in X]
-        ) for o in all_options)]
+        all_options = [normalize_coef(option) for option in product(*[[c, c - step_size, c + step_size] for c in coef])]
+        aucs = [auc(recall, precision) for precision, recall, _t in (precision_recall_curve(Y, predict(o)) for o in all_options)]
         print(f"{step_size:.6f}: {','.join(f'{c:.4f}' for c in coef)}, auc={aucs[0]}")
         if max(aucs) == aucs[0]:
-            # no improvement here, lets decrease step size and repeat
-            step_size /= 2
+            step_size /= 2  # no improvement here, lets decrease step size and repeat
         else:
             coef = all_options[aucs.index(max(aucs))]
 
     result: Dict[str, float] = dict()
-    for name, x_entry in zip(total_data_list, X):
-        result[name] = sum(coef_val * x_val for coef_val, x_val in zip(coef, x_entry))
+    for name, prob in zip(total_data_list, predict(coef)):
+        result[name] = prob
     names = [name for name, _x_var in data_list]
-    new_name = ' + '.join([f'{coef:.2f}' + name for name, coef in zip(names, coef)])
+    new_name = ('+' if merge_fn == sum else ',').join([f'{coef:.2f}' + name for name, coef in zip(names, coef)])
     return new_name, result
+
+
+@cachier()
+def get_vd_best_combination(sum_instead_of_max: bool, _min_class_loc: int, _max_class_loc: int):
+    global named_pattern_probs
+    global ref_heuristic
+    global total
+    merge_fn = sum if sum_instead_of_max else max
+    return make_linear_regression_combination(named_pattern_probs, ref_heuristic, total, merge_fn)
 
 
 def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
@@ -214,21 +238,21 @@ def get_bb_data(repo: LocalRepo) -> Set[str]:
     return result
 
 
-def get_view_disagreement_data_probabilities(repo: LocalRepo) -> Dict[str, float]:
+def get_view_disagreement_data_probabilities_max(repo: LocalRepo) -> Dict[str, float]:
     return merge_dicts(lambda a, b: max(a, b), *[find_violations_for_pattern_probabilities(repo, p, "classes") for p, *_ in TAXONOMY])
+
+
+def get_view_disagreement_data_probabilities_sum(repo: LocalRepo) -> Dict[str, float]:
+    merged = merge_dicts(lambda a, b: a + b, *[find_violations_for_pattern_probabilities(repo, p, "classes") for p, *_ in TAXONOMY])
+    for key, val in merged.items():
+        merged[key] = val / len(TAXONOMY)
+    return merged
 
 
 ##############################
 
 
 plt.rcParams['figure.dpi'] = 250
-
-
-def preprocess(repo_name: str):
-    repo = LocalRepo.for_name(repo_name)
-    all_patterns = [p for p, n, d in TAXONOMY]
-    analyze_disagreements(repo, ALL_VIEWS, all_patterns, "classes")
-    analyze_disagreements(repo, ALL_VIEWS, all_patterns, "methods")
 
 
 class_loc_ranges = [
@@ -248,12 +272,13 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
     bb = set()
     ref_heuristic = set()
-    vd_prob: Dict[str, float] = dict()
+    vd_prob_max: Dict[str, float] = dict()
+    vd_prob_sum: Dict[str, float] = dict()
     class_size_prob: Dict[str, float] = dict()
+    pattern_probs: List[Dict[str, float]] = [dict() for _t in TAXONOMY]
     for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
         new_r = LocalRepo.for_name(repo_name)
         old_r = new_r.get_old_version(old_version)
-        preprocess(old_r.name)
 
         total_list_r = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
         total_r = set(total_list_r)
@@ -262,33 +287,51 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
         ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_r))
 
-        vd_prob_r = get_view_disagreement_data_probabilities(old_r)
-        for name in list(vd_prob_r.keys()):
+        vd_prob_max_r = get_view_disagreement_data_probabilities_max(old_r)
+        for name in list(vd_prob_max_r.keys()):
             if name not in total_r:
-                vd_prob_r.pop(name)
-        vd_prob.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_r.items()))
+                vd_prob_max_r.pop(name)
+        vd_prob_max.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_max_r.items()))
+        vd_prob_sum_r = get_view_disagreement_data_probabilities_sum(old_r)
+        for name in list(vd_prob_sum_r.keys()):
+            if name not in total_r:
+                vd_prob_sum_r.pop(name)
+        vd_prob_sum.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_sum_r.items()))
+        for i, (p, *_) in enumerate(TAXONOMY):
+            pattern_prob_r = find_violations_for_pattern_probabilities(old_r, p, "classes")
+            for name in list(pattern_prob_r.keys()):
+                if name not in total_r:
+                    pattern_prob_r.pop(name)
+            pattern_probs[i].update(dict((f"{old_r.name}/{name}", value) for name, value in pattern_prob_r.items()))
+
         class_size_prob.update(dict((f"{old_r.name}/{name}", old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total_r))
 
     if len(ref_heuristic) == 0:
         print("No refactorings found, continuing to next loop")
         continue
 
+    # named_pattern_probs = [("".join(w[0].upper() for w in re.split(r"\W+", name)), probs) for probs, (p, name, *_) in zip(pattern_probs, TAXONOMY)]
+
+    # best_combination_sum = get_vd_best_combination(True, min_class_loc, max_class_loc)
+    # best_combination_max = get_vd_best_combination(False, min_class_loc, max_class_loc)
     if (min_class_loc, max_class_loc) == (0, math.inf):
-        # best_combination = make_linear_regression_combination([
-        #     ("VD", vd_prob),
-        #     ("BB", bb),
-        #     ("ClassSize", class_size_prob),
-        # ], ref_heuristic, total)
         make_prc_plot_for([
             ("LOC", class_size_prob),
-            ("VD", vd_prob),
-            # best_combination,
+            ("VDMax", vd_prob_max),
+            ("VDSum", vd_prob_sum),
+            # best_combination_sum,
+            # best_combination_max,
             ("BB", bb),
         ], ref_heuristic, total, "vd_ref_all")
     else:
+        # best_combination_sum_all = get_vd_best_combination(True, 0, math.inf)
         make_prc_plot_for([
             ("LOC", class_size_prob),
-            ("VD", vd_prob),
+            ("VDMax", vd_prob_max),
+            ("VDSum", vd_prob_sum),
+            # best_combination_sum,
+            # best_combination_sum_all,
+            # best_combination_max,
             ("BB", bb),
         ], ref_heuristic, total, f"vd_ref_{min_class_loc}_{max_class_loc}")
 
