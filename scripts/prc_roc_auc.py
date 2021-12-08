@@ -15,7 +15,7 @@ PRC_PLOT_DATA_ENTRY = Tuple[str, Union[List[float], List[int]]]
 def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int], title: str, show=True):
 
     no_skill_precision = sum(actual_labels) / len(actual_labels)  # = P / total
-    plt.plot([0, 1], [no_skill_precision, no_skill_precision], linestyle='--', label=f'No Skill: {int(no_skill_precision * 1000) / 10}%')
+    plt.plot([0, 1], [no_skill_precision, no_skill_precision], linestyle='--', color="gray", label=f'No Skill: {int(no_skill_precision * 1000) / 10}%')
 
     for datum_name, datum_prediction in data_list:
         if any(isinstance(v, float) for v in datum_prediction):  # list of probability assignments and true labels
@@ -24,7 +24,7 @@ def make_prc_plot(data_list: List[PRC_PLOT_DATA_ENTRY], actual_labels: List[int]
                 precision = precision[:-1]
                 recall = recall[:-1]
             auc_value = auc(recall, precision)
-            plot_kwargs = {"marker": ","}
+            plot_kwargs = {"marker": ",", "alpha": 0.8}
         else:  # list of binary classes
             tp = sum(a == 1 and p == 1 for a, p in zip(actual_labels, datum_prediction))
             if tp == 0:
