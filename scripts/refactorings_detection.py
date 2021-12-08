@@ -95,14 +95,12 @@ REFACTORING_WEIGHTS: Dict[str, int] = {
 }
 MIN_REFACTORING_WEIGHT = 1
 def get_refactoring_weight(type_name: str) -> int:
-    if type_name in REFACTORING_WEIGHTS:
-        return REFACTORING_WEIGHTS[type_name]
-    if any(type_name.startswith(w + " ") for w in ["Add", "Remove", "Change", "Modify"]):
-        type_name_star = "* " + type_name.split(" ", 1)[1]
-        if type_name_star in REFACTORING_WEIGHTS:
-            return REFACTORING_WEIGHTS[type_name_star]
-    print(f"UNKNOWN REFACTORING TYPE: {type_name} (it will be ignored)")
-    return 0
+    if type_name not in REFACTORING_WEIGHTS and any(type_name.startswith(w + " ") for w in ["Add", "Remove", "Change", "Modify"]):
+        type_name = "* " + type_name.split(" ", 1)[1]
+    if type_name not in REFACTORING_WEIGHTS:
+        print(f"UNKNOWN REFACTORING TYPE: {type_name} (it will be ignored)")
+        return 0
+    return 1 if REFACTORING_WEIGHTS[type_name] >= 6 else 0
 
 
 def is_hexsha(identifier: str) -> bool:
