@@ -162,47 +162,23 @@ def refactoring_process_path(repo: LocalRepo, locations: List[Dict[str, Any]]) -
     return results
 
 
-def get_all_refactoring_names(repo: LocalRepo, old: str, new: str):
-    names: Set[str] = set()
-    for c in get_raw_refactorings_per_commit(repo, old, new):
-        for ref in c["refactorings"]:
-            names.add(ref["type"])
-    return names
-
-
-def get_nodes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) -> Set[str]:
-    old = repo.get_commit(old_version).hexsha
-    new = repo.get_head_commit().hexsha
-
-    results: Set[str] = set()
-    for c in get_raw_refactorings_per_commit(repo, old, new):
-        for ref in c["refactorings"]:
-            results.update(refactoring_process_path(repo, ref["leftSideLocations"]))
-    return results
-
-
-def get_classes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) -> Set[str]:
-    return set([repo.get_tree().find_node(r).get_containing_class_node().get_path()
-                for r in get_nodes_being_refactored_in_the_future(repo, old_version)])
-
-
-def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: LocalRepo, old_version: str) -> Set[str]:
+def get_classes_being_refactored_in_the_future(new_repo: LocalRepo, old_version: str, use_filter: bool = True) -> Set[str]:
     old_repo = new_repo.get_old_version(old_version)
-
     old_tree = old_repo.get_tree()
     old = old_repo.get_head_commit().hexsha
     new = new_repo.get_head_commit().hexsha
-    results: Dict[str, List[str]] = defaultdict(lambda: [])  # old class, old other class, type_name
+
+    results: Dict[str, List[str]] = defaultdict(lambda: [])  # old class -> refactoring type names
     for commit in get_raw_refactorings_per_commit(new_repo, old, new):
         for ref in commit["refactorings"]:
             type_name = ref["type"]
-            left_side_paths = set(refactoring_process_path(old_repo, ref["leftSideLocations"]))
-            left_side_class_paths = set(old_tree.find_node(left_side_path).get_containing_class_node().get_path() for left_side_path in left_side_paths)
-            for left_side_class_path in left_side_class_paths:
-                results[left_side_class_path].append(type_name)
+            old_paths = refactoring_process_path(old_repo, ref["leftSideLocations"]) | refactoring_process_path(old_repo, ref["rightSideLocations"])
+            old_class_paths = set(old_tree.find_node(old_path).get_containing_class_node().get_path() for old_path in old_paths)
+            for old_class_path in old_class_paths:
+                results[old_class_path].append(type_name)
     return set(
         name for name, refactorings in results.items()
-        if sum(get_refactoring_weight(r) for r in refactorings) >= MIN_REFACTORING_WEIGHT
+        if not use_filter or sum(get_refactoring_weight(r) for r in refactorings) >= MIN_REFACTORING_WEIGHT
     )
 
 
@@ -210,6 +186,4 @@ if __name__ == "__main__":
     # res = get_processed_refactorings_data(LocalRepo.for_name("jfree/jfreechart"), "b7cccc63890b0789357a63c4f652dbcdbbfda177", "1f1a39ba311472fa9c9e19c4e5ad9221ece63185")
     # res = get_processed_refactorings_data(LocalRepo.for_name("jfree/jfreechart"), "v1.5.3", "master")
     # print(res)
-    repo = LocalRepo.for_name("jfree/jfreechart:v1.5.3")
-    print(get_classes_being_refactored_in_the_future(repo, "v1.5.0"))
-    # print(get_nodes_being_refactored_in_the_future(LocalRepo.for_name("jfree/jfreechart:b3d63c7148e5bbff621fd01e22db69189f09bf89")))
+    print(get_classes_being_refactored_in_the_future(LocalRepo.for_name("jfree/jfreechart:v1.5.3"), "v1.5.0"))

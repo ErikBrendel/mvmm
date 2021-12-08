@@ -11,7 +11,7 @@ from util import merge_dicts, plt_save_show
 from prc_roc_auc import make_prc_plot, PRC_PLOT_DATA_ENTRY
 from study_common import TAXONOMY, make_sort_weights
 import matplotlib.pyplot as plt
-from refactorings_detection import get_classes_being_refactored_in_the_future, get_classes_being_refactored_in_the_future_heuristically_filtered
+from refactorings_detection import get_classes_being_refactored_in_the_future
 
 
 def match_score(result: BRS_DATA_TYPE):
@@ -286,8 +286,8 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         total.update(f"{old_r.name}/{name}" for name in total_r)
 
         bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
-        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_r))
-        ref_all.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version).intersection(total_r))
+        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, True).intersection(total_r))
+        ref_all.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, False).intersection(total_r))
 
         vd_prob_max_r = get_view_disagreement_data_probabilities_max(old_r)
         for name in list(vd_prob_max_r.keys()):
@@ -357,7 +357,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         total_list_r = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
         total_set_r = set(total_list_r)
         total.update(f"{old_r.name}/{name}" for name in total_list_r)
-        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future_heuristically_filtered(new_r, old_version).intersection(total_set_r))
+        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version).intersection(total_set_r))
 
         vd_prob_old_r = get_view_disagreement_data_probabilities(old_r)
         vd_prob_old.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_old_r.items()))
