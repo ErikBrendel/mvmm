@@ -267,7 +267,6 @@ class_loc_ranges = [
 
 repos_and_old_versions = [(new, old) for new, olds in repos_and_versions for old in olds]
 
-# """
 for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
     bb = set()
@@ -342,47 +341,3 @@ for min_class_loc, max_class_loc in class_loc_ranges:
             ("VDSum", vd_prob_sum),
             ("BB", bb),
         ], ref_all, total, f"vd_refa_{min_class_loc}_{max_class_loc}")
-
-"""
-
-for min_class_loc, max_class_loc in class_loc_ranges:
-    total = set()
-    ref_heuristic = set()
-    vd_prob_old: Dict[str, float] = dict()
-    vd_prob_new: Dict[str, float] = dict()
-    for i, (repo_name, old_version) in enumerate(repos_and_old_versions):
-        new_r = LocalRepo.for_name(repo_name)
-        old_r = new_r.get_old_version(old_version)
-
-        total_list_r = [name for name in get_filtered_nodes(old_r, "classes") if min_class_loc <= old_r.get_tree().find_node(name).get_line_span() <= max_class_loc]
-        total_set_r = set(total_list_r)
-        total.update(f"{old_r.name}/{name}" for name in total_list_r)
-        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version).intersection(total_set_r))
-
-        vd_prob_old_r = get_view_disagreement_data_probabilities(old_r)
-        vd_prob_old.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_old_r.items()))
-        vd_prob_new_r = get_view_disagreement_data_probabilities(new_r)
-        vd_prob_new.update(dict((f"{old_r.name}/{name}", value) for name, value in vd_prob_new_r.items()))
-
-    exp = 2
-    vd_changes_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in ref_heuristic]
-    vd_changes_no_ref = [[vd_prob.get(name, 0) ** exp for vd_prob in [vd_prob_old, vd_prob_new]] for name in (total - ref_heuristic)]
-
-    for title, data in [("Ref", vd_changes_ref), ("No-Ref", vd_changes_no_ref)]:
-        # perform normalization (Cosineau 2005): X_ij := X_ij − mean(X_j) + mean_(X)
-        total_mean = statistics.mean([(a + b) / 2 for a, b in data])
-        norm_data = [(old - mean + total_mean, new - mean + total_mean) for old, new, mean in [(old, new, (old + new) / 2) for old, new in data]]
-
-        plt.boxplot([[old for old, new in norm_data], [new for old, new in norm_data]], labels=["old", "new"], widths=0.6)
-        for old, new in norm_data:
-            plt.plot([1, 2], [old, new], 'k', alpha=0.05)
-        plt.xlabel('Version')
-        plt.ylim([-0.03, 1.03])
-        plt.ylabel('Disagreement Strength')
-        plt.title(f"{title}: Class Loc in range [{min_class_loc}, {max_class_loc}]")
-        plt.subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-        plt.gcf().set_size_inches(plt.gcf().get_figwidth() * 0.5, plt.gcf().get_figheight())
-        mean_change = statistics.mean([new - old for old, new in data])
-        plt.text(0.5, -0.18, f"{mean_change=:.4f}", horizontalalignment='center', verticalalignment='center', transform=plt.gca().transAxes)
-        plt.show()
-# """
