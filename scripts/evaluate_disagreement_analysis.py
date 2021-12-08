@@ -233,7 +233,7 @@ def get_view_disagreement_data(repo: LocalRepo) -> Set[str]:
 def get_bb_data(repo: LocalRepo) -> Set[str]:
     bb_context = BBContext.for_repo(repo)
     result: Set[str] = set()
-    for disharmony in bb_context.find_all_disharmonies():
+    for disharmony in set(bb_context.find_all_disharmonies()):
         result.add(bb_context.get_containing_class_of(disharmony))
     return result
 
