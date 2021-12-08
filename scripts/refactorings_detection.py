@@ -7,7 +7,7 @@ from collections import defaultdict
 from cachier import cachier
 
 from custom_types import *
-from util import decode, minmax, SerializedWrap
+from util import decode
 from local_repo import LocalRepo
 
 # To set up repository mining, do the following:
@@ -181,12 +181,9 @@ def get_nodes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) 
     return results
 
 
-def get_classes_being_refactored_in_the_future(repo: LocalRepo, old_version: str, only_verified_ones: bool = False) -> Set[str]:
-    if only_verified_ones:
-        return set(class_name for class_name, verified in get_confirmed_class_refactorings_dict(repo.name, old_version).data.items() if verified)
-    else:
-        return set([repo.get_tree().find_node(r).get_containing_class_node().get_path()
-                    for r in get_nodes_being_refactored_in_the_future(repo, old_version)])
+def get_classes_being_refactored_in_the_future(repo: LocalRepo, old_version: str) -> Set[str]:
+    return set([repo.get_tree().find_node(r).get_containing_class_node().get_path()
+                for r in get_nodes_being_refactored_in_the_future(repo, old_version)])
 
 
 def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: LocalRepo, old_version: str) -> Set[str]:
@@ -207,11 +204,6 @@ def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: 
         name for name, refactorings in results.items()
         if sum(get_refactoring_weight(r) for r in refactorings) >= MIN_REFACTORING_WEIGHT
     )
-
-
-def get_confirmed_class_refactorings_dict(repo_name: str, old_version: str):
-    info = repo_name + "::" + old_version
-    return SerializedWrap(dict(), f"""../refactorings/confirmed_{info.replace("/", "_")}_.pickle""")  # Dict from class_path to bool
 
 
 if __name__ == "__main__":
