@@ -3,76 +3,6 @@ from refactorings_detection import *
 
 
 if __name__ == "__main__":
-    refactoring_weights: Dict[str, float] = {
-        "Collapse Hierarchy": 10,
-        "Extract And Move Method": 10,
-        "Extract Class": 10,
-        "Extract Method": 10,
-        "Extract Subclass": 10,
-        "Extract Superclass": 10,
-        "Merge Package": 10,
-        "Move And Rename Class": 10,
-        "Move And Rename Method": 10,
-        "Move Class": 10,
-        "Split Package": 10,
-        "Move And Inline Method": 6,
-        "Move And Rename Attribute": 6,
-        "Move Method": 6,
-        "Pull Up Method": 6,
-        "Push Down Method": 6,
-        "Extract Interface": 4,
-        "Inline Method": 4,
-        "Localize Parameter": 4,
-        "Merge Attribute": 4,
-        "Merge Parameter": 4,
-        "Parameterize Variable": 4,
-        "Replace Variable With Attribute": 4,
-        "Change Attribute Type": 3,
-        "Change Type Declaration Kind": 3,
-        "Extract Attribute": 3,
-        "Move Attribute": 3,
-        "Parameterize Attribute": 3,
-        "Pull Up Attribute": 3,
-        "Push Down Attribute": 3,
-        "Replace Attribute": 3,
-        "* Parameter": 2,
-        "Change Parameter Type": 2,
-        "Change Return Type": 2,
-        "Change Variable Type": 2,
-        "Merge Variable": 2,
-        "Rename Package": 2,
-        "Split Attribute": 2,
-        "Split Variable": 2,
-        "* Attribute Annotation": 1,
-        "* Class Annotation": 1,
-        "* Method Annotation": 1,
-        "* Parameter Annotation": 1,
-        "* Variable Annotation": 1,
-        "Change Attribute Access Modifier": 1,
-        "Change Class Access Modifier": 1,
-        "Change Method Access Modifier": 1,
-        "Extract Variable": 1,
-        "Move Package": 1,
-        "Move Source Folder": 1,
-        "Rename Attribute": 1,
-        "Rename Class": 1,
-        "Rename Method": 1,
-        "Rename Parameter": 1,
-        "Rename Variable": 1,
-        "Replace Attribute With Variable": 1,
-        "Split Parameter": 1,
-        "* Attribute Modifier": 0,
-        "* Class Modifier": 0,
-        "* Method Modifier": 0,
-        "* Parameter Modifier": 0,
-        "* Thrown Exception Type": 0,
-        "* Variable Modifier": 0,
-        "Encapsulate Attribute": 0,
-        "Inline Variable": 0,
-        "Reorder Parameter": 0,
-        "Replace Anonymous With Lambda": 0,
-        "Replace Loop With Pipeline": 0,
-    }
     from repos import repos_and_versions
     try:
         for new_repo_name, old_versions in repos_and_versions:
@@ -87,13 +17,13 @@ if __name__ == "__main__":
                         type_name_star = type_name
                         if any(type_name.startswith(w + " ") for w in ["Add", "Remove", "Change", "Modify"]):
                             type_name_star = "* " + type_name.split(" ", 1)[1]
-                        if type_name not in refactoring_weights.keys() and type_name_star not in refactoring_weights.keys():
+                        if type_name not in REFACTORING_WEIGHTS.keys() and type_name_star not in REFACTORING_WEIGHTS.keys():
                             print(f"""Which weight should "{type_name}" have?""")
                             print(f"""Example: {ref['description']}""")
-                            refactoring_weights[type_name] = int(input(">>>"))
+                            REFACTORING_WEIGHTS[type_name] = int(input(">>>"))
     except:
         pass
-    all_results = [(v, k) for k, v in refactoring_weights.items()]
+    all_results = [(v, k) for k, v in REFACTORING_WEIGHTS.items()]
     all_results.sort(key=lambda v_k: (-v_k[0], v_k[1]))
     print("""    refactoring_weights: Dict[str, float] = {""")
     for v, k in all_results:
@@ -114,7 +44,7 @@ if __name__ == "__main__":
     print(fr"""    \toprule""")
     print(fr"""    Refactoring Name & Weight\\""")
     for w in range(10, -1, -1):
-        names = sorted([k for k, v in refactoring_weights.items() if v == w])
+        names = sorted([k for k, v in REFACTORING_WEIGHTS.items() if v == w])
         if len(names) == 0:
             continue
         print(fr"""    \midrule""")

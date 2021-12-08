@@ -23,6 +23,88 @@ from local_repo import LocalRepo
 REFACTORING_MINER_CLI_PATH = os.getenv("REFACTORING_MINER_CLI_PATH", "/home/ebrendel/util/RefactoringMiner/cli")
 
 
+REFACTORING_WEIGHTS: Dict[str, int] = {
+    "Collapse Hierarchy": 10,
+    "Extract And Move Method": 10,
+    "Extract Class": 10,
+    "Extract Method": 10,
+    "Extract Subclass": 10,
+    "Extract Superclass": 10,
+    "Merge Package": 10,
+    "Move And Rename Class": 10,
+    "Move And Rename Method": 10,
+    "Move Class": 10,
+    "Split Package": 10,
+    "Move And Inline Method": 6,
+    "Move And Rename Attribute": 6,
+    "Move Method": 6,
+    "Pull Up Method": 6,
+    "Push Down Method": 6,
+    "Extract Interface": 4,
+    "Inline Method": 4,
+    "Localize Parameter": 4,
+    "Merge Attribute": 4,
+    "Merge Parameter": 4,
+    "Parameterize Variable": 4,
+    "Replace Variable With Attribute": 4,
+    "Change Attribute Type": 3,
+    "Change Type Declaration Kind": 3,
+    "Extract Attribute": 3,
+    "Move Attribute": 3,
+    "Parameterize Attribute": 3,
+    "Pull Up Attribute": 3,
+    "Push Down Attribute": 3,
+    "Replace Attribute": 3,
+    "* Parameter": 2,
+    "Change Parameter Type": 2,
+    "Change Return Type": 2,
+    "Change Variable Type": 2,
+    "Merge Variable": 2,
+    "Rename Package": 2,
+    "Split Attribute": 2,
+    "Split Variable": 2,
+    "* Attribute Annotation": 1,
+    "* Class Annotation": 1,
+    "* Method Annotation": 1,
+    "* Parameter Annotation": 1,
+    "* Variable Annotation": 1,
+    "Change Attribute Access Modifier": 1,
+    "Change Class Access Modifier": 1,
+    "Change Method Access Modifier": 1,
+    "Extract Variable": 1,
+    "Move Package": 1,
+    "Move Source Folder": 1,
+    "Rename Attribute": 1,
+    "Rename Class": 1,
+    "Rename Method": 1,
+    "Rename Parameter": 1,
+    "Rename Variable": 1,
+    "Replace Attribute With Variable": 1,
+    "Split Parameter": 1,
+    "* Attribute Modifier": 0,
+    "* Class Modifier": 0,
+    "* Method Modifier": 0,
+    "* Parameter Modifier": 0,
+    "* Thrown Exception Type": 0,
+    "* Variable Modifier": 0,
+    "Encapsulate Attribute": 0,
+    "Inline Variable": 0,
+    "Reorder Parameter": 0,
+    "Replace Anonymous With Lambda": 0,
+    "Replace Loop With Pipeline": 0,
+}
+MIN_REFACTORING_WEIGHT = 1
+def get_refactoring_weight(type_name: str) -> int:
+    if type_name in REFACTORING_WEIGHTS:
+        return REFACTORING_WEIGHTS[type_name]
+    if any(type_name.startswith(w + " ") for w in ["Add", "Remove", "Change", "Modify"]):
+        type_name_star = "* " + type_name.split(" ", 1)[1]
+        if type_name_star in REFACTORING_WEIGHTS:
+            return REFACTORING_WEIGHTS[type_name_star]
+    print(f"UNKNOWN REFACTORING TYPE: {type_name} (it will be ignored)")
+    return 0
+
+
 def is_hexsha(identifier: str) -> bool:
     try:
         int(identifier, 16)
@@ -117,60 +199,14 @@ def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: 
     for commit in get_raw_refactorings_per_commit(new_repo, old, new):
         for ref in commit["refactorings"]:
             type_name = ref["type"]
-            if type_name not in {
-                "Add Parameter Modifier",
-                "Change Attribute Access Modifier",
-                "Change Method Access Modifier",
-                "Inline Variable",
-                "Modify Method Annotation",
-                "Remove Parameter Modifier",
-                "Reorder Parameter",
-
-                'Change Class Access Modifier',
-
-                'Rename Package',
-                'Rename Variable',
-                'Rename Parameter',
-
-                'Add Method Annotation',
-                'Remove Method Annotation',
-                'Change Method Annotation',
-
-                'Add Class Annotation',
-                'Remove Class Annotation',
-                'Change Class Annotation',
-
-                'Add Variable Annotation',
-                'Remove Variable Annotation',
-                'Change Variable Annotation',
-
-                'Add Attribute Modifier',
-                'Remove Attribute Modifier',
-                'Change Attribute Modifier',
-
-                'Change Attribute Type',
-
-                'Add Class Modifier',
-                'Remove Class Modifier',
-                'Change Class Modifier',
-
-                'Add Thrown Exception Type',
-                'Remove Thrown Exception Type',
-                'Change Thrown Exception Type',
-            }:
-                left_side_paths = set(refactoring_process_path(old_repo, ref["leftSideLocations"]))
-                left_side_class_paths = set(old_tree.find_node(left_side_path).get_containing_class_node().get_path() for left_side_path in left_side_paths)
-                for left_side_class_path in left_side_class_paths:
-                    results[left_side_class_path].append(type_name)
-    refactoring_weights: Dict[str, float] = {
-        "Extract Method": 3,
-        "Extract And Move Method": 4,
-        "Inline Method": 3,
-        "Move And Rename Method": 3,
-        "Move Method": 3,
-        "Merge Parameter": 2,
-    }
-    return set(name for name, refactorings in results.items() if sum(refactoring_weights.get(r, 1) for r in refactorings) >= 5)
+            left_side_paths = set(refactoring_process_path(old_repo, ref["leftSideLocations"]))
+            left_side_class_paths = set(old_tree.find_node(left_side_path).get_containing_class_node().get_path() for left_side_path in left_side_paths)
+            for left_side_class_path in left_side_class_paths:
+                results[left_side_class_path].append(type_name)
+    return set(
+        name for name, refactorings in results.items()
+        if sum(get_refactoring_weight(r) for r in refactorings) >= MIN_REFACTORING_WEIGHT
+    )
 
 
 def get_confirmed_class_refactorings_dict(repo_name: str, old_version: str):
@@ -183,6 +219,5 @@ if __name__ == "__main__":
     # res = get_processed_refactorings_data(LocalRepo.for_name("jfree/jfreechart"), "v1.5.3", "master")
     # print(res)
     repo = LocalRepo.for_name("jfree/jfreechart:v1.5.3")
-    results = get_classes_being_refactored_in_the_future(repo, "v1.5.0")
-    print(results)
+    print(get_classes_being_refactored_in_the_future(repo, "v1.5.0"))
     # print(get_nodes_being_refactored_in_the_future(LocalRepo.for_name("jfree/jfreechart:b3d63c7148e5bbff621fd01e22db69189f09bf89")))
