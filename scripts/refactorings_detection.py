@@ -22,46 +22,6 @@ from local_repo import LocalRepo
 # Your executable is 'bin/RefactoringMiner' of that zip. Create a symlink if you like, and pass the path to this script here
 REFACTORING_MINER_CLI_PATH = os.getenv("REFACTORING_MINER_CLI_PATH", "/home/ebrendel/util/RefactoringMiner/cli")
 
-# Those are too trivial to count as a refactoring that might fix a modularity violation, so we ignore them
-IGNORED_REFACTORING_TYPES = {
-    'Change Class Access Modifier',
-
-    'Rename Package',
-    'Rename Variable',
-    'Rename Parameter',
-
-    'Add Method Annotation',
-    'Remove Method Annotation',
-    'Change Method Annotation',
-
-    'Add Class Annotation',
-    'Remove Class Annotation',
-    'Change Class Annotation',
-
-    'Add Variable Annotation',
-    'Remove Variable Annotation',
-    'Change Variable Annotation',
-
-    'Add Attribute Modifier',
-    'Remove Attribute Modifier',
-    'Change Attribute Modifier',
-
-    'Change Attribute Type',
-
-    'Add Class Modifier',
-    'Remove Class Modifier',
-    'Change Class Modifier',
-
-    'Add Thrown Exception Type',
-    'Remove Thrown Exception Type',
-    'Change Thrown Exception Type',
-}
-
-BIG_REFACTORING_TYPES = {
-    'Extract Class',
-    'Extract Interface',
-}
-
 
 def is_hexsha(identifier: str) -> bool:
     try:
@@ -89,10 +49,7 @@ def get_raw_refactorings_per_commit(repo: LocalRepo, old: str, new: str):
         output = "\n".join(decode(line) for line in subprocess.Popen(args, stdout=subprocess.PIPE).stdout.readlines())
         print(output)
         with open(temp_file_path, "r") as result_file:
-            json_object = json.load(result_file)["commits"]
-        for commit in json_object:
-            commit["refactorings"] = [r for r in commit["refactorings"] if r["type"] not in IGNORED_REFACTORING_TYPES]
-        return json_object
+            return json.load(result_file)["commits"]
     finally:
         if temp_file_path is not None:
             os.remove(temp_file_path)
@@ -113,8 +70,8 @@ def refactoring_process_path(repo: LocalRepo, locations: List[Dict[str, Any]]) -
             for concrete_node in concrete_nodes:
                 if concrete_node.get_simple_type() == "class" and location["codeElementType"] == "METHOD_DECLARATION":
                     if "constructor" not in concrete_node.children:
-                        print("Cannot find the constructor in " + location["filePath"])
-                        print(location)
+                        # can happen when a later version of the class has a constructor, and then refactorings happen within it
+                        # print("Cannot find the constructor in " + location["filePath"])
                         continue
                     concrete_node = concrete_node.children["constructor"]
                 if concrete_node.get_simple_type() not in ["method", "attribute"]:
@@ -168,6 +125,38 @@ def get_classes_being_refactored_in_the_future_heuristically_filtered(new_repo: 
                 "Modify Method Annotation",
                 "Remove Parameter Modifier",
                 "Reorder Parameter",
+
+                'Change Class Access Modifier',
+
+                'Rename Package',
+                'Rename Variable',
+                'Rename Parameter',
+
+                'Add Method Annotation',
+                'Remove Method Annotation',
+                'Change Method Annotation',
+
+                'Add Class Annotation',
+                'Remove Class Annotation',
+                'Change Class Annotation',
+
+                'Add Variable Annotation',
+                'Remove Variable Annotation',
+                'Change Variable Annotation',
+
+                'Add Attribute Modifier',
+                'Remove Attribute Modifier',
+                'Change Attribute Modifier',
+
+                'Change Attribute Type',
+
+                'Add Class Modifier',
+                'Remove Class Modifier',
+                'Change Class Modifier',
+
+                'Add Thrown Exception Type',
+                'Remove Thrown Exception Type',
+                'Change Thrown Exception Type',
             }:
                 left_side_paths = set(refactoring_process_path(old_repo, ref["leftSideLocations"]))
                 left_side_class_paths = set(old_tree.find_node(left_side_path).get_containing_class_node().get_path() for left_side_path in left_side_paths)
