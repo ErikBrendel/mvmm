@@ -42,8 +42,8 @@ def preprocess(job_info: str):
             from blue_book_metrics import BBContext
             BBContext.for_repo(r).find_all_disharmonies()
         elif job_info[0] == "ref":
-            from refactorings_detection import get_classes_being_refactored_in_the_future_heuristically_filtered
-            get_classes_being_refactored_in_the_future_heuristically_filtered(r, job_info[2])
+            from refactorings_detection import get_classes_being_refactored_in_the_future
+            get_classes_being_refactored_in_the_future(r, job_info[2], use_filter=False)
     except Exception as e:
         print("Exception!:")
         print(e)
