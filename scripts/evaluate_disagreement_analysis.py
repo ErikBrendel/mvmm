@@ -270,8 +270,7 @@ repos_and_old_versions = [(new, old) for new, olds in repos_and_versions for old
 for min_class_loc, max_class_loc in class_loc_ranges:
     total = set()
     bb = set()
-    ref_heuristic = set()
-    ref_all = set()
+    ref = set()
     vd_prob_max: Dict[str, float] = dict()
     vd_prob_sum: Dict[str, float] = dict()
     class_size_prob: Dict[str, float] = dict()
@@ -285,8 +284,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         total.update(f"{old_r.name}/{name}" for name in total_r)
 
         bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
-        ref_heuristic.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, True).intersection(total_r))
-        ref_all.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, False).intersection(total_r))
+        ref.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, use_filter=True).intersection(total_r))
 
         vd_prob_max_r = get_view_disagreement_data_probabilities_max(old_r)
         for name in list(vd_prob_max_r.keys()):
@@ -307,7 +305,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
 
         class_size_prob.update(dict((f"{old_r.name}/{name}", old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total_r))
 
-    if len(ref_heuristic) == 0:
+    if len(ref) == 0:
         print("No refactorings found, continuing to next loop")
         continue
 
@@ -318,26 +316,14 @@ for min_class_loc, max_class_loc in class_loc_ranges:
     if (min_class_loc, max_class_loc) == (0, math.inf):
         make_prc_plot_for([
             ("LOC", class_size_prob),
-            ("VDMax", vd_prob_max),
-            ("VDSum", vd_prob_sum),
-            ("BB", bb),
-        ], ref_heuristic, total, "vd_ref_all")
-        make_prc_plot_for([
-            ("LOC", class_size_prob),
-            ("VDMax", vd_prob_max),
-            ("VDSum", vd_prob_sum),
-            ("BB", bb),
-        ], ref_all, total, "vd_refa_all")
+            ("VD", vd_prob_max),
+            # ("VDSum", vd_prob_sum),
+            ("LM", bb),
+        ], ref, total, "vd_ref_all")
     else:
         make_prc_plot_for([
             ("LOC", class_size_prob),
-            ("VDMax", vd_prob_max),
-            ("VDSum", vd_prob_sum),
-            ("BB", bb),
-        ], ref_heuristic, total, f"vd_ref_{min_class_loc}_{max_class_loc}")
-        make_prc_plot_for([
-            ("LOC", class_size_prob),
-            ("VDMax", vd_prob_max),
-            ("VDSum", vd_prob_sum),
-            ("BB", bb),
-        ], ref_all, total, f"vd_refa_{min_class_loc}_{max_class_loc}")
+            ("VD", vd_prob_max),
+            # ("VDSum", vd_prob_sum),
+            ("LM", bb),
+        ], ref, total, f"vd_ref_{min_class_loc}_{max_class_loc}")
