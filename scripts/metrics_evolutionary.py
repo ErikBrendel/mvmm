@@ -456,4 +456,4 @@ def new_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCoupling
             for f1, f2 in all_pairs(usable_changes):
                 coupling_graph.add(f1, f2, score)
             for node in usable_changes:
-                coupling_graph.add_support(node, 1)
+                coupling_graph.add_support(node, score)
