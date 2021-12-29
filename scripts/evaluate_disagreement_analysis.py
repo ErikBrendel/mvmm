@@ -35,11 +35,11 @@ def find_violations_for_pattern_probabilities(repo: LocalRepo, pattern: PatternT
     raw_results = analyze_disagreements(repo, ALL_VIEWS, [pattern], filter_mode)[0]
     results: Dict[str, float] = {}
     for result in raw_results.get_best(make_sort_weights(pattern)):
-        score = match_score(result)
+        prob = 1 - match_score(result)
         a, b, *_ = result[1]
         for clazz in [a, b]:
-            if clazz not in results or results[clazz] < score:
-                results[clazz] = 1 - score
+            if clazz not in results or results[clazz] < prob:
+                results[clazz] = prob
     return results
 
 
