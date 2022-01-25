@@ -224,15 +224,20 @@ def show_histogram(data, title, xlabel='Data', ylabel='Amount', color='g'):
     plt.show()
 
 
-def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g', ylog=False, xlog=False, show=True):
+def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g', ylog=False, xlog=False, show=True, override_max: float = None):
     # https://stackoverflow.com/a/51616216/4354423
     # https://matplotlib.org/3.3.1/api/_as_gen/matplotlib.pyplot.hist.html
     if len(datas) == 0:
         print("Empty data, cannot show histogram")
         return
     alpha = 1.25 ** -len(datas)
-    _, bins, _ = plt.hist(datas[0], bins=100, facecolor=color, alpha=alpha)
-    for data in datas[1:]:
+    start, stop = minmax(v for data in datas for v in data)
+    if override_max is not None:
+        if override_max >= stop:
+            raise Exception("override_max out of bounds!")
+        start, stop = minmax(v for data in datas for v in data if v <= override_max)
+    bins = np.linspace(start, stop, 100)
+    for data in datas:
         plt.hist(data, bins=bins, alpha=alpha, facecolor=color)
 
     if xlog:
@@ -243,7 +248,7 @@ def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g'
         ylabel += " (log)"
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(title)
+    # plt.title(title)
     plt.grid(True)
     if show:
         plt.show()
