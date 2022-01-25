@@ -249,9 +249,10 @@ def show_multi_histogram(datas, title, xlabel='Data', ylabel='Amount', color='g'
         plt.show()
 
 
-def plt_save_show(filename):
+def plt_save_show(filename: str, zoom_factor=1.0):
+    plt.gcf().set_size_inches(plt.gcf().get_figwidth() / zoom_factor, plt.gcf().get_figheight() / zoom_factor)
     result_path = f"../{filename}.png"
-    plt.savefig(result_path)
+    plt.savefig(result_path, bbox_inches='tight', pad_inches=0)
     print(f"Saved plot to {result_path}")
     plt.show()
 
