@@ -283,7 +283,7 @@ for min_class_loc, max_class_loc in class_loc_ranges:
         total.update(f"{old_r.name}/{name}" for name in total_r)
 
         bb.update(f"{old_r.name}/{name}" for name in get_bb_data(old_r).intersection(total_r))
-        ref.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, use_filter=True).intersection(total_r))
+        ref.update(f"{old_r.name}/{name}" for name in get_classes_being_refactored_in_the_future(new_r, old_version, use_filter=False).intersection(total_r))
 
         vd_prob_max_r = get_view_disagreement_data_probabilities_max(old_r)
         for name in list(vd_prob_max_r.keys()):
@@ -302,21 +302,24 @@ for min_class_loc, max_class_loc in class_loc_ranges:
                     pattern_prob_r.pop(name)
             pattern_probs[i].update(dict((f"{old_r.name}/{name}", value) for name, value in pattern_prob_r.items()))
 
-        class_size_prob.update(dict((f"{old_r.name}/{name}", old_r.get_tree().find_node(name).get_line_span() / 10000.0) for name in total_r))
+        class_size_prob.update(dict((f"{old_r.name}/{name}", 1 - 100 / (old_r.get_tree().find_node(name).get_line_span() + 100)) for name in total_r))
 
     if len(ref) == 0:
         print("No refactorings found, continuing to next loop")
         continue
 
-    # named_pattern_probs = [("".join(w[0].upper() for w in re.split(r"\W+", name)), probs) for probs, (p, name, *_) in zip(pattern_probs, TAXONOMY)]
+    named_pattern_probs = [("".join(w[0].upper() for w in re.split(r"\W+", name)), probs) for probs, (p, name, *_) in zip(pattern_probs, TAXONOMY)]
 
     # best_combination_sum = get_vd_best_combination(True, min_class_loc, max_class_loc)
     # best_combination_max = get_vd_best_combination(False, min_class_loc, max_class_loc)
+    # mega_best = make_linear_regression_combination(named_pattern_probs + [("LOC", class_size_prob), ("LM", bb)], ref, total, max)
+    # mega_best = make_linear_regression_combination([("VD", vd_prob_max), ("LOC", class_size_prob), ("LM", bb)], ref, total, sum)
     if (min_class_loc, max_class_loc) == (0, math.inf):
         make_prc_plot_for([
             ("LOC", class_size_prob),
             ("VD", vd_prob_max),
             # ("VDSum", vd_prob_sum),
+            # mega_best,
             ("LM", bb),
         ], ref, total, "vd_ref_all")
     else:

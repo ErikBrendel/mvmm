@@ -344,9 +344,6 @@ class RepoTree:
 
             file.walk_tree(handle)
         print("Found " + str(found_nodes.node_count()) + " directories, files, classes, methods and fields!")
-
-        # with open("../debug-tree.json", "w") as outfile:
-        #     outfile.write(found_nodes.to_json())
         return found_nodes
 
     def __init__(self, parent: Optional['RepoTree'], name: str, ts_node=None):

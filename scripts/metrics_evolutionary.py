@@ -5,7 +5,6 @@ from git import Commit, Diff, DiffIndex
 from graph import ExplicitCouplingGraph
 from util import *
 from local_repo import *
-from timeit import default_timer as timer
 
 MIN_COMMIT_FILES = 1
 MAX_COMMIT_FILES = 50
@@ -13,7 +12,6 @@ MIN_COMMIT_METHODS = 2
 MAX_COMMIT_METHODS = 200  # TODO add one zero here and then implement couple_clique on graph side
 
 
-# needs to be separate so that multiprocessing lib can find it
 def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[Set[str]]:
     # repo_tree = repo.get_tree()
 
@@ -99,16 +97,12 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[Set[str]]:
     c1 = repo.get_commit(commit_hash)
     if len(c1.parents) == 1:
         c2 = c1.parents[0]
-        # t4 = timer()
         diff = c1.diff(c2)
-        # t5 = timer()
         if not (MIN_COMMIT_FILES <= len(diff) <= MAX_COMMIT_FILES):
             return None
         diffs = {result for d in diff for result in blob_diff(d)}  # if repo_tree.has_node(result)
-        # t6 = timer()
         # print("Diff: " + str(len(diff)) + " / " + str(len(diffs)) + " changes")
 
-        # print("Time taken (ms):", round((t5-t4)*1000), "(getting git diff)", round((t6-t5)*1000), "(parsing sub-file diffs)", round((t6-t4)*1000), "(total)")
     elif len(c1.parents) == 2:
         return None  # TODO how to do sub-file diffs for merge commits?
         # c2 = c1.parents[0]
@@ -124,37 +118,6 @@ def get_commit_diff(commit_hash, repo: LocalRepo) -> Optional[Set[str]]:
     if not (MIN_COMMIT_METHODS <= len(diffs) <= MAX_COMMIT_METHODS):
         return None
     return diffs
-
-
-def old_couple_by_same_commits(repo: LocalRepo, coupling_graph: ExplicitCouplingGraph):
-    def processDiffs(diffs: Set[str]):
-        score = 2 / len(diffs)
-        diffs = [d for d in diffs if repo.get_tree().has_node(d)]
-        for f1, f2 in all_pairs(diffs):
-            coupling_graph.add(f1, f2, score)
-        for node in diffs:
-            coupling_graph.add_support(node, 1)
-
-    print("Discovering commits...")
-    all_commits = list(repo.get_all_commits())
-    # shuffle(all_commits)
-    print("Done!")
-    repo.get_tree()
-    print("Commits to analyze: " + str(len(all_commits)))
-
-    map_parallel(
-        all_commits,
-        partial(get_commit_diff, repo=repo),
-        processDiffs,
-        "Analyzing commits",
-        force_non_parallel=False
-    )
-
-
-#########################################
-
-
-#########################################
 
 
 def find_changed_methods(repo: LocalRepo, parent_diffs: List[List[Diff]]) -> Set[str]:
@@ -364,9 +327,10 @@ def find_renamings(parent_diffs: List[List[Diff]]) -> Set[Tuple[str, str]]:
                 created.append(d)
             elif d.b_path is None:
                 deleted.append(d)
-    # TODO try to match up things from the created and deleted entries
+    # TODO try to match up things from the created and deleted entries (where git did not find that these are the same)
     #  extra task: also look within the modified-diffs (if within a modified file only one method is added / removed)
-    #  to match those up as well, not only per-file renamings
+    #  to match those up as well, not only per-file renamings.
+    #  Also, when files get renamed, their class will probably be renamed as well, which should get taken care of.
     if len(created) > 0 and len(deleted) > 0:
         pdb.set_trace()
     return result
@@ -392,7 +356,7 @@ def evo_new_analyze_commit(repo: LocalRepo, commit_sha: str, future_mapping: Fut
     return new_future
 
 
-def get_changed_methods_for_commit(data):
+def get_changed_methods_for_commit(data: Tuple[str, str]) -> Tuple[str, Tuple[Set[str], Set[Tuple[str, str]]]]:
     repo_name, commit_sha = data
     repo = LocalRepo.for_name(repo_name, force_new_instance=True)
     parent_diffs = get_commit_diffs(repo.get_commit(commit_sha))

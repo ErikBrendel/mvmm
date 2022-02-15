@@ -1,6 +1,5 @@
 import regex  # the cooler "re"
 from stop_words import get_stop_words
-from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer, FreqDist
 import string
 import numpy as np
@@ -12,14 +11,9 @@ from util import *
 # constants
 MIN_WORD_LENGTH = 1
 MAX_WORD_LENGTH = 50
-MIN_WORD_USAGES = 2  # any word used less often will be ignored
-MAX_DF = 0.95  # any terms that appear in a bigger proportion of the documents than this will be ignored (corpus-specific stop-words)
 MAX_FEATURES = 4000  # the size of the LDA thesaurus - amount of words to consider for topic learning
 TOPIC_COUNT = 10  # 40  # 100 according to paper
 BTM_ITERATIONS = 1000  # 100 according to docs?
-LDA_RANDOM_SEED = 42
-DOCUMENT_SIMILARITY_EXP = 8  # higher = lower equality values, lower = equality values are all closer to 1
-DOCUMENT_SIMILARITY_CUTOFF = 0.05  # in range [0 .. 1]: everything below this is dropped
 
 CLI_PATH = os.getenv("BTM_EXECUTABLE", "/home/ebrendel/util/btm/btm")
 
@@ -32,7 +26,8 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
                          "nonlocal", "not", "null", "number", "of", "or", "package", "pass", "private", "protected", "public", "raise", "require", "return", "set", "short", "static", "strictfp",
                          "string", "super", "switch", "symbol", "synchronized", "this", "throw", "throws", "transient", "true", "True", "try", "type", "typeof", "var", "void", "volatile", "while",
                          "with", "yield"]
-    stop_words = set(list(get_stop_words('en')) + custom_stop_words)  # TODO ignored "list(stopwords.words('english'))" because it had "y" and other weird ones
+    stop_words = set(list(get_stop_words('en')) + custom_stop_words)
+    # language=RegExp <-- this comment tells PyCharm to enable regex highlighting on the string below
     splitter = r"(?:[\W_]+|(?<![A-Z])(?=[A-Z])|(?=[A-Z][a-z]))"
     lemma = WordNetLemmatizer()
     printable_characters = set(string.printable)
@@ -51,9 +46,6 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
         words = [word for word in words if word not in stop_words]
         return words
 
-    # see https://docs.python.org/2/library/collections.html#collections.Counter
-    freq_dist = FreqDist()
-
     node_words: List[Tuple[RepoTree, List[str]]] = []  # List of (RepoTree-Node,wordList) - tuples
     for file in log_progress(files, desc="Extracting language corpus"):
         node = file.get_repo_tree_node()  # TODO unify with references view code
@@ -71,22 +63,12 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
                 text = member.get_comment_and_own_text(file)
                 # words = list(_get_text(class_node.get_path() + " " + text))
                 words = list(_get_text(class_node.name + " " + text))
-                for word in words:
-                    freq_dist[word] += 1
                 # TODO: handle the empty list?!?
                 node_words.append((member, words))
                 # print(" ".join(words))
 
-    # random.seed(LDA_RANDOM_SEED)
-    # random.shuffle(node_words)
-
-    for word in freq_dist:
-        if freq_dist[word] < MIN_WORD_USAGES:
-            del freq_dist[word]
-
     print("Amount of documents: " + str(len(node_words)))
     print("Total Amount of words: " + str(sum([len(b) for a, b in node_words])))
-    print("Vocab size: " + str(len(freq_dist)))
     return node_words
 
 

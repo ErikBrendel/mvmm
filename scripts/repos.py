@@ -45,49 +45,6 @@ repos_small = [
     "elastic/elasticsearch",
 ]
 
-repos_multiview = [
-    "jfree/jfreechart",
-    # "apache/ant",  # evo view hangs and crashes
-    # "apache/hadoop",  # too big?
-    "hunterhacker/jdom",
-    "eclipse/aspectj.eclipse.jdt.core",
-    "vanzin/jEdit",  # private mirror
-    "wumpz/jhotdraw",  # private mirror
-    "wrandelshofer/jhotdraw/JHotDraw",
-    "wrandelshofer/jhotdraw/jhotdraw6",
-    "wrandelshofer/jhotdraw/jhotdraw7",
-    "wrandelshofer/jhotdraw/jhotdraw8",
-    "junit-team/junit4",
-    # "junit-team/junit5",
-    "apache/log4j",
-    "Waikato/weka-3.8",
-]
-
-repos_manual = [
-    # "wrandelshofer/jhotdraw/JHotDraw",
-    # "wrandelshofer/jhotdraw/jhotdraw6",
-    # "wrandelshofer/jhotdraw/jhotdraw7",
-    # "wrandelshofer/jhotdraw/jhotdraw8",
-    # "wumpz/jhotdraw",
-    "ErikBrendel/LudumDare",
-    "ErikBrendel/LD35",
-    # "jenkinsci/jenkins",
-    # "eclipse/aspectj.eclipse.jdt.core",  # from duerschmidt
-    # "neuland/jade4j",
-    "jfree/jfreechart",
-    # "brettwooldridge/HikariCP",
-    # "adamfisk/LittleProxy",
-    # "dynjs/dynjs",
-    # "SonarSource/sonarqube",
-    # "eclipse/che",
-    # "elastic/elasticsearch",
-    # "apache/camel",
-    # "jOOQ/jOOQ",
-    # "netty/netty",
-    # "ErikBrendel/ProgressiveImageEditor",
-]
-
-#repos_all = list(set(repos_multiview + repos_small + repos_medium + repos_big + repos_manual))
 repos_all = [
     'chrisbanes/PhotoView',
     'ErikBrendel/LD35',
@@ -123,11 +80,8 @@ repos_all = [
     'elastic/elasticsearch'
 ]
 
-# select which one to use here
-repos = repos_all
 
-
-# those are the ones i'm using for my thesis
+# those are the ones i am using in my thesis
 repos_and_versions = [
     ("hunterhacker/jdom:JDOM-2.0.6", [
         "JDOM-2.0.4",

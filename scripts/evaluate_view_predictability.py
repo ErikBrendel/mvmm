@@ -2,6 +2,8 @@ import math
 import random
 import time
 from typing import *
+
+from analysis import ALL_VIEWS
 from workarounds import *
 
 import matplotlib.pyplot as plt
@@ -12,7 +14,7 @@ from graph import CouplingGraph
 from local_repo import LocalRepo
 from metrics import MetricManager
 from util import log_progress, all_pairs, score_sorting_similarity
-
+from repos import all_new_repos
 from cachier import cachier
 
 import os
@@ -21,32 +23,8 @@ print(cwd)
 
 plt.rcParams['figure.dpi'] = 150
 
-repos = [
-    "jfree/jfreechart",
-    "vanzin/jEdit",
-    "junit-team/junit4",
-
-    # "jfree/jfreechart:v1.5.3",
-    # "jfree/jfreechart:v1.5.0",
-    # "jfree/jfreechart:v1.0.19",
-    # "ErikBrendel/LudumDare",
-    # "ErikBrendel/LD35",
-
-    "jOOQ/jOOQ",
-    "wumpz/jhotdraw",
-    # "neuland/jade4j",
-    "apache/log4j",
-    # "hunterhacker/jdom",
-    "jenkinsci/jenkins",
-    "brettwooldridge/HikariCP",
-    # "adamfisk/LittleProxy",
-    # "dynjs/dynjs",
-    "SonarSource/sonarqube",
-    "eclipse/aspectj.eclipse.jdt.core",
-]
-metrics = ["references", "evolutionary", "linguistic", "module_distance"]
-
-#repos.sort(key=lambda repo: len(LocalRepo.for_name(repo).get_all_interesting_files()))
+repos = all_new_repos
+metrics = ALL_VIEWS
 
 
 fig, axes = plt.subplots(len(repos), 4, figsize=(15, len(repos) * 2.5), constrained_layout=True)
@@ -123,7 +101,7 @@ for ri, repo in enumerate(repos):
         tax.boundary(linewidth=1.0)
         axes[ri, mi].axis('off')
         if mi == 0:
-            axes[ri, mi].text(-0.4, 0.5, " / ".join(repo.split("/")), horizontalalignment='center',
+            axes[ri, mi].text(-0.4, 0.5, "\n".join(" / ".join(repo.split("/")).split(":")), horizontalalignment='center',
                               verticalalignment='center', transform=axes[ri, mi].transAxes,
                               rotation="vertical", fontsize=12)
         if ri == 0:

@@ -9,7 +9,6 @@ from metrics_evolutionary import get_commit_diff
 from graph import CombinedCouplingGraph, CachedCouplingGraph, CouplingGraph, graph_manager
 from prcoessify import processify
 from plotting import parallel_coordinates
-# from graph import CachedCouplingGraph, CouplingGraph, CombinedCouplingGraph, graph_manager
 from util import log_progress, generate_one_distributions
 from typing import *
 

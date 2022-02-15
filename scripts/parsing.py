@@ -1,8 +1,6 @@
 from tree_sitter import Language, Parser, Node
 # https://github.com/tree-sitter/py-tree-sitter
 
-import pdb
-import regex
 
 language_lib_path = '../lib/my-languages.so'
 Language.build_library(

@@ -15,19 +15,10 @@ METRIC_GRAPH_CLASSES = {
 
 
 class MetricsGeneration:
-    # ascii art: http://patorjk.com/software/taag/#p=display&f=Soft&t=REFERENCES%0A.%0ALINGUISTIC%0A.%0AEVOLUTIONARY%0A.%0ADYNAMIC
     def __init__(self, repo: LocalRepo):
         self.repo = repo
 
     def calculate_evolutionary_connections(self) -> ExplicitCouplingGraph:
-        """
-,------.,--.   ,--.,-----. ,--.   ,--. ,--.,--------.,--. ,-----. ,--.  ,--.  ,---.  ,------.,--.   ,--.
-|  .---' \  `.'  /'  .-.  '|  |   |  | |  |'--.  .--'|  |'  .-.  '|  ,'.|  | /  O  \ |  .--. '\  `.'  /
-|  `--,   \     / |  | |  ||  |   |  | |  |   |  |   |  ||  | |  ||  |' '  ||  .-.  ||  '--'.' '.    /
-|  `---.   \   /  '  '-'  '|  '--.'  '-'  '   |  |   |  |'  '-'  '|  | `   ||  | |  ||  |\  \    |  |
-`------'    `-'    `-----' `-----' `-----'    `--'   `--' `-----' `--'  `--'`--' `--'`--' '--'   `--'
-        """
-
         coupling_graph = ExplicitCouplingGraph("evolutionary")
 
         self.repo.get_tree()
@@ -42,14 +33,6 @@ class MetricsGeneration:
         pass
 
     def calculate_references_connections(self) -> ExplicitCouplingGraph:
-        """
-,------. ,------.,------.,------.,------. ,------.,--.  ,--. ,-----.,------. ,---.
-|  .--. '|  .---'|  .---'|  .---'|  .--. '|  .---'|  ,'.|  |'  .--./|  .---''   .-'
-|  '--'.'|  `--, |  `--, |  `--, |  '--'.'|  `--, |  |' '  ||  |    |  `--, `.  `-.
-|  |\  \ |  `---.|  |`   |  `---.|  |\  \ |  `---.|  | `   |'  '--'\|  `---..-'    |
-`--' '--'`------'`--'    `------'`--' '--'`------'`--'  `--' `-----'`------'`-----'
-        """
-
         coupling_graph = ExplicitCouplingGraph("references")
 
         context = ReferencesContext(self.repo)
@@ -67,14 +50,6 @@ class MetricsGeneration:
         pass
 
     def calculate_linguistic_connections(self) -> SimilarityCouplingGraph:
-        """
-,--.   ,--.,--.  ,--. ,----.   ,--. ,--.,--. ,---. ,--------.,--. ,-----.
-|  |   |  ||  ,'.|  |'  .-./   |  | |  ||  |'   .-''--.  .--'|  |'  .--./
-|  |   |  ||  |' '  ||  | .---.|  | |  ||  |`.  `-.   |  |   |  ||  |
-|  '--.|  ||  | `   |'  '--'  |'  '-'  '|  |.-'    |  |  |   |  |'  '--'\
-`-----'`--'`--'  `--' `------'  `-----' `--'`-----'   `--'   `--' `-----'
-        """
-
         coupling_graph = SimilarityCouplingGraph("linguistic")
 
         node_words = extract_topic_model_documents(self.repo.get_all_interesting_files())
@@ -91,8 +66,6 @@ class MetricsGeneration:
 
     def post_module_distance(self, coupling_graph: ModuleDistanceCouplingGraph):
         pass
-
-    # -------------------------------------------------------------------------------------------
 
 
 class MetricManager:

@@ -91,30 +91,6 @@ class Env(ABC):
         pass
 
 
-class EnvWrapper(Env):
-    def __init__(self, wrapped):
-        Env.__init__(self, wrapped.context, wrapped.path)
-        self.wrapped = wrapped
-
-    def get_env_for_single_name(self, name):
-        return self.wrapped.get_env_for_single_name(name)
-
-    def get_env_for_array_access(self):
-        return self.wrapped.get_env_for_array_access()
-
-    def get_result_type_envs(self):
-        return self.wrapped.get_result_type_envs()
-
-    def get_self_paths(self):
-        return self.wrapped.get_self_paths()
-
-    def get_ungeneric_env(self):
-        return self.wrapped.get_ungeneric_env()
-
-    def debug_location_info(self):
-        return self.wrapped.debug_location_info()
-
-
 class RepoTreeEnv(Env):
     """the identifier-lookup environment of a whole file"""
 
@@ -478,7 +454,7 @@ class ReferencesContext:
         return result_env
 
 
-# TODOS:
+# TODO:
 # detect complex generic types (List<Foo>) and at least couple to foo, do not handle list.get(0).foomethod()
 # properly handle arrays of things (ignore the .length attribute, but correctly infer type for further method call resolving)
 

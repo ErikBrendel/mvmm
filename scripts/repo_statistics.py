@@ -87,7 +87,7 @@ print("\nVersion Table:\n")
 for repo, versions in repos_and_versions:
     r = LocalRepo.for_name(repo)
     repo_user, repo_name = r.repo_name.split("/")
-    repo_header_cell = r"\midrule"'\n'r"    \multirow{" + str(len(versions)) + r"}{*}{\begin{tabular}[c]{@{}l@{}}" + repo_user + r"/\\ " + repo_name + r"\\ (" + r.committish + r")\end{tabular}}"
+    repo_header_cell = r"\midrule"'\n'r"    \multirow{" + str(len(versions)) + r"}{*}{\begin{tabular}[c]{@{}l@{}}{\scriptsize " + repo_user + r"/}" + repo_name + r"\\ ~~\emph{\scriptsize " + r.committish + r"}\end{tabular}}"
     for i, version in enumerate(versions):
         old_r = r.get_old_version(version)
         month_count = (get_date(r) - get_date(old_r)).days / (365.25 / 12)
