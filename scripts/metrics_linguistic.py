@@ -20,6 +20,7 @@ CLI_PATH = os.getenv("BTM_EXECUTABLE", "/home/ebrendel/util/btm/btm")
 
 def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  # List of (RepoTree-Node,wordList) - tuples
     # keywords from python, TS and Java
+    # TODO maybe use far less stopwords, or none at all? Should test whether that makes it better!
     custom_stop_words = ["abstract", "and", "any", "as", "assert", "async", "await", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "constructor", "continue", "debugger",
                          "declare", "def", "default", "del", "delete", "do", "double", "elif", "else", "enum", "except", "export", "extends", "false", "False", "final", "finally", "float", "for",
                          "from", "function", "get", "global", "goto", "if", "implements", "import", "in", "instanceof", "int", "interface", "is", "lambda", "let", "long", "module", "new", "None",
@@ -45,6 +46,10 @@ def extract_topic_model_documents(files) -> List[Tuple[RepoTree, List[str]]]:  #
         words = [word for word in words if MIN_WORD_LENGTH <= len(word) <= MAX_WORD_LENGTH]
         words = [word for word in words if word not in stop_words]
         return words
+
+    # TODO instead of using all members of all classes, use all leaf nodes in the repo tree
+    #  maybe even use a class as BTM document even if it has members on its own, if it is a short class?
+    #  The additional class comment etc may make it worthwhile to not define it as only the sum of its parts.
 
     node_words: List[Tuple[RepoTree, List[str]]] = []  # List of (RepoTree-Node,wordList) - tuples
     for file in log_progress(files, desc="Extracting language corpus"):

@@ -256,6 +256,13 @@ class SimilarityCouplingGraph(CouplingGraph):
             return None
         return float(result[0]), [float(c) for c in result[1:]]
 
+    def similarity_has_node(self, node_name: str) -> bool:
+        supp_coords = self.similarity_get_node(node_name)
+        if supp_coords is None:
+            return False
+        supp, coords = supp_coords
+        return supp > 0 and sum(coords) > 0  # float > 0 is also false for NaN
+
 
 class ModuleDistanceCouplingGraph(CouplingGraph):
     def __init__(self, id: Optional[int] = None):

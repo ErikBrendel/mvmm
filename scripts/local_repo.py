@@ -313,7 +313,7 @@ class RepoFile:
         tree_node_names = []
         if cursor.node.type == "class_declaration" or cursor.node.type == "interface_declaration" or cursor.node.type == "enum_declaration":
             tree_node_names.append(self.node_text(cursor.node.child_by_field_name("name")))
-        elif cursor.node.type == "field_declaration":
+        elif cursor.node.type == "field_declaration":  # TODO: in interfaces, those are not "field_declaration", but "constant_declaration", which our code should handle in the same way!
             declarators = [child for child in cursor.node.children if child.type == "variable_declarator"]
             tree_node_names += [self.node_text(d.child_by_field_name("name")) for d in declarators]
         elif cursor.node.type == "method_declaration":
@@ -446,6 +446,15 @@ class RepoTree:
             node_type = node_type[0:-len("_declaration")]
         return node_type
 
+    def get_type_including_file(self):
+        raw_type = self.get_type()
+        if raw_type is None:
+            if self.is_file_node():
+                return "file"
+            else:
+                return "directory"
+        return raw_type
+
     def get_simple_type(self) -> str:
         raw_type = self.get_type()
         if raw_type in ["class", "enum", "interface"]:
@@ -532,6 +541,7 @@ class RepoTree:
         return file.node_text(previous_sibling)
 
     def get_comment_and_own_text(self, file: RepoFile) -> str:
+        # TODO incorporate self.additional_ts_nodes in here as well!
         return (self.get_preceding_comment_text(file) or "") + "\n" + self.get_text(file)
 
     def get_comment_and_own_text_formatted(self, file: RepoFile) -> str:

@@ -305,6 +305,7 @@ class ReferencesContext:
                     print("Cannot find a class in this file!", file.get_path())
 
         for file in log_progress(self.files, desc="Building Import Graph 2"):
+            # TODO this system does nt handle wildcard imports: "import mypackage.foo.bar.*"
             imports = [self.full_class_name_to_path[i] for i in _get_import_strings(file) if i in self.full_class_name_to_path]
             self.file_path_to_imports[file.get_path()] = imports
 
@@ -448,6 +449,7 @@ class ReferencesContext:
                 import_node = self.repo.get_tree().find_node(import_path)
                 if import_node is not None:
                     return RepoTreeEnv(self, import_node)
+        # TODO maybe it is the name of a class within the same package? Those do not need to be imported explicitly, so we have to take care of them here
         result_env = RepoTreeEnv(self, context_file_node).get_env_for_name(type_name)
         if result_env is None:
             return None
